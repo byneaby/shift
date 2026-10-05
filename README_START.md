@@ -55,7 +55,7 @@
    npm install
    npm run dev
    ```
-   **Важно:** в `vite.config.ts` прокси API указывает на `http://192.168.1.200:5080` (машина в клубе). На новой машине замените его на `http://localhost:5080`.
+   Прокси API по умолчанию смотрит на `http://localhost:5080`. Если API запущен на другой машине, задайте перед `npm run dev` переменную `SHIFTCLUB_API_URL`, например `$env:SHIFTCLUB_API_URL = 'http://192.168.0.10:5080'`.
 
 6. **Тесты:** `dotnet test` из `01_source_code`.
 
@@ -63,4 +63,4 @@
 
 ## Как вернуть изменения в клуб
 
-Выкладка на клуб (`192.168.1.250`) делается скриптами из `scripts`: `Deploy-Web.ps1`, `Publish-ClientUpdate.ps1` и копированием DLL API в `C:\ShiftClub\Server`. Скрипты рассчитаны на запуск на сервере клуба. С другой машины ничего в клуб автоматически не уходит.
+Выкладка делается скриптами из `scripts`: `Deploy-Web.ps1`, `Publish-ClientUpdate.ps1`, `Publish-ServerUpdate.ps1`. Адреса и пути берутся из `scripts\deploy.config.json` (шаблон — `scripts\deploy.config.example.json`), в коде они больше не зашиты. Скрипты рассчитаны на запуск на сервере клуба. С другой машины ничего в клуб автоматически не уходит.
