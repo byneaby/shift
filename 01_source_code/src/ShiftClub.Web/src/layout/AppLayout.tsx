@@ -7,7 +7,10 @@ import { LicenseBanner } from '../components/LicenseBanner'
 import { StaffNotifications } from '../components/StaffNotifications'
 import { rolesLabel } from '../format'
 import { can } from '../permissions'
+import { LicenseFeature, useLicenseStatus } from '../licensing'
 import { useDisableBrowserAutofill } from '../disableBrowserAutofill'
+
+const ALL_FEATURES: readonly string[] = Object.values(LicenseFeature)
 
 const NAV = [
   {
@@ -18,7 +21,14 @@ const NAV = [
       { to: '/bookings', label: 'Брони', icon: 'book', hint: 'Бронирование', perm: 'bookings.view' },
       { to: '/cash', label: 'Касса', icon: 'cash', hint: 'Смена и чеки', perm: 'cash.view' },
       { to: '/customers', label: 'Клиенты', icon: 'user', hint: 'Баланс и банк', perm: 'customers.view' },
-      { to: '/cases', label: 'SHIFT CASE', icon: 'case', hint: 'Кейсы и выдача', perm: 'customers.view' },
+      {
+        to: '/cases',
+        label: 'Кейсы',
+        icon: 'case',
+        hint: 'Кейсы и выдача',
+        perm: 'customers.view',
+        feature: LicenseFeature.ShiftCase,
+      },
       { to: '/wiki', label: 'Инструкция', icon: 'wiki', hint: 'Как работать на кассе' },
       { to: '/software', label: 'Программы', icon: 'apps', hint: 'Каталог игр на ПК', perm: 'computers.view' },
       { to: '/computers', label: 'Компьютеры', icon: 'pc', hint: 'ПК и коды', perm: 'computers.manage' },
@@ -270,6 +280,9 @@ export function AppLayout() {
   const [navOpen, setNavOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
   const title = useMemo(() => pageTitle(location.pathname), [location.pathname])
+  const license = useLicenseStatus()
+  // Пока лицензия не загрузилась, показываем все разделы: иначе меню мигает при входе.
+  const licensedFeatures: readonly string[] = license.data?.features ?? ALL_FEATURES
 
   useEffect(() => {
     setNavOpen(false)
@@ -322,7 +335,9 @@ export function AppLayout() {
           {NAV.map((group) => {
             const items = group.items.filter((item) => {
               const perm = 'perm' in item ? item.perm : undefined
-              return !perm || can(perm)
+              if (perm && !can(perm)) return false
+              const feature = 'feature' in item ? item.feature : undefined
+              return !feature || licensedFeatures.includes(feature)
             })
             if (items.length === 0) return null
             return (

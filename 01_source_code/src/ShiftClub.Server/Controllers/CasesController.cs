@@ -7,6 +7,7 @@ using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.Cases;
 using ShiftClub.Shared.Enums;
 using ShiftClub.Shared.ErrorCodes;
+using ShiftClub.Shared.Licensing;
 using ShiftClub.Shared.Permissions;
 using System.Security.Claims;
 
@@ -43,6 +44,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPut("admin")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.SettingsManage)]
     public async Task<ActionResult<ApiResponse<CaseAdminDto>>> UpdateAdmin(
         [FromBody] UpdateCaseAdminRequest request,
@@ -59,6 +61,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPost("admin/prizes")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.SettingsManage)]
     public async Task<ActionResult<ApiResponse<CaseAdminPrizeDto>>> CreatePrize(
         [FromBody] UpsertCasePrizeRequest request,
@@ -76,6 +79,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPut("admin/prizes/{prizeId:guid}")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.SettingsManage)]
     public async Task<ActionResult<ApiResponse<CaseAdminPrizeDto>>> UpdatePrize(
         Guid prizeId,
@@ -98,6 +102,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPost("admin/prizes/{prizeId:guid}/active")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.SettingsManage)]
     public async Task<ActionResult<ApiResponse>> SetPrizeActive(
         Guid prizeId,
@@ -116,6 +121,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPost("admin/prizes/{prizeId:guid}/image")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequestSizeLimit(8_000_000)]
     [RequirePermission(PermissionCodes.SettingsManage)]
     public async Task<ActionResult<ApiResponse<CaseAdminPrizeDto>>> UploadPrizeImage(
@@ -188,6 +194,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPost("seed")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.SettingsManage)]
     public async Task<ActionResult<ApiResponse>> Seed(CancellationToken cancellationToken)
     {
@@ -197,6 +204,7 @@ public sealed class CasesController : ControllerBase
 
     /// <summary>Касса: продать ключи SHIFT CASE гостю.</summary>
     [HttpPost("buy-keys")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.CustomersDeposit, PermissionCodes.CustomersManage)]
     public async Task<ActionResult<ApiResponse<BuyCaseKeysResultDto>>> BuyKeys(
         [FromBody] BuyCaseKeysRequest request,
@@ -219,6 +227,7 @@ public sealed class CasesController : ControllerBase
 
     /// <summary>Касса: начислить ключи вручную (подарок / компенсация).</summary>
     [HttpPost("grant-keys")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.CustomersManage, PermissionCodes.CustomersAdjust)]
     public async Task<ActionResult<ApiResponse>> GrantKeys(
         [FromBody] CaseGrantKeysRequest request,
@@ -261,6 +270,7 @@ public sealed class CasesController : ControllerBase
     }
 
     [HttpPost("rewards/{rewardId:guid}/claim")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.CustomersManage, PermissionCodes.CustomersView)]
     public async Task<ActionResult<ApiResponse<CaseUserRewardDto>>> ClaimReward(
         Guid rewardId,
@@ -314,6 +324,7 @@ public sealed class CasesController : ControllerBase
 
     /// <summary>Касса: отправить гостя на экран акции (второй монитор с /promo/upgrade).</summary>
     [HttpPost("desk-show/{customerId:guid}")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.CustomersManage, PermissionCodes.CustomersView)]
     public async Task<ActionResult<ApiResponse<DeskDisplayCommandDto>>> DeskShow(
         Guid customerId,
@@ -351,6 +362,7 @@ public sealed class CasesController : ControllerBase
 
     /// <summary>Касса: открыть кейс гостю (ключ за регистрацию / подарок).</summary>
     [HttpPost("open/{customerId:guid}")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     [RequirePermission(PermissionCodes.CustomersManage, PermissionCodes.CustomersView)]
     public async Task<ActionResult<ApiResponse<CaseOpenResultDto>>> OpenForCustomer(
         Guid customerId,

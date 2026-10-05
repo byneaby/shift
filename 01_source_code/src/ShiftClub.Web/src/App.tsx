@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { getToken } from './api/client'
 import { AppLayout } from './layout/AppLayout'
-import { RequirePerm } from './RequirePerm'
+import { RequireFeature, RequirePerm } from './RequirePerm'
 import { DashboardPage } from './pages/DashboardPage'
 import { FloorMapPage } from './pages/FloorMapPage'
 import { CashPage } from './pages/CashPage'
@@ -28,6 +28,7 @@ import { CasesPage } from './pages/CasesPage'
 import { WikiPage } from './pages/WikiPage'
 import { LoginPage } from './pages/LoginPage'
 import { Perm } from './permissions'
+import { LicenseFeature } from './licensing'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -120,7 +121,9 @@ export default function App() {
               path="cases"
               element={
                 <RequirePerm anyOf={[Perm.CustomersView, Perm.SettingsManage]}>
-                  <CasesPage />
+                  <RequireFeature feature={LicenseFeature.ShiftCase}>
+                    <CasesPage />
+                  </RequireFeature>
                 </RequirePerm>
               }
             />
