@@ -35,6 +35,8 @@ public static class DependencyInjection
         services.AddSingleton<LicenseCache>();
         services.AddScoped<ILicenseService, LicenseService>();
         services.AddSingleton<BackupRunState>();
+        services.AddSingleton<BrandingCache>();
+        services.AddScoped<IBrandingService, BrandingService>();
         services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBranchService, BranchService>();

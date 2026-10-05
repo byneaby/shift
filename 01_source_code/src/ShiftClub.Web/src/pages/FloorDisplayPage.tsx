@@ -6,6 +6,7 @@ import * as signalR from '@microsoft/signalr'
 import { classifyFloorPc } from '../occupancy'
 import { FloorMapCanvas, type FloorMapElement } from '../components/FloorMapCanvas'
 import { isOpenBookingStatus } from '../format'
+import { useBranding } from '../branding'
 
 type FloorMapDto = {
   branchId: string
@@ -92,6 +93,7 @@ function formatClock(d: Date) {
 
 export function FloorDisplayPage() {
   const queryClient = useQueryClient()
+  const branding = useBranding()
   const [now, setNow] = useState(() => new Date())
   const [themeIndex, setThemeIndex] = useState(readStoredThemeIndex)
   const [hudVisible, setHudVisible] = useState(false)
@@ -293,8 +295,8 @@ export function FloorDisplayPage() {
       <header className="display-head">
         <div className="display-head-brand">
           <div className="display-logo">
-            <span className="display-logo__mark">SHIFT</span>
-            <span className="display-logo__sub">cyber club</span>
+            <span className="display-logo__mark">{branding.shortName}</span>
+            <span className="display-logo__sub">{branding.clubName}</span>
           </div>
           <h1 className="display-title">Зал · прайс</h1>
         </div>
@@ -364,7 +366,7 @@ export function FloorDisplayPage() {
       </div>
 
       <footer className="display-foot">
-        <span className="display-foot__badge">SHIFT</span>
+        <span className="display-foot__badge">{branding.shortName}</span>
         <div className="display-foot__track">
           <span>Карта зала</span>
           <span>{theme.hint}</span>

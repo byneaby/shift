@@ -197,7 +197,7 @@ export function CasesPage() {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>SHIFT CASE</h1>
+          <h1>Кейсы</h1>
           <p className="muted">Награды и шансы. Открытие кейса — только на кассе.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

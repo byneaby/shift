@@ -25,17 +25,20 @@ public sealed class TelegramCrmService : ITelegramCrmService
     private readonly ShiftClubDbContext _db;
     private readonly IClubSettingsService _settings;
     private readonly ICustomerTelegramNotifySink _notify;
+    private readonly IBrandingService _branding;
     private readonly ILogger<TelegramCrmService> _logger;
 
     public TelegramCrmService(
         ShiftClubDbContext db,
         IClubSettingsService settings,
         ICustomerTelegramNotifySink notify,
+        IBrandingService branding,
         ILogger<TelegramCrmService> logger)
     {
         _db = db;
         _settings = settings;
         _notify = notify;
+        _branding = branding;
         _logger = logger;
     }
 
@@ -76,6 +79,8 @@ public sealed class TelegramCrmService : ITelegramCrmService
         if (candidates.Count == 0)
             return 0;
 
+        var club = (await _branding.GetAsync(cancellationToken)).TelegramSignature;
+
         // Перемешиваем, чтобы не всегда одним и тем же первым в списке
         var rng = Random.Shared;
         for (var i = candidates.Count - 1; i > 0; i--)
@@ -94,7 +99,7 @@ public sealed class TelegramCrmService : ITelegramCrmService
             if (pick is null)
                 continue;
 
-            var html = BuildMessage(pick.Value.Kind, c, promo, local);
+            var html = BuildMessage(pick.Value.Kind, c, promo, local, club);
             if (string.IsNullOrWhiteSpace(html))
                 continue;
 
@@ -293,8 +298,10 @@ public sealed class TelegramCrmService : ITelegramCrmService
         string kind,
         Candidate c,
         MarketingPromoStoredSettings promo,
-        DateTimeOffset localNow)
+        DateTimeOffset localNow,
+        string clubName)
     {
+        var club = WebUtility.HtmlEncode(clubName);
         var name = SanitizeName(c.FirstName);
         var hi = string.IsNullOrEmpty(name) ? "Привет" : $"Привет, {WebUtility.HtmlEncode(name)}";
 
@@ -302,25 +309,29 @@ public sealed class TelegramCrmService : ITelegramCrmService
         {
             TelegramCrmKinds.UnusedKey => Pick(new[]
             {
-                $"{hi}!\n\nУ тебя есть ключ <b>SHIFT CASE</b> — можно открыть на кассе и забрать приз (время, скидка, баланс или бар).\n\nЗагляни, когда будешь рядом 🎮",
-                $"{hi}!\n\nКлюч кейса ждёт на аккаунте. На кассе откроем <b>SHIFT CASE</b> — рулетка на экране, приз сразу.\n\nБез обязательств, просто не забудь 🔑",
-                $"{hi}!\n\nНапоминалка по-дружески: ключ <b>SHIFT CASE</b> ещё не открыт. Как будешь в SHIFT — скажи на кассе."
+                $"{hi}!\n\nУ тебя есть <b>ключ кейса</b> — можно открыть на кассе и забрать приз (время, скидка, баланс или бар).\n\nЗагляни, когда будешь рядом 🎮",
+                $"{hi}!\n\nКлюч кейса ждёт на аккаунте. На кассе откроем <b>кейс</b> — рулетка на экране, приз сразу.\n\nБез обязательств, просто не забудь 🔑",
+                $"{hi}!\n\nНапоминалка по-дружески: <b>ключ кейса</b> ещё не открыт. Как будешь в {club} — скажи на кассе."
             }, c.CustomerId.GetHashCode(), localNow.Day),
 
             TelegramCrmKinds.Winback => Pick(new[]
             {
-                $"{hi}!\n\nДавно не виделись в <b>SHIFT</b>. Если захочешь зайти — на кассе подскажут актуальные пакеты и места.\n\nБудем рады 👋",
-                $"{hi}!\n\nСоскучились по тебе в зале. Есть свободные ПК и нормальный вайб — заходи, когда удобно.\n\nSHIFT Cyber Club",
+                $"{hi}!\n\nДавно не виделись в <b>{club}</b>. Если захочешь зайти — на кассе подскажут актуальные пакеты и места.\n\nБудем рады 👋",
+                $"{hi}!\n\nСоскучились по тебе в зале. Есть свободные ПК и нормальный вайб — заходи, когда удобно.\n\n{club}",
                 $"{hi}!\n\nКоротко: мы на месте, ПК живые, бар тоже. Если пропадёт настроение «поиграть» — знаешь, куда 😉"
             }, c.CustomerId.GetHashCode(), localNow.DayOfYear),
 
-            TelegramCrmKinds.Promo => BuildPromo(hi, promo, localNow),
+            TelegramCrmKinds.Promo => BuildPromo(hi, promo, localNow, club),
 
             _ => ""
         };
     }
 
-    private static string BuildPromo(string hi, MarketingPromoStoredSettings promo, DateTimeOffset localNow)
+    private static string BuildPromo(
+        string hi,
+        MarketingPromoStoredSettings promo,
+        DateTimeOffset localNow,
+        string club)
     {
         var pct = Math.Round(MarketingPromoMath.ClampPercent(promo.Percent));
         var title = string.IsNullOrWhiteSpace(promo.Title) ? promo.Label : promo.Title!;
@@ -331,7 +342,7 @@ public sealed class TelegramCrmService : ITelegramCrmService
 
         return Pick(new[]
         {
-            $"{hi}!\n\nСейчас в SHIFT: <b>{WebUtility.HtmlEncode(title)}</b> — минус {pct}% на пакеты (2+1, 3+2, день, ночь).{untilBit}\n\nПочасовка без этой скидки. За подробностями — на кассе.",
+            $"{hi}!\n\nСейчас в {club}: <b>{WebUtility.HtmlEncode(title)}</b> — минус {pct}% на пакеты (2+1, 3+2, день, ночь).{untilBit}\n\nПочасовка без этой скидки. За подробностями — на кассе.",
             $"{hi}!\n\nНапоминание без спама: акция <b>−{pct}%</b> на пакеты ещё идёт.{untilBit}\n\nЕсли планировал зайти — сейчас пакеты выгоднее обычного."
         }, (int)pct, localNow.Day);
     }

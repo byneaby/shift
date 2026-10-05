@@ -4,7 +4,7 @@ import { apiFetch } from '../api/client'
 import type { LicenseStatusDto } from '../api/client'
 
 const FEATURE_LABELS: Record<string, string> = {
-  shift_case: 'SHIFT CASE (рулетка)',
+  shift_case: 'Кейсы (рулетка)',
   multi_branch: 'Несколько филиалов',
   telegram_crm: 'Telegram CRM',
   kaspi_pos: 'Kaspi Smart POS',
@@ -193,7 +193,7 @@ export function LicensePage() {
             {error && <p className="error">{error}</p>}
 
             <p className="muted">
-              Ключ выдаёт поставщик SHIFT. Он подписан и содержит срок, лимит ПК и список возможностей —
+              Ключ выдаёт поставщик системы. Он подписан и содержит срок, лимит ПК и список возможностей —
               изменить его на стороне клуба нельзя. Для продления пришлют новый ключ, его нужно вставить сюда.
             </p>
 

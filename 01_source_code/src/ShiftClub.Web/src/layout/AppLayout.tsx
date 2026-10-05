@@ -8,6 +8,7 @@ import { StaffNotifications } from '../components/StaffNotifications'
 import { rolesLabel } from '../format'
 import { can } from '../permissions'
 import { LicenseFeature, useLicenseStatus } from '../licensing'
+import { useApplyBranding, useBranding } from '../branding'
 import { useDisableBrowserAutofill } from '../disableBrowserAutofill'
 
 const ALL_FEATURES: readonly string[] = Object.values(LicenseFeature)
@@ -52,6 +53,7 @@ const NAV = [
   {
     title: 'Система',
     items: [
+      { to: '/branding', label: 'Оформление', icon: 'brush', hint: 'Название и логотип', perm: 'settings.manage' },
       { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
       { to: '/backups', label: 'Копии базы', icon: 'save', hint: 'Бэкапы и восстановление', perm: 'settings.manage' },
     ],
@@ -261,7 +263,7 @@ function NavIcon({ name }: { name: string }) {
   }
 }
 
-function pageTitle(pathname: string): string {
+function pageTitle(pathname: string): string | null {
   if (pathname === '/' || pathname === '') return 'Главная'
   for (const group of NAV) {
     for (const item of group.items) {
@@ -269,7 +271,7 @@ function pageTitle(pathname: string): string {
       if (pathname === item.to || pathname.startsWith(`${item.to}/`)) return item.label
     }
   }
-  return 'SHIFT Club'
+  return null
 }
 
 export function AppLayout() {
@@ -279,7 +281,12 @@ export function AppLayout() {
   const wide = location.pathname === '/floor'
   const [navOpen, setNavOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
-  const title = useMemo(() => pageTitle(location.pathname), [location.pathname])
+  const branding = useBranding()
+  useApplyBranding(branding)
+  const title = useMemo(
+    () => pageTitle(location.pathname) ?? branding.clubName,
+    [location.pathname, branding.clubName],
+  )
   const license = useLicenseStatus()
   // Пока лицензия не загрузилась, показываем все разделы: иначе меню мигает при входе.
   const licensedFeatures: readonly string[] = license.data?.features ?? ALL_FEATURES
@@ -327,7 +334,10 @@ export function AppLayout() {
 
       <aside id="app-sidebar" className={`app-sidebar${navOpen ? ' is-open' : ''}`}>
         <div className="app-sidebar-brand">
-          <p className="brand">SHIFT Club</p>
+          {branding.logoUrl ? (
+            <img className="brand-logo" src={branding.logoUrl} alt={branding.clubName} />
+          ) : null}
+          <p className="brand">{branding.clubName}</p>
           <p className="sidebar-sub muted">Панель смены</p>
         </div>
 
@@ -405,7 +415,7 @@ export function AppLayout() {
             <span className="app-menu-btn__bars" aria-hidden />
           </button>
           <div className="app-mobile-bar__title">
-            <p className="brand app-mobile-brand">SHIFT</p>
+            <p className="brand app-mobile-brand">{branding.shortName}</p>
             <strong>{title}</strong>
           </div>
           <span className="app-mobile-bar__user muted" title={employee?.displayName ?? employee?.login ?? ''}>

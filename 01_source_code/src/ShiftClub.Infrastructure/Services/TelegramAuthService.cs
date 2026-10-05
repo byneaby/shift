@@ -31,6 +31,7 @@ public sealed class TelegramAuthService : ITelegramAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IAuthService _auth;
     private readonly ICaseService _cases;
+    private readonly IBrandingService _branding;
 
     public TelegramAuthService(
         ShiftClubDbContext db,
@@ -40,7 +41,8 @@ public sealed class TelegramAuthService : ITelegramAuthService
         ITelegramBotRuntime botRuntime,
         IPasswordHasher passwordHasher,
         IAuthService auth,
-        ICaseService cases)
+        ICaseService cases,
+        IBrandingService branding)
     {
         _db = db;
         _launcher = launcher;
@@ -50,6 +52,7 @@ public sealed class TelegramAuthService : ITelegramAuthService
         _passwordHasher = passwordHasher;
         _auth = auth;
         _cases = cases;
+        _branding = branding;
     }
 
     public async Task<ClientTelegramTicketDto> CreateTicketAsync(
@@ -329,6 +332,8 @@ public sealed class TelegramAuthService : ITelegramAuthService
         string? telegramDisplayName,
         CancellationToken cancellationToken = default)
     {
+        var club = (await _branding.GetAsync(cancellationToken)).ClubName;
+
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         var extracted = TryExtractTicketCode(code) ?? code.Trim().ToUpperInvariant();
@@ -341,7 +346,7 @@ public sealed class TelegramAuthService : ITelegramAuthService
             if (ticket.TelegramUserId == telegramUserId)
             {
                 await tx.CommitAsync(cancellationToken);
-                return "✅ Telegram уже подтверждён. Завершите регистрацию в приложении SHIFT или на ПК.";
+                return $"✅ Telegram уже подтверждён. Завершите регистрацию в приложении {club} или на ПК.";
             }
             throw new InvalidOperationException("Этот код уже ожидает регистрацию другим Telegram.");
         }
@@ -531,6 +536,8 @@ public sealed class TelegramAuthService : ITelegramAuthService
         string? telegramDisplayName,
         CancellationToken cancellationToken)
     {
+        var club = (await _branding.GetAsync(cancellationToken)).ClubName;
+
         var existingByTg = await _db.Customers
             .FirstOrDefaultAsync(c => c.TelegramUserId == telegramUserId && c.IsActive, cancellationToken);
 
@@ -545,11 +552,11 @@ public sealed class TelegramAuthService : ITelegramAuthService
                 ticket.TelegramUserId = telegramUserId;
                 ticket.PendingDisplayName = TrimDisplay(telegramDisplayName);
                 ticket.ResultMessage =
-                    "Telegram подтверждён. Создайте аккаунт в приложении SHIFT или заполните форму на ПК.";
+                    $"Telegram подтверждён. Создайте аккаунт в приложении {club} или заполните форму на ПК.";
                 ticket.UpdatedAt = DateTimeOffset.UtcNow;
                 await _db.SaveChangesAsync(cancellationToken);
                 return "✅ Telegram подтверждён.\n\n"
-                       + "• В приложении SHIFT: создайте аккаунт или привяжите существующий.\n"
+                       + $"• В приложении {club}: создайте аккаунт или привяжите существующий.\n"
                        + "• Или вернитесь к ПК и заполните форму справа.\n"
                        + "После этого вход на ПК выполнится автоматически.";
             }
@@ -586,7 +593,7 @@ public sealed class TelegramAuthService : ITelegramAuthService
                     "Telegram подтверждён. Создайте аккаунт, чтобы сохранить сеанс.";
                 ticket.UpdatedAt = DateTimeOffset.UtcNow;
                 await _db.SaveChangesAsync(cancellationToken);
-                return "✅ Telegram подтверждён. Создайте аккаунт в SHIFT или на ПК — сеанс сохранится автоматически.";
+                return $"✅ Telegram подтверждён. Создайте аккаунт в {club} или на ПК — сеанс сохранится автоматически.";
             }
         }
         else if (ticket.Purpose == "LinkAccount")
