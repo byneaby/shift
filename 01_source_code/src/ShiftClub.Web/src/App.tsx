@@ -25,6 +25,7 @@ import SettingsPage from './pages/SettingsPage'
 import { LicensePage } from './pages/LicensePage'
 import { BackupsPage } from './pages/BackupsPage'
 import { BrandingPage } from './pages/BrandingPage'
+import { CustomerImportPage } from './pages/CustomerImportPage'
 import { CasesPage } from './pages/CasesPage'
 import { WikiPage } from './pages/WikiPage'
 import { LoginPage } from './pages/LoginPage'
@@ -205,6 +206,14 @@ export default function App() {
               element={
                 <RequirePerm anyOf={[Perm.SettingsManage]}>
                   <LicensePage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="customers/import"
+              element={
+                <RequirePerm anyOf={[Perm.CustomersManage, Perm.SettingsManage]}>
+                  <CustomerImportPage />
                 </RequirePerm>
               }
             />

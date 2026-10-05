@@ -53,6 +53,7 @@ const NAV = [
   {
     title: 'Система',
     items: [
+      { to: '/customers/import', label: 'Импорт клиентов', icon: 'import', hint: 'Перенос из старой системы', perm: 'customers.manage' },
       { to: '/branding', label: 'Оформление', icon: 'brush', hint: 'Название и логотип', perm: 'settings.manage' },
       { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
       { to: '/backups', label: 'Копии базы', icon: 'save', hint: 'Бэкапы и восстановление', perm: 'settings.manage' },
