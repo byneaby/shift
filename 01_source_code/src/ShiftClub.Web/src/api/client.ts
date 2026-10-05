@@ -45,6 +45,24 @@ export type BranchDto = {
   zones: ZoneDto[]
 }
 
+export type LicenseState = 'Missing' | 'Active' | 'Grace' | 'Expired' | 'Invalid'
+
+export type LicenseStatusDto = {
+  state: LicenseState
+  clubName?: string | null
+  plan?: string | null
+  expiresAt?: string | null
+  daysLeft?: number | null
+  maxComputers: number
+  usedComputers: number
+  features: string[]
+  canStartSessions: boolean
+  canRegisterComputers: boolean
+  canSell: boolean
+  summary: string
+  warning?: string | null
+}
+
 const TOKEN_KEY = 'shiftclub.token'
 
 export function getToken() {

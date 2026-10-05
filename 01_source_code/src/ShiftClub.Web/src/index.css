@@ -81,6 +81,37 @@ select {
   color: var(--danger);
 }
 
+.ok {
+  color: var(--ok);
+}
+
+.license-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.license-banner--warn {
+  border-color: color-mix(in srgb, #ffcc66 45%, transparent);
+  background: color-mix(in srgb, #ffcc66 12%, transparent);
+  color: #ffcc66;
+}
+
+.license-banner a {
+  color: inherit;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 .login-shell {
   min-height: 100vh;
   display: grid;

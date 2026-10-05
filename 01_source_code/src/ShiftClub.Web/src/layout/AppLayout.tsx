@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { setToken } from '../api/client'
 import type { EmployeeDto } from '../api/client'
 import { ChangePasswordDialog } from '../components/ChangePasswordDialog'
+import { LicenseBanner } from '../components/LicenseBanner'
 import { StaffNotifications } from '../components/StaffNotifications'
 import { rolesLabel } from '../format'
 import { can } from '../permissions'
@@ -36,6 +37,12 @@ const NAV = [
       { to: '/news', label: 'Новости', icon: 'news', hint: 'Лента на Shell', perm: 'settings.manage' },
       { to: '/updates', label: 'Обновления', icon: 'update', hint: 'Клиент Shell', perm: 'settings.manage' },
       { to: '/settings', label: 'Настройки', icon: 'settings', hint: 'Лояльность и система', perm: 'settings.manage' },
+    ],
+  },
+  {
+    title: 'Система',
+    items: [
+      { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
     ],
   },
 ] as const
@@ -201,6 +208,36 @@ function NavIcon({ name }: { name: string }) {
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
       )
+    case 'key':
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="15" r="4" />
+          <path d="M10.8 12.2 20 3l1.5 1.5-1.5 1.5 1.5 1.5-2 2-1.5-1.5-3.2 3.2" />
+        </svg>
+      )
+    case 'brush':
+      return (
+        <svg {...common}>
+          <path d="M3 21c2.5 0 4-1.5 4-4l-2-2c-1.5 0-3 1.5-3 3 0 1.5.5 3 1 3z" />
+          <path d="M7 15 18 4l2 2L9 17" />
+        </svg>
+      )
+    case 'save':
+      return (
+        <svg {...common}>
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+      )
+    case 'import':
+      return (
+        <svg {...common}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      )
     case 'settings':
       return (
         <svg {...common}>
@@ -362,6 +399,7 @@ export function AppLayout() {
 
         <div className="app-content">
           <main className={wide ? 'app-main app-main--wide' : 'app-main'}>
+            <LicenseBanner />
             <Outlet />
           </main>
         </div>

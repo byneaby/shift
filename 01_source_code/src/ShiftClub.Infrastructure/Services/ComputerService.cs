@@ -19,17 +19,20 @@ public sealed class ComputerService : IComputerService
     private readonly IPasswordHasher _hasher;
     private readonly IHubContext<StaffHub> _staffHub;
     private readonly IHubContext<ComputerHub> _computerHub;
+    private readonly ILicenseService _license;
 
     public ComputerService(
         ShiftClubDbContext db,
         IPasswordHasher hasher,
         IHubContext<StaffHub> staffHub,
-        IHubContext<ComputerHub> computerHub)
+        IHubContext<ComputerHub> computerHub,
+        ILicenseService license)
     {
         _db = db;
         _hasher = hasher;
         _staffHub = staffHub;
         _computerHub = computerHub;
+        _license = license;
     }
 
     public async Task<RegisterComputerResponse> RegisterAsync(
@@ -118,6 +121,10 @@ public sealed class ComputerService : IComputerService
 
         if (existing is null)
         {
+            // Лимит ПК и срок лицензии проверяем только для нового места.
+            // Уже зарегистрированный ПК переподключается всегда — иначе зал встанет из-за просроченного ключа.
+            await _license.EnsureCanRegisterComputerAsync(cancellationToken);
+
             existing = new Computer
             {
                 BranchId = branchId,
@@ -245,6 +252,8 @@ public sealed class ComputerService : IComputerService
         var kind = request.StationKind == default ? StationKind.Console : request.StationKind;
         if (kind == StationKind.Pc)
             throw new InvalidOperationException("Ручное создание только для консолей. ПК регистрируются через Shell.");
+
+        await _license.EnsureCanRegisterComputerAsync(cancellationToken);
 
         var branchId = request.BranchId
             ?? await _db.Branches.AsNoTracking().Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);

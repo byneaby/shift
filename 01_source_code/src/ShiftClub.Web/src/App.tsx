@@ -22,6 +22,7 @@ import { MonitoringPage } from './pages/MonitoringPage'
 import { NewsPage } from './pages/NewsPage'
 import { TelegramSettingsPage } from './pages/TelegramSettingsPage'
 import SettingsPage from './pages/SettingsPage'
+import { LicensePage } from './pages/LicensePage'
 import { CasesPage } from './pages/CasesPage'
 import { WikiPage } from './pages/WikiPage'
 import { LoginPage } from './pages/LoginPage'
@@ -191,6 +192,14 @@ export default function App() {
               element={
                 <RequirePerm anyOf={[Perm.SettingsManage]}>
                   <SettingsPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="license"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <LicensePage />
                 </RequirePerm>
               }
             />
