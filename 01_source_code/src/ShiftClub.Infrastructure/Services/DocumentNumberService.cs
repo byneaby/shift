@@ -23,10 +23,15 @@ public sealed class DocumentNumberService : IDocumentNumberService
     {
         var year = DateTimeOffset.UtcNow.Year;
         var prefix = Prefix(type);
-        var maxExisting = await GetMaxExistingValueAsync(branchId, type, year, prefix, cancellationToken);
+        var maxExisting = await GetMaxExistingValueAsync(type, year, prefix, cancellationToken);
 
+        // Счётчик один на клуб, а не на филиал: уникальность номеров чеков и смен
+        // в базе тоже общая, и филиальный счётчик во втором филиале выдал бы
+        // CHK-2026-000001 второй раз.
         var seq = await _db.DocumentSequences
-            .FirstOrDefaultAsync(s => s.BranchId == branchId && s.Type == type && s.Year == year, cancellationToken);
+            .Where(s => s.Type == type && s.Year == year)
+            .OrderBy(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (seq is null)
         {
@@ -69,8 +74,12 @@ public sealed class DocumentNumberService : IDocumentNumberService
         _ => "DOC"
     };
 
+    /// <summary>
+    /// Самый большой уже выданный номер по всему клубу. Фильтра по филиалу тут
+    /// нет сознательно: номера уникальны во всей базе, поэтому и догонять счётчик
+    /// надо по всей базе.
+    /// </summary>
     private async Task<int> GetMaxExistingValueAsync(
-        Guid branchId,
         DocumentSequenceType type,
         int year,
         string prefix,
@@ -80,23 +89,23 @@ public sealed class DocumentNumberService : IDocumentNumberService
         List<string> numbers = type switch
         {
             DocumentSequenceType.Booking => await _db.Bookings.AsNoTracking()
-                .Where(b => b.BranchId == branchId && b.Number.StartsWith(head))
+                .Where(b => b.Number.StartsWith(head))
                 .Select(b => b.Number)
                 .ToListAsync(cancellationToken),
             DocumentSequenceType.Receipt => await _db.Receipts.AsNoTracking()
-                .Where(r => r.BranchId == branchId && r.Number.StartsWith(head))
+                .Where(r => r.Number.StartsWith(head))
                 .Select(r => r.Number)
                 .ToListAsync(cancellationToken),
             DocumentSequenceType.BarOrder => await _db.BarOrders.AsNoTracking()
-                .Where(o => o.BranchId == branchId && o.Number.StartsWith(head))
+                .Where(o => o.Number.StartsWith(head))
                 .Select(o => o.Number)
                 .ToListAsync(cancellationToken),
             DocumentSequenceType.CashShift => await _db.CashShifts.AsNoTracking()
-                .Where(s => s.BranchId == branchId && s.Number.StartsWith(head))
+                .Where(s => s.Number.StartsWith(head))
                 .Select(s => s.Number)
                 .ToListAsync(cancellationToken),
             DocumentSequenceType.Refund => await _db.Receipts.AsNoTracking()
-                .Where(r => r.BranchId == branchId && r.Number.StartsWith(head))
+                .Where(r => r.Number.StartsWith(head))
                 .Select(r => r.Number)
                 .ToListAsync(cancellationToken),
             _ => []
