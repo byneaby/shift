@@ -43,6 +43,7 @@ const NAV = [
     title: 'Система',
     items: [
       { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
+      { to: '/backups', label: 'Копии базы', icon: 'save', hint: 'Бэкапы и восстановление', perm: 'settings.manage' },
     ],
   },
 ] as const

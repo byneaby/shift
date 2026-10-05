@@ -40,6 +40,7 @@ Desktop.ini
 # Runtime data must live in C:\ShiftClub\Server\data — not in the source tree
 src/ShiftClub.Server/data/client-updates/*
 !src/ShiftClub.Server/data/client-updates/.gitkeep
+src/ShiftClub.Server/data/backups/
 src/ShiftClub.Server/logs/
 src/ShiftClub.Server/bin/
 src/ShiftClub.Server/obj/

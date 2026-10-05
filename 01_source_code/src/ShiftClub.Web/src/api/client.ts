@@ -63,6 +63,36 @@ export type LicenseStatusDto = {
   warning?: string | null
 }
 
+export type BackupFileDto = {
+  fileName: string
+  sizeBytes: number
+  createdAt: string
+  kind: string
+}
+
+export type BackupStatusDto = {
+  enabled: boolean
+  toolAvailable: boolean
+  toolPath?: string | null
+  directory: string
+  keepDays: number
+  dailyHourLocal: number
+  lastSuccessAt?: string | null
+  lastAttemptAt?: string | null
+  lastError?: string | null
+  totalSizeBytes: number
+  files: BackupFileDto[]
+  summary: string
+  warning?: string | null
+}
+
+export type RunBackupResultDto = {
+  success: boolean
+  fileName?: string | null
+  sizeBytes: number
+  message: string
+}
+
 const TOKEN_KEY = 'shiftclub.token'
 
 export function getToken() {

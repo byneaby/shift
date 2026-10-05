@@ -24,7 +24,7 @@ public static class DbSeeder
 		IPasswordHasher hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 		IConfiguration config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 		ILogger logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
-		await db.Database.MigrateAsync(cancellationToken);
+		await DbMigrator.ApplyAsync(scope.ServiceProvider, logger, cancellationToken);
 		await EnsurePermissionsAsync(db, logger, cancellationToken);
 		try
 		{

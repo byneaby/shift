@@ -34,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<LicenseCache>();
         services.AddScoped<ILicenseService, LicenseService>();
+        services.AddSingleton<BackupRunState>();
+        services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBranchService, BranchService>();
         services.AddScoped<IZoneService, ZoneService>();
@@ -73,7 +75,9 @@ public static class DependencyInjection
         services.AddScoped<TelegramBotService>();
         services.AddScoped<ITelegramCrmService, TelegramCrmService>();
         services.Configure<ClientUpdateOptions>(configuration.GetSection(ClientUpdateOptions.SectionName));
+        services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.SectionName));
         services.AddHostedService<LicenseWorker>();
+        services.AddHostedService<DatabaseBackupWorker>();
         services.AddHostedService<ComputerPresenceWorker>();
         services.AddHostedService<SessionLifecycleWorker>();
         services.AddHostedService<BookingNoShowWorker>();
