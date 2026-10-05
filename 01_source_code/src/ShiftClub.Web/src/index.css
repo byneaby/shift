@@ -81,6 +81,37 @@ select {
   color: var(--danger);
 }
 
+.ok {
+  color: var(--ok);
+}
+
+.license-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.license-banner--warn {
+  border-color: color-mix(in srgb, #ffcc66 45%, transparent);
+  background: color-mix(in srgb, #ffcc66 12%, transparent);
+  color: #ffcc66;
+}
+
+.license-banner a {
+  color: inherit;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 .login-shell {
   min-height: 100vh;
   display: grid;
@@ -158,6 +189,14 @@ select {
   font-weight: 700;
   font-size: 0.95rem;
   text-transform: uppercase;
+}
+
+.brand-logo {
+  display: block;
+  max-width: 160px;
+  max-height: 48px;
+  margin: 0 0 8px;
+  object-fit: contain;
 }
 
 label {
@@ -2485,6 +2524,66 @@ select {
 .flash {
   color: var(--accent);
   font-weight: 600;
+}
+
+.setup-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.setup-step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  opacity: 0.95;
+}
+
+.setup-step.done {
+  opacity: 0.6;
+}
+
+.setup-mark {
+  flex: 0 0 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.setup-required {
+  margin-left: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ff6b6b;
+}
+
+.kv-list {
+  display: grid;
+  grid-template-columns: minmax(140px, auto) 1fr;
+  gap: 6px 14px;
+  margin: 12px 0 0;
+}
+
+.kv-list dt {
+  color: var(--muted, #8a8f98);
+}
+
+.kv-list dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input {
+  width: auto;
 }
 
 .staff-toast-stack {

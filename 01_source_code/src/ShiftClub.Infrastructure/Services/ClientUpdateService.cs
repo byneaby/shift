@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ShiftClub.Application.Abstractions;
+using ShiftClub.Application.Versioning;
 using ShiftClub.Infrastructure.Options;
 using ShiftClub.Shared.Contracts.ClientUpdates;
 
@@ -163,37 +163,8 @@ public sealed class ClientUpdateService : IClientUpdateService
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private static string? NormalizeVersion(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return null;
-
-        var m = Regex.Match(raw.Trim(), @"^(\d+)\.(\d+)\.(\d+)");
-        return m.Success ? $"{m.Groups[1].Value}.{m.Groups[2].Value}.{m.Groups[3].Value}" : null;
-    }
+    private static string? NormalizeVersion(string? raw) => SemVer.Normalize(raw);
 
     /// <summary>Returns &gt;0 if a &gt; b.</summary>
-    private static int CompareSemVer(string a, string b)
-    {
-        var pa = Parse(a);
-        var pb = Parse(b);
-        for (var i = 0; i < 3; i++)
-        {
-            var cmp = pa[i].CompareTo(pb[i]);
-            if (cmp != 0) return cmp;
-        }
-
-        return 0;
-
-        static int[] Parse(string v)
-        {
-            var parts = v.Split('.', StringSplitOptions.RemoveEmptyEntries);
-            return
-            [
-                parts.Length > 0 && int.TryParse(parts[0], out var x) ? x : 0,
-                parts.Length > 1 && int.TryParse(parts[1], out var y) ? y : 0,
-                parts.Length > 2 && int.TryParse(parts[2], out var z) ? z : 0
-            ];
-        }
-    }
+    private static int CompareSemVer(string a, string b) => SemVer.Compare(a, b);
 }

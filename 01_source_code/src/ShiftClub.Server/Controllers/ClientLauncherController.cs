@@ -27,6 +27,7 @@ public sealed class ClientLauncherController : ControllerBase
     private readonly IHubContext<StaffHub> _staffHub;
     private readonly IClubSettingsService _settings;
     private readonly ITelegramAlertSink _telegramAlerts;
+    private readonly IBrandingService _branding;
 
     public ClientLauncherController(
         IClientLauncherService launcher,
@@ -34,7 +35,8 @@ public sealed class ClientLauncherController : ControllerBase
         ShiftClubDbContext db,
         IHubContext<StaffHub> staffHub,
         IClubSettingsService settings,
-        ITelegramAlertSink telegramAlerts)
+        ITelegramAlertSink telegramAlerts,
+        IBrandingService branding)
     {
         _launcher = launcher;
         _sessions = sessions;
@@ -42,6 +44,7 @@ public sealed class ClientLauncherController : ControllerBase
         _staffHub = staffHub;
         _settings = settings;
         _telegramAlerts = telegramAlerts;
+        _branding = branding;
     }
 
     /// <summary>Public branding for login wallpaper (available before customer login).</summary>
@@ -50,7 +53,14 @@ public sealed class ClientLauncherController : ControllerBase
     public async Task<ActionResult<ApiResponse<ClientBrandingDto>>> Branding(CancellationToken cancellationToken)
     {
         var bg = await _settings.GetLoginBackgroundAsync(cancellationToken);
-        return Ok(ApiResponse<ClientBrandingDto>.Ok(new ClientBrandingDto(bg.Url)));
+        var brand = await _branding.GetAsync(cancellationToken);
+        return Ok(ApiResponse<ClientBrandingDto>.Ok(new ClientBrandingDto(
+            bg.Url,
+            brand.ClubName,
+            brand.ShortName,
+            brand.LogoUrl,
+            brand.AccentColor,
+            brand.SupportContact)));
     }
 
     [HttpPost("auth/login")]

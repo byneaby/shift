@@ -3401,7 +3401,7 @@ export function FloorMapPage() {
                         type="button"
                         className="ghost"
                         onClick={() => setQuickCaseKeyOpen(true)}
-                        title="Продать ключ SHIFT CASE этому гостю"
+                        title="Продать ключ кейса этому гостю"
                       >
                         Ключ CASE
                       </button>
@@ -5040,7 +5040,7 @@ export function FloorMapPage() {
 
               <section className="tech-group">
                 <header className="tech-group-head">
-                  <h3>Клиент SHIFT</h3>
+                  <h3>Клиент на ПК</h3>
                   <p>Процессы Windows и обновление Shell</p>
                 </header>
                 <div className="tech-rows">
@@ -5078,7 +5078,7 @@ export function FloorMapPage() {
                     onClick={() =>
                       setTechActionConfirm({
                         type: 'UpdateClient',
-                        label: techLabel('обновить клиент SHIFT'),
+                        label: techLabel('обновить клиент на ПК'),
                       })
                     }
                   >

@@ -250,7 +250,7 @@ const ITEM_TYPE_LABELS: Record<string, string> = {
   BalanceTopUp: 'Пополнение баланса',
   Other: 'Прочее',
   BookingDeposit: 'Предоплата брони',
-  CaseKey: 'Ключ SHIFT CASE',
+  CaseKey: 'Ключ кейса',
 }
 
 export function receiptItemTypeLabel(value: string) {

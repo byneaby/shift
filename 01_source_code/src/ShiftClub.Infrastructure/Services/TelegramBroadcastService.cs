@@ -11,15 +11,18 @@ public sealed class TelegramBroadcastService
     private readonly ShiftClubDbContext _db;
     private readonly IClubSettingsService _settings;
     private readonly ICustomerTelegramNotifySink _notify;
+    private readonly IBrandingService _branding;
 
     public TelegramBroadcastService(
         ShiftClubDbContext db,
         IClubSettingsService settings,
-        ICustomerTelegramNotifySink notify)
+        ICustomerTelegramNotifySink notify,
+        IBrandingService branding)
     {
         _db = db;
         _settings = settings;
         _notify = notify;
+        _branding = branding;
     }
 
     public async Task<TelegramBroadcastResultDto> BroadcastAsync(
@@ -71,7 +74,8 @@ public sealed class TelegramBroadcastService
         var ids = customerIds.Concat(staffIds).Distinct().ToList();
 
         // Telegram HTML: только ограниченный набор тегов; <br/> не поддерживается — оставляем \n.
-        var html = $"<b>SHIFT Club</b>\n{WebUtility.HtmlEncode(text)}";
+        var club = (await _branding.GetAsync(cancellationToken)).TelegramSignature;
+        var html = $"<b>{WebUtility.HtmlEncode(club)}</b>\n{WebUtility.HtmlEncode(text)}";
 
         foreach (var id in ids)
             await _notify.PublishAsync(new CustomerTelegramNotice(id, html), cancellationToken);

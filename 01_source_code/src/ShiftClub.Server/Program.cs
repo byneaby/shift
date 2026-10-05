@@ -1,9 +1,12 @@
 using Serilog;
 using ShiftClub.Application;
+using ShiftClub.Application.Diagnostics;
 using ShiftClub.Infrastructure;
+using ShiftClub.Server.Diagnostics;
 using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Infrastructure.SignalR;
 using ShiftClub.Server.Hiring;
+using ShiftClub.Server.Security;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Json;
 
@@ -14,7 +17,10 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.File("logs/shiftclub-.log", rollingInterval: RollingInterval.Day));
+    .WriteTo.File("logs/shiftclub-.log", rollingInterval: RollingInterval.Day)
+    // Ошибки дополнительно складываем в память, чтобы панель показывала их
+    // клубу и поддержке без разбора файлов логов.
+    .WriteTo.Sink(new ErrorCaptureSink(services.GetRequiredService<ErrorLogStore>())));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -67,14 +73,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ShiftClubDbContext>();
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("WebPanel", policy =>
-        policy.AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials()
-            .SetIsOriginAllowed(_ => true));
-});
+builder.Services.AddShiftClubSecurity(builder.Configuration);
 
 var app = builder.Build();
 
@@ -87,7 +86,9 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue("EnableSwagger
     app.UseSwaggerUI();
 }
 
-app.UseCors("WebPanel");
+app.UseShiftClubSecurity();
+app.UseCors(SecuritySetup.CorsPolicyName);
+app.UseRateLimiter();
 
 var wwwroot = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 if (Directory.Exists(wwwroot))

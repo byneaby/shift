@@ -35,7 +35,8 @@ public class CustomersController : ControllerBase
 	[RequirePermission(new string[] { "customers.view", "customers.manage" })]
 	public async Task<ActionResult<ApiResponse<IReadOnlyList<CustomerDto>>>> Search([FromQuery] string? q, CancellationToken cancellationToken)
 	{
-		return Ok(ApiResponse<IReadOnlyList<CustomerDto>>.Ok(await _customers.SearchAsync(q, null, cancellationToken)));
+		return Ok(ApiResponse<IReadOnlyList<CustomerDto>>.Ok(
+			await _customers.SearchAsync(q, this.ResolveFilter(null), cancellationToken)));
 	}
 
 	[HttpGet("{id:guid}")]
@@ -57,7 +58,7 @@ public class CustomersController : ControllerBase
 		_ = 1;
 		try
 		{
-			Guid branchId = await _db.Branches.Select((Branch b) => b.Id).FirstAsync(cancellationToken);
+			Guid branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
 			return Ok(ApiResponse<CustomerDto>.Ok(await _customers.CreateAsync(request, branchId, GetEmployeeId(), cancellationToken)));
 		}
 		catch (Exception ex) when (((ex is InvalidOperationException || ex is KeyNotFoundException) ? 1 : 0) != 0)

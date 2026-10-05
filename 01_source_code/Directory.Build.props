@@ -6,4 +6,13 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <!--
+    Клиент на WPF собирается только под Windows, но `dotnet test` по решению
+    трогает все проекты. Без этого флага прогон тестов на не-Windows машине
+    (CI, Linux-разработка) падает на NETSDK1100 ещё до запуска самих тестов.
+  -->
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
 </Project>

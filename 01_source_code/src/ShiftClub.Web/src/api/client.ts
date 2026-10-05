@@ -45,6 +45,143 @@ export type BranchDto = {
   zones: ZoneDto[]
 }
 
+export type LicenseState = 'Missing' | 'Active' | 'Grace' | 'Expired' | 'Invalid'
+
+export type LicenseStatusDto = {
+  state: LicenseState
+  clubName?: string | null
+  plan?: string | null
+  expiresAt?: string | null
+  daysLeft?: number | null
+  maxComputers: number
+  usedComputers: number
+  features: string[]
+  canStartSessions: boolean
+  canRegisterComputers: boolean
+  canSell: boolean
+  summary: string
+  warning?: string | null
+}
+
+export type BackupFileDto = {
+  fileName: string
+  sizeBytes: number
+  createdAt: string
+  kind: string
+}
+
+export type BackupStatusDto = {
+  enabled: boolean
+  toolAvailable: boolean
+  toolPath?: string | null
+  directory: string
+  keepDays: number
+  dailyHourLocal: number
+  lastSuccessAt?: string | null
+  lastAttemptAt?: string | null
+  lastError?: string | null
+  totalSizeBytes: number
+  files: BackupFileDto[]
+  summary: string
+  warning?: string | null
+}
+
+export type RunBackupResultDto = {
+  success: boolean
+  fileName?: string | null
+  sizeBytes: number
+  message: string
+}
+
+export type SetupStepDto = {
+  code: string
+  title: string
+  hint: string
+  done: boolean
+  required: boolean
+}
+
+export type SetupStatusDto = {
+  completed: boolean
+  required: boolean
+  doneCount: number
+  totalCount: number
+  steps: SetupStepDto[]
+  summary: string
+}
+
+export type ErrorGroupDto = {
+  fingerprint: string
+  level: string
+  source: string
+  kind: string
+  message: string
+  where?: string | null
+  count: number
+  firstAt: string
+  lastAt: string
+  reported: boolean
+}
+
+export type SystemCheckDto = {
+  code: string
+  title: string
+  ok: boolean
+  value: string
+  problem?: string | null
+}
+
+export type SystemStatusDto = {
+  version: string
+  startedAt: string
+  uptime: string
+  clubName: string
+  licenseClub?: string | null
+  licenseState: string
+  environment: string
+  machineName: string
+  serverTimeUtc: string
+  clubTimeZone: string
+  clubTimeLocal: string
+  ok: boolean
+  checks: SystemCheckDto[]
+  errorsLastDay: number
+  recentErrors: ErrorGroupDto[]
+}
+
+export type ServerUpdateRunDto = {
+  version: string
+  state: string
+  message?: string | null
+  startedAt: string
+  finishedAt?: string | null
+}
+
+export type ServerUpdateStatusDto = {
+  feedConfigured: boolean
+  currentVersion: string
+  latestVersion?: string | null
+  updateAvailable: boolean
+  releaseNotes?: string | null
+  publishedAt?: string | null
+  sizeBytes: number
+  problem?: string | null
+  readyVersion?: string | null
+  lastRun?: ServerUpdateRunDto | null
+}
+
+export type ServerUpdateStartResultDto = {
+  started: boolean
+  version?: string | null
+  message: string
+}
+
+export type ApplySetupResultDto = {
+  status: SetupStatusDto
+  applied: string[]
+  problems: string[]
+}
+
 const TOKEN_KEY = 'shiftclub.token'
 
 export function getToken() {

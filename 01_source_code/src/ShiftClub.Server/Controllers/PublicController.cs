@@ -8,7 +8,9 @@ using ShiftClub.Domain.Entities;
 using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Infrastructure.Services;
 using ShiftClub.Infrastructure.SignalR;
+using ShiftClub.Server.Auth;
 using ShiftClub.Shared.Contracts;
+using ShiftClub.Shared.Licensing;
 using ShiftClub.Shared.Contracts.Public;
 using ShiftClub.Shared.Contracts.Cases;
 using ShiftClub.Shared.Contracts.Settings;
@@ -639,6 +641,7 @@ public sealed class PublicController : ControllerBase
 
     /// <summary>Экран акции: открыть кейс по токену с кассы (один раз).</summary>
     [HttpPost("desk-case/{token}/open")]
+    [RequireFeature(LicenseFeatures.ShiftCase)]
     public async Task<ActionResult<ApiResponse<CaseOpenResultDto>>> DeskCaseOpen(
         string token,
         CancellationToken cancellationToken)

@@ -715,10 +715,29 @@
     }
   }
 
-  function photoUrl(path) {
+  function photoName(path) {
     if (!path) return "";
-    const name = String(path).split("/").pop();
-    return "/api/hiring/photos/" + encodeURIComponent(name);
+    return String(path).split("/").pop();
+  }
+
+  // Фото кандидата теперь отдаётся только с токеном руководителя, а <img src> заголовки
+  // не передаёт. Поэтому тянем картинку запросом и подставляем уже готовую.
+  async function loadProtectedPhotos() {
+    const nodes = document.querySelectorAll("img[data-photo]:not([data-photo-loaded])");
+    for (const node of nodes) {
+      const name = node.getAttribute("data-photo");
+      if (!name) continue;
+      node.setAttribute("data-photo-loaded", "1");
+      try {
+        const res = await fetch("/api/hiring/photos/" + encodeURIComponent(name), {
+          headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+        });
+        if (!res.ok) throw new Error("photo");
+        node.src = URL.createObjectURL(await res.blob());
+      } catch {
+        node.remove();
+      }
+    }
   }
 
   function answerRows(answers) {
@@ -833,7 +852,7 @@
     app.innerHTML = `
       <button type="button" class="linkish" id="backList">← Все кандидаты</button>
       <div class="cand-head">
-        ${c.photoPath ? `<img class="photo" src="${esc(photoUrl(c.photoPath))}" alt="" />` : ""}
+        ${c.photoPath ? `<img class="photo" data-photo="${esc(photoName(c.photoPath))}" alt="" />` : ""}
         <div>
           <p class="eyebrow">Кандидат №${c.id}</p>
           <h1 style="font-size:1.45rem">${esc(c.fullName)}</h1>
@@ -965,7 +984,11 @@
 
   function render() {
     if (state.mode === "apply") return renderApply();
-    if (state.mode === "detail") return renderDetail();
+    if (state.mode === "detail") {
+      const result = renderDetail();
+      loadProtectedPhotos();
+      return result;
+    }
     if (!state.token) return renderLogin();
     return renderManagerList();
   }

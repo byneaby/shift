@@ -21,9 +21,20 @@ public sealed class HiringService
     private readonly object _initLock = new();
     private bool _initialized;
 
-    public HiringService(IOptions<HiringOptions> options, IWebHostEnvironment env)
+    public HiringService(
+        IOptions<HiringOptions> options,
+        IWebHostEnvironment env,
+        ILogger<HiringService> logger)
     {
         _opt = options.Value;
+
+        if (string.Equals(_opt.ManagerPin.Trim(), HiringOptions.ShippedDefaultPin, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "Hiring:ManagerPin всё ещё равен значению из поставки. В панели кандидатов "
+                + "лежат персональные данные — задайте свой PIN через Hiring__ManagerPin.");
+        }
+
         var root = Path.Combine(env.ContentRootPath, _opt.DataFolder);
         Directory.CreateDirectory(root);
         _photosDir = Path.Combine(root, "photos");
@@ -100,9 +111,16 @@ public sealed class HiringService
         }
     }
 
-    public bool ValidatePin(string? pin) =>
-        !string.IsNullOrWhiteSpace(pin)
-        && string.Equals(pin.Trim(), _opt.ManagerPin.Trim(), StringComparison.Ordinal);
+    public bool ValidatePin(string? pin)
+    {
+        if (string.IsNullOrWhiteSpace(pin) || string.IsNullOrWhiteSpace(_opt.ManagerPin))
+            return false;
+
+        // Сравнение за одинаковое время: иначе по задержке ответа можно подбирать PIN по одной цифре.
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(pin.Trim()),
+            Encoding.UTF8.GetBytes(_opt.ManagerPin.Trim()));
+    }
 
     public string CreateSession()
     {

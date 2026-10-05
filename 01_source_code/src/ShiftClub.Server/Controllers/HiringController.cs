@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using ShiftClub.Server.Hiring;
+using ShiftClub.Server.Security;
 using ShiftClub.Shared.Contracts;
 
 namespace ShiftClub.Server.Controllers;
@@ -27,6 +29,7 @@ public sealed class HiringController : ControllerBase
 
     [HttpPost("apply")]
     [RequestSizeLimit(8_000_000)]
+    [EnableRateLimiting(SecuritySetup.PublicFormPolicy)]
     public async Task<ActionResult<ApiResponse<object>>> Apply(
         [FromForm] string answersJson,
         IFormFile? photo,
@@ -66,6 +69,7 @@ public sealed class HiringController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(SecuritySetup.LoginPolicy)]
     public ActionResult<ApiResponse<object>> Login([FromBody] HiringLoginRequest body)
     {
         if (!_hiring.ValidatePin(body.Pin))
@@ -126,6 +130,11 @@ public sealed class HiringController : ControllerBase
     [HttpGet("photos/{fileName}")]
     public IActionResult Photo(string fileName)
     {
+        // Фото кандидата — персональные данные. Раньше ручка отдавала файл любому,
+        // кто угадает имя; теперь нужен тот же вход руководителя, что и для анкет.
+        if (!ManagerOk())
+            return Unauthorized(ApiResponse<object>.Fail("auth", "Нужен вход руководителя."));
+
         fileName = Path.GetFileName(fileName);
         var path = Path.Combine(_hiring.PhotosAbsolutePath, fileName);
         if (!System.IO.File.Exists(path)) return NotFound();

@@ -1,13 +1,27 @@
-# Deploy staff SPA to C:\ShiftClub\Server\wwwroot WITHOUT wiping public site assets.
-# Preserves: site, price, promo, tg-webapp, media
+# Выкладывает панель в wwwroot сервера, не затирая публичные страницы.
+# Сохраняет: site, price, promo, tg-webapp, media
+#
+# Папка сервера и локальный адрес берутся из scripts\deploy.config.json
+# (образец — deploy.config.example.json) или из параметров.
+param(
+  [string]$ServerDir = "",
+  [string]$LocalUrl = "http://127.0.0.1:5080"
+)
+
 $ErrorActionPreference = 'Stop'
+
+. (Join-Path $PSScriptRoot '_DeployConfig.ps1')
+$deploy = Get-ShiftClubDeployConfig -ScriptRoot $PSScriptRoot
+if (-not $ServerDir) { $ServerDir = $deploy.ServerDir }
+if (-not (Test-Path $ServerDir)) { throw "Нет папки сервера: $ServerDir" }
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $webDir = Join-Path $repoRoot 'src\ShiftClub.Web'
 $dist = Join-Path $webDir 'dist'
-$serverWww = 'C:\ShiftClub\Server\wwwroot'
-$serverWwwMirror = 'C:\ShiftClub\Server\www'
+$serverWww = Join-Path $ServerDir 'wwwroot'
+$serverWwwMirror = Join-Path $ServerDir 'www'
 $srcStatic = Join-Path $repoRoot 'src\ShiftClub.Server\wwwroot'
+$LocalUrl = $LocalUrl.TrimEnd('/')
 
 function Deploy-SpaTo([string]$dest) {
   if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
@@ -80,7 +94,7 @@ Write-Host "SPA deployed. Preserved site/price/promo/tg-webapp/product/work."
   '/login'
 ) | ForEach-Object {
   try {
-    $r = Invoke-WebRequest "http://127.0.0.1:5080$_" -UseBasicParsing -TimeoutSec 5
+    $r = Invoke-WebRequest "$LocalUrl$_" -UseBasicParsing -TimeoutSec 5
     "OK $_ => $($r.StatusCode)"
   } catch {
     $code = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 'ERR' }

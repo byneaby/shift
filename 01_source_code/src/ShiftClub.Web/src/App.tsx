@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { getToken } from './api/client'
 import { AppLayout } from './layout/AppLayout'
-import { RequirePerm } from './RequirePerm'
+import { RequireFeature, RequirePerm } from './RequirePerm'
 import { DashboardPage } from './pages/DashboardPage'
 import { FloorMapPage } from './pages/FloorMapPage'
 import { CashPage } from './pages/CashPage'
@@ -22,10 +22,17 @@ import { MonitoringPage } from './pages/MonitoringPage'
 import { NewsPage } from './pages/NewsPage'
 import { TelegramSettingsPage } from './pages/TelegramSettingsPage'
 import SettingsPage from './pages/SettingsPage'
+import { LicensePage } from './pages/LicensePage'
+import { BackupsPage } from './pages/BackupsPage'
+import { BrandingPage } from './pages/BrandingPage'
+import { SetupPage } from './pages/SetupPage'
+import { SystemPage } from './pages/SystemPage'
+import { CustomerImportPage } from './pages/CustomerImportPage'
 import { CasesPage } from './pages/CasesPage'
 import { WikiPage } from './pages/WikiPage'
 import { LoginPage } from './pages/LoginPage'
 import { Perm } from './permissions'
+import { LicenseFeature } from './licensing'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -118,7 +125,9 @@ export default function App() {
               path="cases"
               element={
                 <RequirePerm anyOf={[Perm.CustomersView, Perm.SettingsManage]}>
-                  <CasesPage />
+                  <RequireFeature feature={LicenseFeature.ShiftCase}>
+                    <CasesPage />
+                  </RequireFeature>
                 </RequirePerm>
               }
             />
@@ -191,6 +200,54 @@ export default function App() {
               element={
                 <RequirePerm anyOf={[Perm.SettingsManage]}>
                   <SettingsPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="license"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <LicensePage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="customers/import"
+              element={
+                <RequirePerm anyOf={[Perm.CustomersManage, Perm.SettingsManage]}>
+                  <CustomerImportPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="branding"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <BrandingPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="backups"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <BackupsPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="setup"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <SetupPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="system"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <SystemPage />
                 </RequirePerm>
               }
             />

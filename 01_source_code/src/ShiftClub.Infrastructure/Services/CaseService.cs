@@ -1055,16 +1055,29 @@ public sealed class CaseService : ICaseService
             .SumAsync(l => (int?)l.Delta, cancellationToken) ?? 0;
         var pending = await _db.CaseUserRewards.CountAsync(r => r.Status == CaseRewardStatus.Pending, cancellationToken);
 
-        var byPrize = await _db.CaseOpenings.AsNoTracking()
+        // Count с условием внутри группы EF в SQL не переводит — считаем через Sum(... ? 1 : 0),
+        // иначе ручка статистики падает с 500.
+        var byPrizeRaw = await _db.CaseOpenings.AsNoTracking()
             .GroupBy(o => new { o.PrizeCodeSnapshot, o.PrizeNameSnapshot, o.RaritySnapshot })
-            .Select(g => new CasePrizeStatDto(
+            .Select(g => new
+            {
                 g.Key.PrizeCodeSnapshot,
                 g.Key.PrizeNameSnapshot,
                 g.Key.RaritySnapshot,
-                g.Count(),
-                g.Count(x => x.CreatedAt >= dayStart)))
+                WinsTotal = g.Count(),
+                WinsToday = g.Sum(x => x.CreatedAt >= dayStart ? 1 : 0)
+            })
             .OrderByDescending(x => x.WinsTotal)
             .ToListAsync(cancellationToken);
+
+        var byPrize = byPrizeRaw
+            .Select(x => new CasePrizeStatDto(
+                x.PrizeCodeSnapshot,
+                x.PrizeNameSnapshot,
+                x.RaritySnapshot,
+                x.WinsTotal,
+                x.WinsToday))
+            .ToList();
 
         return new CaseStatsDto(openingsToday, openingsTotal, keysGranted, pending, byPrize);
     }

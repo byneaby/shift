@@ -214,7 +214,7 @@ public sealed class AuthService : IAuthService
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(
             _configuration.GetValue("Jwt:ExpirationMinutes", 720));
 
-        var token = CreateToken(employee.Id, employee.Login, roles, permissions, expiresAt);
+        var token = CreateToken(employee.Id, employee.Login, employee.BranchId, roles, permissions, expiresAt);
 
         return new LoginResponse(
             token,
@@ -225,6 +225,7 @@ public sealed class AuthService : IAuthService
     private string CreateToken(
         Guid employeeId,
         string login,
+        Guid? branchId,
         IReadOnlyList<string> roles,
         IReadOnlyList<string> permissions,
         DateTimeOffset expiresAt)
@@ -238,6 +239,11 @@ public sealed class AuthService : IAuthService
             new(JwtRegisteredClaimNames.UniqueName, login),
             new("employee_id", employeeId.ToString())
         };
+
+        // Филиал сотрудника — в токене: сервер не должен спрашивать у клиента,
+        // от чьего филиала тот работает. Пусто = доступ ко всем филиалам.
+        if (branchId is { } branch)
+            claims.Add(new Claim("branch_id", branch.ToString()));
 
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
         claims.AddRange(permissions.Select(p => new Claim("permission", p)));

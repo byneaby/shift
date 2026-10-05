@@ -30,6 +30,7 @@ public sealed class SessionService : ISessionService
     private readonly IClubSettingsService _settings;
     private readonly ICaseService _cases;
     private readonly ICustomerEngagementService _engagement;
+    private readonly ILicenseService _license;
 
     public SessionService(
         ShiftClubDbContext db,
@@ -42,7 +43,8 @@ public sealed class SessionService : ISessionService
         ICustomerTelegramNotifySink customerNotify,
         IClubSettingsService settings,
         ICaseService cases,
-        ICustomerEngagementService engagement)
+        ICustomerEngagementService engagement,
+        ILicenseService license)
     {
         _db = db;
         _staffHub = staffHub;
@@ -55,6 +57,7 @@ public sealed class SessionService : ISessionService
         _settings = settings;
         _cases = cases;
         _engagement = engagement;
+        _license = license;
     }
 
     public async Task<IReadOnlyList<TariffDto>> GetTariffsAsync(
@@ -227,6 +230,8 @@ public sealed class SessionService : ISessionService
             if (existing is not null)
                 return MapSession(existing);
         }
+
+        await _license.EnsureCanStartSessionAsync(cancellationToken);
 
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
 

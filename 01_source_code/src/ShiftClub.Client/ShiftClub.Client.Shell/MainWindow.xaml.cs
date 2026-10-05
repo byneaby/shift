@@ -33,6 +33,10 @@ public partial class MainWindow : Window
     private bool _lockScreenUi = true;
     /// <summary>CCBoot superclient / image setup · all Shell protection off.</summary>
     private bool _adminMode;
+
+    // Название клуба приходит с сервера (api/client/branding). До ответа — нейтральная подпись.
+    private string _clubName = "Клуб";
+    private string _clubMark = "Клуб";
     private int? _sessionTotalSeconds;
     private int _localRemaining;
     private int _sessionPeakRemaining;
@@ -3046,6 +3050,8 @@ public partial class MainWindow : Window
             using var http = new HttpClient { BaseAddress = new Uri(_serverUrl.TrimEnd('/') + "/") };
             var json = await http.GetStringAsync("api/client/branding").ConfigureAwait(false);
             string? url = null;
+            string? clubName = null;
+            string? shortName = null;
             using (var doc = JsonDocument.Parse(json))
             {
                 JsonElement data;
@@ -3057,16 +3063,52 @@ public partial class MainWindow : Window
                         if (data.TryGetProperty("loginBackgroundUrl", out var u) ||
                             data.TryGetProperty("LoginBackgroundUrl", out u))
                             url = u.ValueKind == JsonValueKind.String ? u.GetString() : null;
+
+                        clubName = ReadBrandingText(data, "clubName", "ClubName");
+                        shortName = ReadBrandingText(data, "shortName", "ShortName");
                     }
                 }
             }
 
-            await Dispatcher.InvokeAsync(() => ApplyLoginBackgroundResult(url));
+            await Dispatcher.InvokeAsync(() =>
+            {
+                ApplyLoginBackgroundResult(url);
+                ApplyClubBranding(clubName, shortName);
+            });
         }
         catch
         {
             await Dispatcher.InvokeAsync(() => ApplyLoginBackgroundResult(null));
         }
+    }
+
+    private static string? ReadBrandingText(JsonElement data, string camel, string pascal)
+    {
+        if (data.TryGetProperty(camel, out var v) || data.TryGetProperty(pascal, out v))
+            return v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+        return null;
+    }
+
+    /// <summary>Название клуба приходит с сервера: в Shell оно больше нигде не зашито.</summary>
+    private void ApplyClubBranding(string? clubName, string? shortName)
+    {
+        var full = string.IsNullOrWhiteSpace(clubName) ? null : clubName!.Trim();
+        var mark = string.IsNullOrWhiteSpace(shortName) ? full : shortName!.Trim();
+        if (mark is null)
+            return;
+
+        _clubName = full ?? mark;
+        _clubMark = mark;
+
+        if (RegBrandMark is not null) RegBrandMark.Text = mark;
+        if (LoginBrandMark is not null) LoginBrandMark.Text = mark;
+        if (PostSessionBrandMark is not null) PostSessionBrandMark.Text = mark;
+        if (TgHowToText is not null)
+            TgHowToText.Text = $"1) Бот {_clubName} → «Открыть».\n2) Сканируйте QR.\n"
+                               + "3) Нет аккаунта? Создайте в телефоне или справа на ПК — вход автоматический.";
+
+        if (!_adminMode)
+            Title = _clubName;
     }
 
     private void ApplyLoginBackgroundResult(string? url)
@@ -3672,7 +3714,7 @@ public partial class MainWindow : Window
         var action = link ? "привязки" : "смены";
         var hint =
             $"Код {ticket.Code} · до {ticket.ExpiresAt.ToLocalTime():HH:mm}\n" +
-            $"Откройте SHIFT на телефоне и подтвердите {action}.";
+            $"Откройте {_clubName} на телефоне и подтвердите {action}.";
 
         TelegramQrTitle.Text = link ? "Привязка Telegram" : "Смена Telegram";
         ShowBindQrActive(bmp, hint);
@@ -3729,7 +3771,7 @@ public partial class MainWindow : Window
         var bmp = DecodeQrPng(ticket.QrPngBase64);
         var hint =
             $"Код {ticket.Code} · до {ticket.ExpiresAt.ToLocalTime():HH:mm}\n" +
-            "Камера телефона или «Открыть SHIFT» в боте.\n" +
+            $"Камера телефона или «Открыть {_clubName}» в боте.\n" +
             "Нет аккаунта? После скана — форма на телефоне или на экране входа.";
 
         if (onLoginPanel)
@@ -3748,7 +3790,7 @@ public partial class MainWindow : Window
             {
                 hint =
                     $"Код {ticket.Code} · до {ticket.ExpiresAt.ToLocalTime():HH:mm}\n" +
-                    "Сканируйте в SHIFT. Нет аккаунта — создайте в телефоне, сеанс сохранится сам.";
+                    $"Сканируйте в приложении {_clubName}. Нет аккаунта — создайте в телефоне, сеанс сохранится сам.";
             }
             ShowBindQrActive(bmp, hint);
         }
@@ -3796,7 +3838,7 @@ public partial class MainWindow : Window
             TgColumnTitle.Text = "Вход через Telegram";
         if (TgColumnSub is not null)
             TgColumnSub.Text =
-                "Сканируйте QR в приложении SHIFT. Если аккаунта нет — создадите его на телефоне или здесь, вход на этот ПК будет сразу.";
+                $"Сканируйте QR в приложении {_clubName}. Если аккаунта нет — создадите его на телефоне или здесь, вход на этот ПК будет сразу.";
         if (TgRegisterPanel is not null)
             TgRegisterPanel.Visibility = Visibility.Collapsed;
     }
@@ -3857,7 +3899,7 @@ public partial class MainWindow : Window
                         else if (BindQrHint is not null)
                         {
                             BindQrHint.Text = status.Message
-                                ?? "Telegram подтверждён. Создайте аккаунт в приложении SHIFT на телефоне — сеанс сохранится автоматически.";
+                                ?? $"Telegram подтверждён. Создайте аккаунт в приложении {_clubName} на телефоне — сеанс сохранится автоматически.";
                             if (BindQrImage is not null)
                                 BindQrImage.Opacity = 0.3;
                         }
@@ -4546,7 +4588,7 @@ public partial class MainWindow : Window
         ResizeMode = ResizeMode.CanMinimize;
         WindowStyle = WindowStyle.SingleBorderWindow;
         WindowState = WindowState.Normal;
-        Title = "SHIFT · админ-режим";
+        Title = $"{_clubName} · админ-режим";
         ShellDesktopHost.FitToWorkArea(this);
 
         PanelWaiting.Visibility = Visibility.Collapsed;
@@ -4592,7 +4634,7 @@ public partial class MainWindow : Window
         _kiosk.AllowStaffExit = false;
         AdminModeError.Text = "";
         PanelAdminMode.Visibility = Visibility.Collapsed;
-        Title = "SHIFT";
+        Title = _clubName;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;

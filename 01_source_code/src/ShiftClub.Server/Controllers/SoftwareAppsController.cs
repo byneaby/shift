@@ -46,7 +46,7 @@ public sealed class SoftwareAppsController : ControllerBase
     {
         try
         {
-            var branchId = await _db.Branches.Select(b => b.Id).FirstAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var result = await _apps.CreateAsync(branchId, request, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<SoftwareAppAdminDto>.Ok(result));
         }
@@ -221,7 +221,7 @@ public sealed class SoftwareAppsController : ControllerBase
                 return BadRequest(ApiResponse<SoftwareAppsImportResult>.Fail(
                     CommonErrorCodes.ValidationFailed, "В JSON нет списка apps."));
 
-            var branchId = await _db.Branches.Select(b => b.Id).FirstAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var result = await _apps.ImportAsync(branchId, apps, GetEmployeeId(), updateExisting, cancellationToken);
             return Ok(ApiResponse<SoftwareAppsImportResult>.Ok(result));
         }
@@ -244,7 +244,7 @@ public sealed class SoftwareAppsController : ControllerBase
                 return BadRequest(ApiResponse<SoftwareAppsImportResult>.Fail(
                     CommonErrorCodes.ValidationFailed, "Пустой список игр."));
 
-            var branchId = await _db.Branches.Select(b => b.Id).FirstAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var result = await _apps.ImportAsync(branchId, apps, GetEmployeeId(), updateExisting, cancellationToken);
             return Ok(ApiResponse<SoftwareAppsImportResult>.Ok(result));
         }

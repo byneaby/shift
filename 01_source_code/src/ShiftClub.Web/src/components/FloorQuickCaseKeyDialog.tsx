@@ -6,7 +6,7 @@ import { can, Perm } from '../permissions'
 import { ActionDialog } from './ActionDialog'
 import { FloorCustomerPick, type FloorCustomerLite } from './FloorCustomerPick'
 
-/** Базовая цена ключа SHIFT CASE (₸). Меняется на кассе при необходимости. */
+/** Базовая цена ключа кейса (₸). Меняется на кассе при необходимости. */
 export const CASE_KEY_DEFAULT_PRICE = 1000
 
 type CaseKeyCustomer = FloorCustomerLite & { caseKeysBalance?: number }

@@ -7,7 +7,12 @@
   .\scripts\Publish-ClientUpdate.ps1 -Version 0.4.1 -ReleaseNotes "Shell timer fix"
 
 .EXAMPLE
-  .\scripts\Publish-ClientUpdate.ps1 -Version 0.4.1 -Upload -ApiUrl http://192.168.1.200:5080 -Token <jwt>
+  .\scripts\Publish-ClientUpdate.ps1 -Version 0.4.1 -Upload -ApiUrl http://192.168.1.10:5080 -Token <jwt>
+
+.NOTES
+  Адрес сервера и пути клубных дисков берутся из scripts\deploy.config.json
+  (образец — deploy.config.example.json) или из переменных окружения. Раньше они
+  были вписаны в скрипт, и собранный пакет одного клуба указывал на сервер другого.
 #>
 param(
   [Parameter(Mandatory = $true)]
@@ -19,16 +24,25 @@ param(
   [string]$PackagesDir = "",
   [switch]$Upload,
   [switch]$ClubDeploy,
-  [string]$ApiUrl = "http://192.168.1.250:5080",
+  [string]$ApiUrl = "",
   [string]$Token = "",
-  [string]$ClubShellDir = "D:\Apps\ShiftClub\Shell",
-  [string]$ClubShellMirror = "D:\01 SHIFT\Shell",
-  [string]$ClubPackagesDir = "C:\ShiftClub\Server\data\client-updates"
+  [string[]]$ClubShellDirs = @(),
+  [string]$ClubPackagesDir = ""
 )
 
 $ErrorActionPreference = "Stop"
-$env:PATH = "D:\Dev\dotnet;D:\Dev\Git\cmd;$env:PATH"
-$env:DOTNET_ROOT = "D:\Dev\dotnet"
+
+. (Join-Path $PSScriptRoot '_DeployConfig.ps1')
+$deploy = Get-ShiftClubDeployConfig -ScriptRoot $PSScriptRoot
+Use-ShiftClubDotnet -Config $deploy
+
+# Адрес попадает внутрь пакета Shell, поэтому нужен всегда, а не только для -Upload.
+$ApiUrl = Resolve-ShiftClubServerUrl -Provided $ApiUrl -Config $deploy
+if (-not $Token) { $Token = $deploy.ApiToken }
+if ($ClubShellDirs.Count -eq 0) { $ClubShellDirs = @($deploy.ShellDirs) }
+if (-not $ClubPackagesDir) {
+  $ClubPackagesDir = if ($deploy.PackagesDir) { $deploy.PackagesDir } else { Join-Path $deploy.ServerDir 'data\client-updates' }
+}
 
 if (-not $RepoRoot) {
   if ($PSScriptRoot) {
@@ -105,14 +119,18 @@ dotnet publish (Join-Path $RepoRoot "src\ShiftClub.Client\ShiftClub.Client.Servi
   -c Release -r win-x64 -o $serviceOut --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 if ($LASTEXITCODE -ne 0) { throw "Service publish failed" }
+# Служба-сторож запускает Shell по этому пути: он должен совпадать с тем, куда
+# Shell раскладывают на клиентском диске.
+$shellInstallDir = if ($ClubShellDirs.Count -gt 0) { $ClubShellDirs[0] } else { 'C:\ShiftClub\Shell' }
 @{
-  Server = @{ BaseUrl = "http://192.168.1.250:5080" }
-  Shell  = @{ ExePath = "D:\Apps\ShiftClub\Shell\ShiftClub.Client.Shell.exe" }
+  Server = @{ BaseUrl = $ApiUrl }
+  Shell  = @{ ExePath = Join-Path $shellInstallDir 'ShiftClub.Client.Shell.exe' }
 } | ConvertTo-Json | Set-Content (Join-Path $serviceOut "appsettings.json") -Encoding UTF8
 
-# Bake club API URL into Shell package (updates must not point at dev .200)
+# Адрес клубного сервера — внутрь пакета Shell: обновление не должно увести
+# клиентов на чужой или на тестовый сервер.
 @{
-  Server = @{ BaseUrl = "http://192.168.1.250:5080" }
+  Server = @{ BaseUrl = $ApiUrl }
 } | ConvertTo-Json | Set-Content (Join-Path $shellOut "appsettings.json") -Encoding UTF8
 
 Write-Host "== Build Client.Keeper (session watchdog) =="
@@ -178,7 +196,11 @@ if ($ClubDeploy) {
   }
   Write-Host "Packages -> $ClubPackagesDir"
 
-  foreach ($dir in @($ClubShellDir, $ClubShellMirror)) {
+  if ($ClubShellDirs.Count -eq 0) {
+    Write-Warning 'Не заданы папки Shell (shellDirs в deploy.config.json) — файлы на клиентский диск не раскладываем'
+  }
+
+  foreach ($dir in $ClubShellDirs) {
     if (-not $dir) { continue }
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     # Stop running shell briefly is caller's job; copy files over.
@@ -191,7 +213,7 @@ if ($ClubDeploy) {
       }
     }
     @{
-      Server = @{ BaseUrl = "http://192.168.1.250:5080" }
+      Server = @{ BaseUrl = $ApiUrl }
     } | ConvertTo-Json | Set-Content (Join-Path $dir "appsettings.json") -Encoding UTF8
     # Never leave debug symbols on Games disk
     Get-ChildItem $dir -Filter '*.pdb' -Recurse -Force -EA SilentlyContinue | Remove-Item -Force -EA SilentlyContinue

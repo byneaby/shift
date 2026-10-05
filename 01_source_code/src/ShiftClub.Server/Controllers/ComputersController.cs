@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShiftClub.Application.Abstractions;
+using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Server.Auth;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.Computers;
@@ -16,10 +17,12 @@ namespace ShiftClub.Server.Controllers;
 public class ComputersController : ControllerBase
 {
     private readonly IComputerService _computers;
+    private readonly ShiftClubDbContext _db;
 
-    public ComputersController(IComputerService computers)
+    public ComputersController(IComputerService computers, ShiftClubDbContext db)
     {
         _computers = computers;
+        _db = db;
     }
 
     [HttpGet]
@@ -28,7 +31,7 @@ public class ComputersController : ControllerBase
         [FromQuery] Guid? branchId,
         CancellationToken cancellationToken)
     {
-        var list = await _computers.GetComputersAsync(branchId, cancellationToken);
+        var list = await _computers.GetComputersAsync(this.ResolveFilter(branchId), cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<ComputerDto>>.Ok(list));
     }
 
@@ -50,7 +53,9 @@ public class ComputersController : ControllerBase
     {
         try
         {
-            var result = await _computers.CreateManualStationAsync(request, GetEmployeeId(), cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, request.BranchId, cancellationToken);
+            var result = await _computers.CreateManualStationAsync(
+                request with { BranchId = branchId }, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<ComputerDto>.Ok(result));
         }
         catch (InvalidOperationException ex)

@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ShiftClub.Application.Abstractions;
 using ShiftClub.Domain.Entities;
 using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Shared.Contracts.Cash;
+using ShiftClub.Shared.Contracts.Fiscal;
 using ShiftClub.Shared.Enums;
 
 namespace ShiftClub.Infrastructure.Services;
@@ -26,11 +29,22 @@ public sealed class CashService : ICashService
 
     private readonly ShiftClubDbContext _db;
     private readonly IDocumentNumberService _numbers;
+    private readonly IFiscalRegistrar _fiscal;
+    private readonly IConfiguration _config;
+    private readonly ILogger<CashService> _logger;
 
-    public CashService(ShiftClubDbContext db, IDocumentNumberService numbers)
+    public CashService(
+        ShiftClubDbContext db,
+        IDocumentNumberService numbers,
+        IFiscalRegistrar fiscal,
+        IConfiguration config,
+        ILogger<CashService> logger)
     {
         _db = db;
         _numbers = numbers;
+        _fiscal = fiscal;
+        _config = config;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<CashRegisterDto>> GetRegistersAsync(
@@ -218,6 +232,7 @@ public sealed class CashService : ICashService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await RegisterFiscalAsync(receipt, shift.BranchId, FiscalReceiptRequest.Sale, employeeId, cancellationToken);
         return await MapReceiptAsync(receipt, cancellationToken);
     }
 
@@ -625,7 +640,109 @@ public sealed class CashService : ICashService
         });
 
         await _db.SaveChangesAsync(cancellationToken);
+        await RegisterFiscalAsync(receipt, shift.BranchId, FiscalReceiptRequest.Refund, employeeId, cancellationToken);
         return await MapReceiptAsync(receipt, cancellationToken);
+    }
+
+    /// <summary>
+    /// Отдаёт чек фискальному регистратору. Вызывается уже после сохранения:
+    /// деньги взяты, и отказ регистратора не должен отменять продажу. Номер
+    /// фискального документа пишем в журнал — отдельного поля под него в базе нет,
+    /// а журнал и так хранится по каждому чеку.
+    /// </summary>
+    private async Task RegisterFiscalAsync(
+        Receipt receipt,
+        Guid branchId,
+        string kind,
+        Guid employeeId,
+        CancellationToken cancellationToken)
+    {
+        FiscalReceiptResult result;
+        try
+        {
+            result = await _fiscal.RegisterAsync(
+                await BuildFiscalRequestAsync(receipt, kind, employeeId, cancellationToken),
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            result = FiscalReceiptResult.Failed(ex.GetBaseException().Message);
+        }
+
+        if (result.Skipped)
+            return;
+
+        if (!result.Ok)
+        {
+            _logger.LogError(
+                "Fiscal registration failed for receipt {Number}: {Error}",
+                receipt.Number,
+                result.Error);
+
+            if (_config.GetValue("Fiscal:RequireSuccess", false))
+            {
+                throw new InvalidOperationException(
+                    $"Фискальный регистратор не принял чек {receipt.Number}: {result.Error}");
+            }
+        }
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            BranchId = branchId,
+            EmployeeId = employeeId,
+            Action = result.Ok ? $"fiscal.{kind}.registered" : $"fiscal.{kind}.failed",
+            EntityType = nameof(Receipt),
+            EntityId = receipt.Id.ToString(),
+            DetailsJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                number = receipt.Number,
+                fiscalNumber = result.FiscalNumber,
+                documentUrl = result.DocumentUrl,
+                error = result.Error
+            })
+        });
+
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<FiscalReceiptRequest> BuildFiscalRequestAsync(
+        Receipt receipt,
+        string kind,
+        Guid employeeId,
+        CancellationToken cancellationToken)
+    {
+        var currency = await _db.Branches.AsNoTracking()
+            .Where(b => b.Id == receipt.BranchId)
+            .Select(b => b.CurrencyCode)
+            .FirstOrDefaultAsync(cancellationToken) ?? "KZT";
+
+        var cashier = await _db.Employees.AsNoTracking()
+            .Where(e => e.Id == employeeId)
+            .Select(e => e.DisplayName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var phone = receipt.CustomerId is Guid customerId
+            ? await _db.Customers.AsNoTracking()
+                .Where(c => c.Id == customerId)
+                .Select(c => c.Phone)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        return new FiscalReceiptRequest(
+            kind,
+            receipt.Id,
+            receipt.Number,
+            DateTimeOffset.UtcNow,
+            receipt.Total,
+            currency,
+            receipt.Items
+                .Select(i => new FiscalLine(i.Name, i.Quantity, i.UnitPrice, i.LineTotal, null))
+                .ToList(),
+            receipt.Payments
+                .Select(p => new FiscalPaymentPart(p.Method.ToString(), p.Amount))
+                .ToList(),
+            cashier,
+            phone);
     }
 
     private async Task ReverseBalanceTopUpAsync(

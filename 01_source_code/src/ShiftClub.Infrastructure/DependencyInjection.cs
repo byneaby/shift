@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ShiftClub.Application.Abstractions;
+using ShiftClub.Application.Diagnostics;
 using ShiftClub.Infrastructure.BackgroundJobs;
 using ShiftClub.Infrastructure.Identity;
 using ShiftClub.Infrastructure.Options;
@@ -32,6 +33,12 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddSingleton<LicenseCache>();
+        services.AddScoped<ILicenseService, LicenseService>();
+        services.AddSingleton<BackupRunState>();
+        services.AddSingleton<BrandingCache>();
+        services.AddScoped<IBrandingService, BrandingService>();
+        services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBranchService, BranchService>();
         services.AddScoped<IZoneService, ZoneService>();
@@ -40,6 +47,14 @@ public static class DependencyInjection
         services.AddScoped<ICashService, CashService>();
         services.AddScoped<IBarService, BarService>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<ICustomerImportService, CustomerImportService>();
+        services.AddScoped<ISetupService, SetupService>();
+        services.AddSingleton<ErrorLogStore>();
+        // Фискализация своя в каждой стране: в поставке заглушка, конкретная
+        // интеграция подменяет эту регистрацию.
+        services.AddScoped<IFiscalRegistrar, NullFiscalRegistrar>();
+        services.AddScoped<IDiagnosticsService, DiagnosticsService>();
+        services.AddHostedService<ErrorReportWorker>();
         services.AddScoped<ILoyaltyService, LoyaltyService>();
         services.AddScoped<ICustomerEngagementService, CustomerEngagementService>();
         services.AddScoped<ITelegramAuthService, TelegramAuthService>();
@@ -52,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IDocumentNumberService, DocumentNumberService>();
         services.AddScoped<IClientUpdateService, ClientUpdateService>();
+        services.AddScoped<IServerUpdateService, ServerUpdateService>();
         services.AddScoped<IClientLauncherService, ClientLauncherService>();
         services.AddScoped<ISoftwareAppService, SoftwareAppService>();
         services.AddScoped<IClubNewsService, ClubNewsService>();
@@ -71,6 +87,14 @@ public static class DependencyInjection
         services.AddScoped<TelegramBotService>();
         services.AddScoped<ITelegramCrmService, TelegramCrmService>();
         services.Configure<ClientUpdateOptions>(configuration.GetSection(ClientUpdateOptions.SectionName));
+        services.Configure<ServerUpdateOptions>(configuration.GetSection(ServerUpdateOptions.SectionName));
+        services.AddHttpClient(ServerUpdateService.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5);
+        });
+        services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.SectionName));
+        services.AddHostedService<LicenseWorker>();
+        services.AddHostedService<DatabaseBackupWorker>();
         services.AddHostedService<ComputerPresenceWorker>();
         services.AddHostedService<SessionLifecycleWorker>();
         services.AddHostedService<BookingNoShowWorker>();

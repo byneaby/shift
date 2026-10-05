@@ -922,7 +922,7 @@ export function TelegramSettingsPage() {
             </label>
           </div>
 
-          <h3 style={{ marginTop: 22 }}>Ключ SHIFT CASE</h3>
+          <h3 style={{ marginTop: 22 }}>Ключ кейса</h3>
           <label className="tg-check-card" style={{ marginBottom: 10 }}>
             <input
               type="checkbox"

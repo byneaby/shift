@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ShiftClub.LicenseTool</RootNamespace>
+    <AssemblyName>shift-license</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ShiftClub.Application\ShiftClub.Application.csproj" />
+    <ProjectReference Include="..\..\src\ShiftClub.Shared\ShiftClub.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

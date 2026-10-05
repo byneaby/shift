@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShiftClub.Application.Abstractions;
+using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Server.Auth;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.Sessions;
@@ -15,10 +16,12 @@ namespace ShiftClub.Server.Controllers;
 public class TariffsController : ControllerBase
 {
     private readonly ISessionService _sessions;
+    private readonly ShiftClubDbContext _db;
 
-    public TariffsController(ISessionService sessions)
+    public TariffsController(ISessionService sessions, ShiftClubDbContext db)
     {
         _sessions = sessions;
+        _db = db;
     }
 
     [HttpGet]
@@ -32,7 +35,7 @@ public class TariffsController : ControllerBase
         [FromQuery] bool availableNow = false,
         CancellationToken cancellationToken = default)
     {
-        var list = await _sessions.GetTariffsAsync(branchId, includeInactive, availableNow, zoneId, cancellationToken);
+        var list = await _sessions.GetTariffsAsync(this.ResolveFilter(branchId), includeInactive, availableNow, zoneId, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<TariffDto>>.Ok(list));
     }
 
@@ -44,7 +47,8 @@ public class TariffsController : ControllerBase
     {
         try
         {
-            var tariff = await _sessions.CreateTariffAsync(request, cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, request.BranchId, cancellationToken);
+            var tariff = await _sessions.CreateTariffAsync(request with { BranchId = branchId }, cancellationToken);
             return Ok(ApiResponse<TariffDto>.Ok(tariff));
         }
         catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException)

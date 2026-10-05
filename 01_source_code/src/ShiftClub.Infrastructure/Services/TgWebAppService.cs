@@ -283,7 +283,7 @@ public sealed class TgWebAppService : ITgWebAppService
 			TgAccessSession tgAccessSession = ((!string.IsNullOrWhiteSpace(bearerToken)) ? ValidateAccessToken(bearerToken) : null);
 			if ((object)tgAccessSession == null)
 			{
-				throw new InvalidOperationException("Нет данных Telegram. Откройте приложение из бота SHIFT.");
+				throw new InvalidOperationException("Нет данных Telegram. Откройте приложение из бота клуба.");
 			}
 			telegramUserId = tgAccessSession.TelegramUserId;
 			displayName = null;

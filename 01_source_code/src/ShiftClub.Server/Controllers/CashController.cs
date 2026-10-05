@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ShiftClub.Application.Abstractions;
+using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Server.Auth;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.Cash;
@@ -16,10 +18,12 @@ namespace ShiftClub.Server.Controllers;
 public class CashController : ControllerBase
 {
     private readonly ICashService _cash;
+    private readonly ShiftClubDbContext _db;
 
-    public CashController(ICashService cash)
+    public CashController(ICashService cash, ShiftClubDbContext db)
     {
         _cash = cash;
+        _db = db;
     }
 
     [HttpGet("registers")]
@@ -28,7 +32,7 @@ public class CashController : ControllerBase
         [FromQuery] Guid? branchId,
         CancellationToken cancellationToken)
     {
-        var list = await _cash.GetRegistersAsync(branchId, cancellationToken);
+        var list = await _cash.GetRegistersAsync(this.ResolveFilter(branchId), cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<CashRegisterDto>>.Ok(list));
     }
 
@@ -50,6 +54,15 @@ public class CashController : ControllerBase
     {
         try
         {
+            // Касса принадлежит филиалу: смену на чужой кассе открывать нельзя,
+            // иначе выручка уедет в отчёты другого филиала.
+            var registerBranchId = await _db.CashRegisters.AsNoTracking()
+                .Where(r => r.Id == request.CashRegisterId)
+                .Select(r => (Guid?)r.BranchId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (registerBranchId is { } branchId)
+                this.EnsureBranchAllowed(branchId);
+
             var shift = await _cash.OpenShiftAsync(request, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<CashShiftDto>.Ok(shift));
         }

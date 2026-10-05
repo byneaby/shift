@@ -511,7 +511,7 @@ export function CustomersPage() {
     onSuccess: async (res) => {
       setError(null)
       setFlash(
-        'Клиент создан. Ключ SHIFT CASE начислен — откройте кейс на кассе (рулетка).',
+        'Клиент создан. Ключ кейса начислен — откройте кейс на кассе (рулетка).',
       )
       setCreateForm({ firstName: '', lastName: '', phone: '', email: '', pin: '' })
       setCreateOpen(false)
@@ -1210,7 +1210,7 @@ export function CustomersPage() {
             {cardTab === 'case' && (
               <div>
                 <div className="customer-stat" style={{ marginBottom: 14, maxWidth: 280 }}>
-                  <span>Ключей SHIFT CASE</span>
+                  <span>Ключей кейсов</span>
                   <strong style={{ fontSize: '1.6rem' }}>{readCaseKeysBalance(detail)}</strong>
                 </div>
                 <div className="customer-card-actions">
@@ -1628,7 +1628,7 @@ export function CustomersPage() {
       <ActionDialog
         open={casePrizeOpen && !!casePrize}
         onClose={() => !caseApplyMutation.isPending && setCasePrizeOpen(false)}
-        title="Приз SHIFT CASE"
+        title="Приз кейса"
         description={casePrize?.displayName || detail?.fullName}
         size="sm"
         footer={
@@ -1726,7 +1726,7 @@ export function CustomersPage() {
       <ActionDialog
         open={buyKeysOpen}
         onClose={() => !buyKeysMutation.isPending && setBuyKeysOpen(false)}
-        title="Купить ключ SHIFT CASE"
+        title="Купить ключ кейса"
         description={detail?.fullName}
         size="sm"
         footer={
@@ -1793,7 +1793,7 @@ export function CustomersPage() {
             Итого: {(buyKeysQty * buyKeysPrice).toLocaleString('ru-RU')} ₸
           </p>
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-            Создаётся кассовый чек «Ключ SHIFT CASE» — попадает в выручку и отчёты.
+            Создаётся кассовый чек «Ключ кейса» — попадает в выручку и отчёты.
           </p>
           {error && <p className="error">{error}</p>}
         </div>

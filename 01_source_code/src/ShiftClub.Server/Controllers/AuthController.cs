@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ShiftClub.Application.Abstractions;
+using ShiftClub.Server.Security;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.Auth;
 using ShiftClub.Shared.ErrorCodes;
@@ -23,6 +25,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(SecuritySetup.LoginPolicy)]
     public async Task<ActionResult<ApiResponse<LoginResponse>>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)

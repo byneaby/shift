@@ -3,10 +3,16 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { setToken } from '../api/client'
 import type { EmployeeDto } from '../api/client'
 import { ChangePasswordDialog } from '../components/ChangePasswordDialog'
+import { LicenseBanner } from '../components/LicenseBanner'
+import { SetupBanner } from '../components/SetupBanner'
 import { StaffNotifications } from '../components/StaffNotifications'
 import { rolesLabel } from '../format'
 import { can } from '../permissions'
+import { LicenseFeature, useLicenseStatus } from '../licensing'
+import { useApplyBranding, useBranding } from '../branding'
 import { useDisableBrowserAutofill } from '../disableBrowserAutofill'
+
+const ALL_FEATURES: readonly string[] = Object.values(LicenseFeature)
 
 const NAV = [
   {
@@ -17,7 +23,14 @@ const NAV = [
       { to: '/bookings', label: 'Брони', icon: 'book', hint: 'Бронирование', perm: 'bookings.view' },
       { to: '/cash', label: 'Касса', icon: 'cash', hint: 'Смена и чеки', perm: 'cash.view' },
       { to: '/customers', label: 'Клиенты', icon: 'user', hint: 'Баланс и банк', perm: 'customers.view' },
-      { to: '/cases', label: 'SHIFT CASE', icon: 'case', hint: 'Кейсы и выдача', perm: 'customers.view' },
+      {
+        to: '/cases',
+        label: 'Кейсы',
+        icon: 'case',
+        hint: 'Кейсы и выдача',
+        perm: 'customers.view',
+        feature: LicenseFeature.ShiftCase,
+      },
       { to: '/wiki', label: 'Инструкция', icon: 'wiki', hint: 'Как работать на кассе' },
       { to: '/software', label: 'Программы', icon: 'apps', hint: 'Каталог игр на ПК', perm: 'computers.view' },
       { to: '/computers', label: 'Компьютеры', icon: 'pc', hint: 'ПК и коды', perm: 'computers.manage' },
@@ -36,6 +49,17 @@ const NAV = [
       { to: '/news', label: 'Новости', icon: 'news', hint: 'Лента на Shell', perm: 'settings.manage' },
       { to: '/updates', label: 'Обновления', icon: 'update', hint: 'Клиент Shell', perm: 'settings.manage' },
       { to: '/settings', label: 'Настройки', icon: 'settings', hint: 'Лояльность и система', perm: 'settings.manage' },
+    ],
+  },
+  {
+    title: 'Система',
+    items: [
+      { to: '/setup', label: 'Настройка клуба', icon: 'checklist', hint: 'Чек-лист первого запуска', perm: 'settings.manage' },
+      { to: '/customers/import', label: 'Импорт клиентов', icon: 'import', hint: 'Перенос из старой системы', perm: 'customers.manage' },
+      { to: '/branding', label: 'Оформление', icon: 'brush', hint: 'Название и логотип', perm: 'settings.manage' },
+      { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
+      { to: '/backups', label: 'Копии базы', icon: 'save', hint: 'Бэкапы и восстановление', perm: 'settings.manage' },
+      { to: '/system', label: 'Состояние', icon: 'monitor', hint: 'Проверки и ошибки сервера', perm: 'settings.manage' },
     ],
   },
 ] as const
@@ -201,6 +225,45 @@ function NavIcon({ name }: { name: string }) {
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
       )
+    case 'key':
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="15" r="4" />
+          <path d="M10.8 12.2 20 3l1.5 1.5-1.5 1.5 1.5 1.5-2 2-1.5-1.5-3.2 3.2" />
+        </svg>
+      )
+    case 'brush':
+      return (
+        <svg {...common}>
+          <path d="M3 21c2.5 0 4-1.5 4-4l-2-2c-1.5 0-3 1.5-3 3 0 1.5.5 3 1 3z" />
+          <path d="M7 15 18 4l2 2L9 17" />
+        </svg>
+      )
+    case 'checklist':
+      return (
+        <svg {...common}>
+          <polyline points="3 7 5 9 9 5" />
+          <polyline points="3 17 5 19 9 15" />
+          <line x1="13" y1="7" x2="21" y2="7" />
+          <line x1="13" y1="17" x2="21" y2="17" />
+        </svg>
+      )
+    case 'save':
+      return (
+        <svg {...common}>
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+      )
+    case 'import':
+      return (
+        <svg {...common}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      )
     case 'settings':
       return (
         <svg {...common}>
@@ -213,7 +276,7 @@ function NavIcon({ name }: { name: string }) {
   }
 }
 
-function pageTitle(pathname: string): string {
+function pageTitle(pathname: string): string | null {
   if (pathname === '/' || pathname === '') return 'Главная'
   for (const group of NAV) {
     for (const item of group.items) {
@@ -221,7 +284,7 @@ function pageTitle(pathname: string): string {
       if (pathname === item.to || pathname.startsWith(`${item.to}/`)) return item.label
     }
   }
-  return 'SHIFT Club'
+  return null
 }
 
 export function AppLayout() {
@@ -231,7 +294,15 @@ export function AppLayout() {
   const wide = location.pathname === '/floor'
   const [navOpen, setNavOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
-  const title = useMemo(() => pageTitle(location.pathname), [location.pathname])
+  const branding = useBranding()
+  useApplyBranding(branding)
+  const title = useMemo(
+    () => pageTitle(location.pathname) ?? branding.clubName,
+    [location.pathname, branding.clubName],
+  )
+  const license = useLicenseStatus()
+  // Пока лицензия не загрузилась, показываем все разделы: иначе меню мигает при входе.
+  const licensedFeatures: readonly string[] = license.data?.features ?? ALL_FEATURES
 
   useEffect(() => {
     setNavOpen(false)
@@ -276,7 +347,10 @@ export function AppLayout() {
 
       <aside id="app-sidebar" className={`app-sidebar${navOpen ? ' is-open' : ''}`}>
         <div className="app-sidebar-brand">
-          <p className="brand">SHIFT Club</p>
+          {branding.logoUrl ? (
+            <img className="brand-logo" src={branding.logoUrl} alt={branding.clubName} />
+          ) : null}
+          <p className="brand">{branding.clubName}</p>
           <p className="sidebar-sub muted">Панель смены</p>
         </div>
 
@@ -284,7 +358,9 @@ export function AppLayout() {
           {NAV.map((group) => {
             const items = group.items.filter((item) => {
               const perm = 'perm' in item ? item.perm : undefined
-              return !perm || can(perm)
+              if (perm && !can(perm)) return false
+              const feature = 'feature' in item ? item.feature : undefined
+              return !feature || licensedFeatures.includes(feature)
             })
             if (items.length === 0) return null
             return (
@@ -352,7 +428,7 @@ export function AppLayout() {
             <span className="app-menu-btn__bars" aria-hidden />
           </button>
           <div className="app-mobile-bar__title">
-            <p className="brand app-mobile-brand">SHIFT</p>
+            <p className="brand app-mobile-brand">{branding.shortName}</p>
             <strong>{title}</strong>
           </div>
           <span className="app-mobile-bar__user muted" title={employee?.displayName ?? employee?.login ?? ''}>
@@ -362,6 +438,8 @@ export function AppLayout() {
 
         <div className="app-content">
           <main className={wide ? 'app-main app-main--wide' : 'app-main'}>
+            <LicenseBanner />
+            <SetupBanner />
             <Outlet />
           </main>
         </div>
