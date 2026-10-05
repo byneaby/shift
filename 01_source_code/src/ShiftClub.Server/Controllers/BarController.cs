@@ -45,7 +45,7 @@ public class BarController : ControllerBase
     {
         try
         {
-            var branchId = await _db.Branches.Select(b => b.Id).FirstAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var cat = await _bar.CreateCategoryAsync(branchId, request, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<ProductCategoryDto>.Ok(cat));
         }
@@ -107,7 +107,7 @@ public class BarController : ControllerBase
     {
         try
         {
-            var branchId = await _db.Branches.Select(b => b.Id).FirstAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var product = await _bar.CreateProductAsync(branchId, request, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<ProductDto>.Ok(product));
         }

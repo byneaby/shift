@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ShiftClub.Application\ShiftClub.Application.csproj" />
     <ProjectReference Include="..\..\src\ShiftClub.Infrastructure\ShiftClub.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ShiftClub.Server\ShiftClub.Server.csproj" />
   </ItemGroup>
 
 </Project>

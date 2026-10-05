@@ -42,7 +42,7 @@ public sealed class CustomerImportController : ControllerBase
                 "Файл слишком большой. Разбейте выгрузку на части."));
         }
 
-        var branchId = await ResolveBranchIdAsync(cancellationToken);
+        var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
         var dto = await _import.PreviewAsync(request, branchId, cancellationToken);
         return Ok(ApiResponse<CustomerImportPreviewDto>.Ok(dto));
     }
@@ -63,7 +63,7 @@ public sealed class CustomerImportController : ControllerBase
 
         try
         {
-            var branchId = await ResolveBranchIdAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var dto = await _import.ImportAsync(request, branchId, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<CustomerImportResultDto>.Ok(dto));
         }
@@ -73,18 +73,6 @@ public sealed class CustomerImportController : ControllerBase
                 CommonErrorCodes.ValidationFailed,
                 ex.Message));
         }
-    }
-
-    private async Task<Guid> ResolveBranchIdAsync(CancellationToken cancellationToken)
-    {
-        var fromClaim = User.FindFirstValue("branch_id");
-        if (Guid.TryParse(fromClaim, out var branchId))
-            return branchId;
-
-        return await _db.Branches.AsNoTracking()
-            .OrderBy(b => b.CreatedAt)
-            .Select(b => b.Id)
-            .FirstAsync(cancellationToken);
     }
 
     private Guid GetEmployeeId() =>

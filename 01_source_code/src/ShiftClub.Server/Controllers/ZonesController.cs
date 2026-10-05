@@ -29,7 +29,7 @@ public sealed class ZonesController : ControllerBase
         [FromQuery] bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
-        var list = await _zones.ListAsync(branchId, includeInactive, cancellationToken);
+        var list = await _zones.ListAsync(this.ResolveFilter(branchId), includeInactive, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<ZoneDto>>.Ok(list));
     }
 

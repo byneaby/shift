@@ -29,6 +29,13 @@ public class BranchesController : ControllerBase
     public async Task<ActionResult<ApiResponse<IReadOnlyList<BranchDto>>>> GetAll(CancellationToken cancellationToken)
     {
         var branches = await _branchService.GetBranchesAsync(cancellationToken);
+
+        // Панель берёт «свой» филиал из начала этого списка, поэтому привязанному
+        // сотруднику нельзя показывать сеть целиком — иначе он начнёт заводить
+        // тарифы и зоны в чужом филиале.
+        if (this.OwnBranchId() is { } own && !this.CanUseAllBranches())
+            branches = branches.Where(b => b.Id == own).ToList();
+
         return Ok(ApiResponse<IReadOnlyList<BranchDto>>.Ok(branches));
     }
 }

@@ -36,7 +36,7 @@ public class BookingsController : ControllerBase
         [FromQuery] Guid? computerId,
         CancellationToken cancellationToken)
     {
-        var tzId = await _db.Branches.AsNoTracking().Select(b => b.TimeZoneId).FirstOrDefaultAsync(cancellationToken);
+        var tzId = await GetBranchTimeZoneAsync(cancellationToken);
         var day = date ?? BranchTimeZone.TodayLocal(tzId);
         var list = await _bookings.GetForDayAsync(day, zoneId, computerId, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<BookingDto>>.Ok(list));
@@ -62,7 +62,7 @@ public class BookingsController : ControllerBase
                 if (!TimeOnly.TryParse(localTime, out var t))
                     return BadRequest(ApiResponse<IReadOnlyList<AvailableComputerDto>>.Fail(
                         CommonErrorCodes.ValidationFailed, "Некорректное localTime."));
-                var tzId = await _db.Branches.AsNoTracking().Select(b => b.TimeZoneId).FirstOrDefaultAsync(cancellationToken);
+                var tzId = await GetBranchTimeZoneAsync(cancellationToken);
                 start = BranchTimeZone.ToUtc(d, t, tzId);
             }
             else if (startsAt is DateTimeOffset s)
@@ -76,7 +76,7 @@ public class BookingsController : ControllerBase
             }
 
             var list = await _bookings.GetAvailableComputersAsync(
-                start, durationMinutes, zoneId, branchId, cancellationToken, excludeBookingId);
+                start, durationMinutes, zoneId, this.ResolveFilter(branchId), cancellationToken, excludeBookingId);
             return Ok(ApiResponse<IReadOnlyList<AvailableComputerDto>>.Ok(list));
         }
         catch (InvalidOperationException ex)
@@ -238,6 +238,20 @@ public class BookingsController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(CommonErrorCodes.ValidationFailed, ex.Message));
         }
+    }
+
+    /// <summary>
+    /// Пояс того филиала, от которого работает сотрудник: в сети клубов в разных
+    /// поясах «сегодня» и «18:00» у филиалов разные.
+    /// </summary>
+    private async Task<string?> GetBranchTimeZoneAsync(CancellationToken cancellationToken)
+    {
+        var own = this.OwnBranchId();
+        return await _db.Branches.AsNoTracking()
+            .Where(b => own == null || b.Id == own)
+            .OrderBy(b => b.CreatedAt)
+            .Select(b => b.TimeZoneId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private Guid GetEmployeeId()

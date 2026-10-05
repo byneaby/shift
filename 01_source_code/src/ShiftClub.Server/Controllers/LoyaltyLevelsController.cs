@@ -24,7 +24,7 @@ public sealed class LoyaltyLevelsController : ControllerBase
         [FromQuery] Guid? branchId,
         CancellationToken cancellationToken)
     {
-        var list = await _loyalty.ListAsync(branchId, cancellationToken);
+        var list = await _loyalty.ListAsync(this.ResolveFilter(branchId), cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<LoyaltyLevelDto>>.Ok(list));
     }
 
@@ -38,7 +38,7 @@ public sealed class LoyaltyLevelsController : ControllerBase
         try
         {
             var employeeId = Guid.Parse(User.FindFirst("employee_id")!.Value);
-            var row = await _loyalty.CreateAsync(branchId, request, employeeId, cancellationToken);
+            var row = await _loyalty.CreateAsync(this.ResolveFilter(branchId), request, employeeId, cancellationToken);
             return Ok(ApiResponse<LoyaltyLevelDto>.Ok(row));
         }
         catch (InvalidOperationException ex)

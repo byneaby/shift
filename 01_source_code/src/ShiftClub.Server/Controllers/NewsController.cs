@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShiftClub.Application.Abstractions;
 using ShiftClub.Infrastructure.Persistence;
+using ShiftClub.Server.Auth;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.News;
 using ShiftClub.Shared.ErrorCodes;
@@ -40,7 +41,7 @@ public sealed class NewsController : ControllerBase
     {
         try
         {
-            var branchId = await _db.Branches.Select(b => b.Id).FirstAsync(cancellationToken);
+            var branchId = await this.ResolveBranchIdAsync(_db, null, cancellationToken);
             var result = await _news.CreateAsync(branchId, request, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<ClubNewsDto>.Ok(result));
         }

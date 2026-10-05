@@ -29,7 +29,7 @@ public sealed class FloorMapController : ControllerBase
     {
         try
         {
-            var map = await _floorMap.GetMapAsync(branchId, cancellationToken);
+            var map = await _floorMap.GetMapAsync(this.ResolveFilter(branchId), cancellationToken);
             return Ok(ApiResponse<FloorMapDto>.Ok(map));
         }
         catch (KeyNotFoundException)
@@ -47,7 +47,7 @@ public sealed class FloorMapController : ControllerBase
     {
         try
         {
-            var map = await _floorMap.UpdateSettingsAsync(branchId, request, cancellationToken);
+            var map = await _floorMap.UpdateSettingsAsync(this.ResolveFilter(branchId), request, cancellationToken);
             return Ok(ApiResponse<FloorMapDto>.Ok(map));
         }
         catch (KeyNotFoundException)
@@ -69,7 +69,7 @@ public sealed class FloorMapController : ControllerBase
     {
         try
         {
-            var el = await _floorMap.CreateElementAsync(branchId, request, cancellationToken);
+            var el = await _floorMap.CreateElementAsync(this.ResolveFilter(branchId), request, cancellationToken);
             return Ok(ApiResponse<FloorMapElementDto>.Ok(el));
         }
         catch (KeyNotFoundException)
