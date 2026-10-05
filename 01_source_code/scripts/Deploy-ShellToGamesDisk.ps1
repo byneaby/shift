@@ -11,13 +11,28 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Version,
 
-  [string]$StagingRoot = "C:\ShiftClub\Server\data\shell-staging",
-  [string[]]$Targets = @("D:\Apps\ShiftClub\Shell", "D:\01 SHIFT\Shell"),
-  [string]$BackupRoot = "C:\ShiftClub\Server\_backup",
-  [string]$LogFile = "C:\ShiftClub\Server\logs\shell-d-deploy.log"
+  [string]$ServerUrl = "",
+  [string]$StagingRoot = "",
+  [string[]]$Targets = @(),
+  [string]$BackupRoot = "",
+  [string]$LogFile = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+# Адрес сервера и пути клубных дисков — из scripts\deploy.config.json, а не
+# вписаны здесь: у каждого клуба они свои.
+. (Join-Path $PSScriptRoot '_DeployConfig.ps1')
+$deploy = Get-ShiftClubDeployConfig -ScriptRoot $PSScriptRoot
+$ServerUrl = Resolve-ShiftClubServerUrl -Provided $ServerUrl -Config $deploy
+
+if (-not $StagingRoot) { $StagingRoot = Join-Path $deploy.ServerDir 'data\shell-staging' }
+if (-not $BackupRoot) { $BackupRoot = Join-Path $deploy.ServerDir '_backup' }
+if (-not $LogFile) { $LogFile = Join-Path $deploy.ServerDir 'logs\shell-d-deploy.log' }
+if ($Targets.Count -eq 0) { $Targets = @($deploy.ShellDirs) }
+if ($Targets.Count -eq 0) {
+  throw "Не заданы папки Shell на клиентском диске: укажите -Targets или shellDirs в scripts\deploy.config.json"
+}
 
 function Write-Log([string]$msg) {
   $line = "{0:yyyy-MM-dd HH:mm:ss} {1}" -f (Get-Date), $msg
@@ -49,7 +64,7 @@ try {
     $code = $LASTEXITCODE
     if ($code -ge 8) { throw "robocopy -> $dir failed (code $code)" }
 
-    @{ Server = @{ BaseUrl = "http://192.168.1.250:5080" } } |
+    @{ Server = @{ BaseUrl = $ServerUrl } } |
       ConvertTo-Json | Set-Content (Join-Path $dir "appsettings.json") -Encoding UTF8
     Get-ChildItem $dir -Filter "*.pdb" -Recurse -Force -EA SilentlyContinue | Remove-Item -Force -EA SilentlyContinue
 

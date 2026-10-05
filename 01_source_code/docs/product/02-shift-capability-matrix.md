@@ -64,6 +64,7 @@
 |-------------|-------|-------------|
 | Команды ПК (reboot/lock/…) | **Есть** | ComputerCommand |
 | OTA клиента (zip+manifest) | **Сильно** | Publish-ClientUpdate + ClubDeploy |
+| OTA сервера (кнопка в панели) | **Есть** | Канал поставщика, копия базы перед обновлением, откат по `/health` — см. [SERVER-UPDATES.md](../SERVER-UPDATES.md) |
 | CCBoot / diskless-aware деплой | **Сильно** | Документированный канон C: vs D: |
 | Мониторинг | **Есть** | страница Monitoring |
 | Floor display | **Есть** | TV/табло |

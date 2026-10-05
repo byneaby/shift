@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../api/client'
-import type { SystemStatusDto } from '../api/client'
+import type { ServerUpdateStartResultDto, ServerUpdateStatusDto, SystemStatusDto } from '../api/client'
 
 function dateTime(value: string) {
   return new Date(value).toLocaleString('ru-RU', {
@@ -9,6 +10,17 @@ function dateTime(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function megabytes(bytes: number) {
+  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+}
+
+const RUN_STATES: Record<string, string> = {
+  swapping: 'шла подмена файлов',
+  ok: 'установлено',
+  rolled_back: 'не поднялось, вернули прежнюю версию',
+  failed: 'не удалось',
 }
 
 export function SystemPage() {
@@ -29,7 +41,42 @@ export function SystemPage() {
     },
   })
 
+  const update = useQuery({
+    queryKey: ['system', 'update'],
+    queryFn: async () => (await apiFetch<ServerUpdateStatusDto>('/api/system/update')).data ?? null,
+  })
+
+  const [updateNote, setUpdateNote] = useState<string | null>(null)
+
+  const checkUpdate = useMutation({
+    mutationFn: async () =>
+      (await apiFetch<ServerUpdateStatusDto>('/api/system/update/check', { method: 'POST' })).data ?? null,
+    onSuccess: async (result) => {
+      setUpdateNote(
+        result?.updateAvailable
+          ? `Вышла версия ${result.latestVersion}.`
+          : result?.problem ?? 'Установлена актуальная версия.',
+      )
+      await queryClient.invalidateQueries({ queryKey: ['system', 'update'] })
+    },
+    onError: () => setUpdateNote('Не удалось связаться с каналом обновлений.'),
+  })
+
+  const startUpdate = useMutation({
+    mutationFn: async () =>
+      (
+        await apiFetch<ServerUpdateStartResultDto>('/api/system/update/start', {
+          method: 'POST',
+          body: JSON.stringify({ version: null }),
+        })
+      ).data ?? null,
+    onSuccess: (result) => setUpdateNote(result?.message ?? 'Обновление запущено.'),
+    onError: (error: unknown) =>
+      setUpdateNote(error instanceof Error ? error.message : 'Обновление не запустилось.'),
+  })
+
   const data = status.data
+  const upd = update.data
 
   return (
     <>
@@ -90,6 +137,67 @@ export function SystemPage() {
             </dl>
           </section>
         </div>
+      )}
+
+      {upd && (
+        <section className="cash-card" style={{ marginTop: 16 }}>
+          <h2 className="section-title">Версия сервера</h2>
+          <dl className="kv-list">
+            <dt>Установлено</dt>
+            <dd>{upd.currentVersion}</dd>
+            {upd.latestVersion && (
+              <>
+                <dt>Вышло</dt>
+                <dd>
+                  {upd.latestVersion}
+                  {upd.publishedAt ? ` от ${dateTime(upd.publishedAt)}` : ''}
+                  {upd.sizeBytes > 0 ? `, ${megabytes(upd.sizeBytes)}` : ''}
+                </dd>
+              </>
+            )}
+            {upd.lastRun && (
+              <>
+                <dt>Прошлое обновление</dt>
+                <dd>
+                  {upd.lastRun.version} — {RUN_STATES[upd.lastRun.state] ?? upd.lastRun.state}
+                  {upd.lastRun.message ? `: ${upd.lastRun.message}` : ''}
+                </dd>
+              </>
+            )}
+          </dl>
+
+          {upd.releaseNotes && <p>{upd.releaseNotes}</p>}
+          {upd.problem && <p className="muted">{upd.problem}</p>}
+
+          {upd.updateAvailable && (
+            <p className="muted">
+              Перед обновлением сервер сам сделает копию базы. Пока идёт подмена, касса и ПК работать не
+              будут — несколько минут. Если новая версия не поднимется, вернётся прежняя.
+            </p>
+          )}
+
+          <div className="order-actions">
+            <button type="button" disabled={checkUpdate.isPending} onClick={() => checkUpdate.mutate()}>
+              Проверить обновления
+            </button>
+            {upd.updateAvailable && (
+              <button
+                type="button"
+                className="primary"
+                disabled={startUpdate.isPending}
+                onClick={() => {
+                  if (window.confirm(`Обновить сервер до версии ${upd.latestVersion}? Клуб остановится на несколько минут.`)) {
+                    startUpdate.mutate()
+                  }
+                }}
+              >
+                Обновить до {upd.latestVersion}
+              </button>
+            )}
+          </div>
+
+          {updateNote && <p className="flash">{updateNote}</p>}
+        </section>
       )}
 
       {data && (

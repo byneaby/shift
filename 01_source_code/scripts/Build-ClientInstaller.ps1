@@ -6,18 +6,31 @@
   .\scripts\Build-ClientInstaller.ps1
 
 .EXAMPLE
-  .\scripts\Build-ClientInstaller.ps1 -Version 0.6.27 -ServerUrl http://192.168.1.200:5080
+  .\scripts\Build-ClientInstaller.ps1 -Version 0.6.27 -ServerUrl http://192.168.1.10:5080
+
+.NOTES
+  Адрес сервера берётся из -ServerUrl, переменной SHIFTCLUB_SERVER_URL или
+  scripts\deploy.config.json. Без него скрипт останавливается: установщик с чужим
+  адресом сервера молча не найдёт клуб.
 #>
 param(
   [string]$Version = "",
-  [string]$ServerUrl = "http://192.168.1.250:5080",
+  [string]$ServerUrl = "",
+  [string]$ShellInstallDir = "",
   [string]$RepoRoot = "",
   [switch]$FrameworkDependent
 )
 
 $ErrorActionPreference = "Stop"
-$env:PATH = "D:\Dev\dotnet;D:\Dev\Git\cmd;$env:PATH"
-$env:DOTNET_ROOT = "D:\Dev\dotnet"
+
+. (Join-Path $PSScriptRoot '_DeployConfig.ps1')
+$deploy = Get-ShiftClubDeployConfig -ScriptRoot $PSScriptRoot
+$ServerUrl = Resolve-ShiftClubServerUrl -Provided $ServerUrl -Config $deploy
+Use-ShiftClubDotnet -Config $deploy
+
+$shellInstallDir = $ShellInstallDir
+if (-not $shellInstallDir -and $deploy.ShellDirs.Count -gt 0) { $shellInstallDir = $deploy.ShellDirs[0] }
+if (-not $shellInstallDir) { $shellInstallDir = 'C:\ShiftClub\Shell' }
 
 if (-not $RepoRoot) {
   $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -111,9 +124,12 @@ $serviceArgs = @(
 )
 dotnet publish (Join-Path $RepoRoot "src\ShiftClub.Client\ShiftClub.Client.Service\ShiftClub.Client.Service.csproj") @serviceArgs
 if ($LASTEXITCODE -ne 0) { throw "Service publish failed" }
+# Служба-сторож запускает Shell по этому пути, поэтому он должен совпадать с тем,
+# куда Shell раскладывают на клиентском диске (shellDirs в deploy.config.json).
+$shellExePath = Join-Path $shellInstallDir 'ShiftClub.Client.Shell.exe'
 @{
   Server = @{ BaseUrl = $ServerUrl.TrimEnd('/') }
-  Shell  = @{ ExePath = "D:\Apps\ShiftClub\Shell\ShiftClub.Client.Shell.exe" }
+  Shell  = @{ ExePath = $shellExePath }
 } | ConvertTo-Json | Set-Content -Path (Join-Path $serviceOut "appsettings.json") -Encoding UTF8
 
 # Default server URL into packaged appsettings

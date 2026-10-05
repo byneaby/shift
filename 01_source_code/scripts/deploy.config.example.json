@@ -1,0 +1,23 @@
+{
+  "_comment": "Скопируйте в deploy.config.json и впишите свои значения. deploy.config.json в репозиторий не попадает.",
+
+  "_serverUrl": "Адрес сервера клуба. Попадает внутрь собранного Shell и службы клиента — именно по нему клиентские ПК ищут свой клуб.",
+  "serverUrl": "http://192.168.1.10:5080",
+
+  "_serverDir": "Папка сервера на клубной машине.",
+  "serverDir": "C:\\ShiftClub\\Server",
+
+  "_shellDirs": "Куда раскладывать Shell на клиентском диске. Для CCBoot это папки на диске с играми.",
+  "shellDirs": [
+    "D:\\Apps\\ShiftClub\\Shell"
+  ],
+
+  "_dotnetRoot": "Папка с dotnet.exe, если он не в PATH. Пусто — берём системный.",
+  "dotnetRoot": "",
+
+  "_packagesDir": "Куда класть пакеты обновления клиента. Пусто — в data\\client-updates папки сервера.",
+  "packagesDir": "",
+
+  "_apiToken": "Токен для -Upload. Лучше передавать через переменную SHIFTCLUB_API_TOKEN, а не хранить в файле.",
+  "apiToken": ""
+}

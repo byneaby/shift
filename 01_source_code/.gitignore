@@ -32,6 +32,9 @@ appsettings.*.local.json
 **/secrets.env
 !**/secrets.env.example
 
+# Настройки сборки и выкладки конкретной установки: адрес сервера, пути дисков
+scripts/deploy.config.json
+
 # OS
 Thumbs.db
 Desktop.ini
@@ -41,6 +44,7 @@ Desktop.ini
 src/ShiftClub.Server/data/client-updates/*
 !src/ShiftClub.Server/data/client-updates/.gitkeep
 src/ShiftClub.Server/data/backups/
+src/ShiftClub.Server/data/server-updates/
 src/ShiftClub.Server/logs/
 src/ShiftClub.Server/bin/
 src/ShiftClub.Server/obj/

@@ -149,6 +149,33 @@ export type SystemStatusDto = {
   recentErrors: ErrorGroupDto[]
 }
 
+export type ServerUpdateRunDto = {
+  version: string
+  state: string
+  message?: string | null
+  startedAt: string
+  finishedAt?: string | null
+}
+
+export type ServerUpdateStatusDto = {
+  feedConfigured: boolean
+  currentVersion: string
+  latestVersion?: string | null
+  updateAvailable: boolean
+  releaseNotes?: string | null
+  publishedAt?: string | null
+  sizeBytes: number
+  problem?: string | null
+  readyVersion?: string | null
+  lastRun?: ServerUpdateRunDto | null
+}
+
+export type ServerUpdateStartResultDto = {
+  started: boolean
+  version?: string | null
+  message: string
+}
+
 export type ApplySetupResultDto = {
   status: SetupStatusDto
   applied: string[]

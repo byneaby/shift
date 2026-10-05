@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IDocumentNumberService, DocumentNumberService>();
         services.AddScoped<IClientUpdateService, ClientUpdateService>();
+        services.AddScoped<IServerUpdateService, ServerUpdateService>();
         services.AddScoped<IClientLauncherService, ClientLauncherService>();
         services.AddScoped<ISoftwareAppService, SoftwareAppService>();
         services.AddScoped<IClubNewsService, ClubNewsService>();
@@ -86,6 +87,11 @@ public static class DependencyInjection
         services.AddScoped<TelegramBotService>();
         services.AddScoped<ITelegramCrmService, TelegramCrmService>();
         services.Configure<ClientUpdateOptions>(configuration.GetSection(ClientUpdateOptions.SectionName));
+        services.Configure<ServerUpdateOptions>(configuration.GetSection(ServerUpdateOptions.SectionName));
+        services.AddHttpClient(ServerUpdateService.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5);
+        });
         services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.SectionName));
         services.AddHostedService<LicenseWorker>();
         services.AddHostedService<DatabaseBackupWorker>();
