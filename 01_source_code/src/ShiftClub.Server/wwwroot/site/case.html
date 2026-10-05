@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SHIFT CASE — касса</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site/case/case.css?v=9" />
+</head>
+<body class="desk-case">
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--l" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--r" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="logo" href="/cases">
+        <span class="logo__mark"></span>
+        <span class="logo__text">SHIFT CASE · КАССА</span>
+      </a>
+      <div class="topbar__right">
+        <button type="button" class="desk-back" id="deskBack" hidden>← К акции</button>
+        <span class="desk-badge">только касса</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="desk-guest" id="deskGuestBar">
+      <label class="desk-guest__search">
+        <span>Гость (телефон / имя)</span>
+        <input id="guestQuery" type="search" placeholder="7700… или имя" autocomplete="off" />
+      </label>
+      <div class="desk-guest__results" id="guestResults" hidden></div>
+      <div class="desk-guest__selected" id="guestSelected" hidden>
+        <div>
+          <strong id="guestName">—</strong>
+          <span id="guestPhone" class="muted"></span>
+        </div>
+        <div class="desk-guest__keys">
+          Ключей: <b id="guestKeys">0</b>
+        </div>
+        <button type="button" class="desk-guest__clear" id="guestClear">Сменить</button>
+      </div>
+      <p class="desk-guest__hint" id="deskHint">Найди гостя — затем ОТКРЫТЬ. Нужен ключ (за регистрацию).</p>
+    </section>
+
+    <section class="hero hero--demo">
+      <div class="hero__title hero__title--solo">
+        <h1>SHIFT <span>CASE</span></h1>
+        <p id="heroLead">Крутим кейс гостю у кассы — время, скидки, баланс и бар.</p>
+      </div>
+
+      <div class="reel">
+        <div class="reel__pointer reel__pointer--top" aria-hidden="true"></div>
+        <div class="reel__pointer reel__pointer--bot" aria-hidden="true"></div>
+        <div class="reel__frame" aria-hidden="true"></div>
+        <div class="reel__viewport">
+          <div class="reel__track" id="rouletteTrack"></div>
+        </div>
+      </div>
+
+      <button type="button" class="open-btn" id="openBtn" disabled>
+        <span class="open-btn__title">ОТКРЫТЬ</span>
+        <span class="open-btn__cost" id="openCost">ключ</span>
+      </button>
+      <p class="hero__note">Касса · Enter — открыть · та же рулетка</p>
+      <p class="status" id="statusLine"></p>
+    </section>
+
+    <section class="mid mid--solo">
+      <div class="panel prizes-panel">
+        <h2 class="panel__title">
+          <span class="panel__ico" aria-hidden="true">🧰</span>
+          ПРИЗЫ В КЕЙСЕ
+        </h2>
+        <div class="prize-grid" id="prizeGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="win-modal" id="winModal" hidden>
+    <div class="win-modal__veil"></div>
+    <div class="win-modal__card">
+      <p class="win-modal__label">Приз</p>
+      <img class="win-modal__img" id="winImg" alt="" />
+      <h2 class="win-modal__name" id="winName"></h2>
+      <p class="win-modal__desc" id="winDesc"></p>
+      <button type="button" class="win-modal__btn" id="winClose">Отлично · Enter</button>
+    </div>
+  </div>
+
+  <script src="/site/case/case.js?v=12"></script>
+</body>
+</html>

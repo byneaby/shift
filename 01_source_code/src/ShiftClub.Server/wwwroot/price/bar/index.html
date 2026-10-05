@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>БАР · SHIFT Cyber Club</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="bar.css?v=2" />
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 5h11v8.2a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" /><path d="M16 7.2h2.4A2.6 2.6 0 0 1 21 9.8v.4A2.6 2.6 0 0 1 18.4 12.8H16" /><path d="M8.2 21h7.6" /></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.4 2.6 4.8 13.6h6L10.2 21.4l8.9-11.2h-6.2z" /></symbol>
+    <symbol id="i-snack" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="5.5" /><path d="M5.2 10.4c1.6 1.4 4 2.2 6.8 2.2s5.2-.8 6.8-2.2" /><path d="M5.2 13.6c1.6 1.4 4 2.2 6.8 2.2s5.2-.8 6.8-2.2" /></symbol>
+    <symbol id="i-hookah" viewBox="0 0 24 24"><path d="M12 3.2v7.2" /><circle cx="12" cy="12.2" r="2.1" /><path d="M12 14.3v5.5" /><path d="M8.4 20.2h7.2" /><path d="M14.2 8.4c2.2.2 3.8 1.6 4.2 3.4" /></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v5.4M12 7.6h.02" /></symbol>
+  </svg>
+
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__glow bg__glow--a"></div>
+    <div class="bg__glow bg__glow--b"></div>
+    <div class="bg__glow bg__glow--c"></div>
+    <div class="bg__scan"></div>
+    <div class="bg__vignette"></div>
+  </div>
+
+  <main class="board">
+    <aside class="rail rail--brand">
+      <div class="logo">
+        <span class="logo__mark">SHIFT</span>
+        <span class="logo__sub">cyber club</span>
+      </div>
+
+      <h1 class="title" aria-label="Бар">
+        <span>Б</span><span>А</span><span>Р</span>
+      </h1>
+
+      <p class="tagline">Напитки · снеки<br />кальян к месту</p>
+
+      <div class="clock">
+        <span class="clock__time">
+          <b id="clockHH">00</b><i class="clock__sep">:</i><b id="clockMM">00</b>
+        </span>
+        <em class="clock__meta" id="clockMeta">Меню бара</em>
+      </div>
+    </aside>
+
+    <section class="cards" id="cards" aria-label="Меню бара"></section>
+  </main>
+
+  <footer class="ticker">
+    <span class="ticker__badge"><svg class="ticker__badge-ico"><use href="#i-bolt" /></svg>SHIFT</span>
+    <div class="ticker__viewport"><div class="ticker__track" id="tickerTrack"></div></div>
+  </footer>
+
+  <script src="bar.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+@ShiftClub.Server_HostAddress = http://localhost:5079
+
+GET {{ShiftClub.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

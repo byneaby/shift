@@ -1,0 +1,188 @@
+{
+  "caseCode": "SHIFT_CASE",
+  "title": "SHIFT CASE",
+  "description": "Открывай кейсы и получай время, скидки, баланс и напитки с бара!",
+  "economicsNote": "Время от 30 мин на любой зал · скидки 10–50% · баланс 1000–3000 ₸ · бар реже",
+  "expectedCostKzt": 1100,
+  "keyRules": [
+    { "event": "registration", "keys": 1, "note": "Welcome" },
+    { "event": "first_deposit_ge_2000", "keys": 1, "note": "Первое пополнение от 2000₸" },
+    { "event": "deposit_ge_5000", "keys": 1, "note": "Каждые 5000₸ пополнения — 1 ключ (с потолком 2/сутки)" },
+    { "event": "buy_night_package", "keys": 1, "note": "Покупка ночного пакета" },
+    { "event": "play_hours_15", "keys": 1, "note": "Каждые 15 часов игры" },
+    { "event": "birthday", "keys": 1, "note": "День рождения" },
+    { "event": "staff_grant", "keys": 1, "note": "Вручную админом" }
+  ],
+  "limits": {
+    "barItemPerDayGlobal": 40
+  },
+  "showProbabilitiesToUsers": false,
+  "prizes": [
+    {
+      "id": "time_30",
+      "name": "+30 мин",
+      "description": "Полчаса игрового времени на любой зал",
+      "type": "TIME",
+      "rarity": "COMMON",
+      "weight": 2200,
+      "chancePercent": 22.0,
+      "costEstimateKzt": 450,
+      "payload": { "zone": "Any", "minutes": 30 },
+      "image": "/site/case/rewards/time-30.png"
+    },
+    {
+      "id": "time_60",
+      "name": "+1 час",
+      "description": "Час игрового времени на любой зал",
+      "type": "TIME",
+      "rarity": "UNCOMMON",
+      "weight": 1400,
+      "chancePercent": 14.0,
+      "costEstimateKzt": 900,
+      "payload": { "zone": "Any", "minutes": 60 },
+      "image": "/site/case/rewards/time-60.png"
+    },
+    {
+      "id": "time_120",
+      "name": "+2 часа",
+      "description": "Два часа игрового времени на любой зал",
+      "type": "TIME",
+      "rarity": "RARE",
+      "weight": 700,
+      "chancePercent": 7.0,
+      "costEstimateKzt": 1800,
+      "payload": { "zone": "Any", "minutes": 120 },
+      "image": "/site/case/rewards/vip-2h.png"
+    },
+    {
+      "id": "discount_10",
+      "name": "−10% на сеанс",
+      "description": "Скидка 10% на следующий платный сеанс",
+      "type": "DISCOUNT",
+      "rarity": "COMMON",
+      "weight": 1350,
+      "chancePercent": 13.5,
+      "costEstimateKzt": 120,
+      "payload": { "percent": 10, "uses": 1 },
+      "image": "/site/case/rewards/discount-10.png"
+    },
+    {
+      "id": "discount_20",
+      "name": "−20% на сеанс",
+      "description": "Скидка 20% на следующий платный сеанс",
+      "type": "DISCOUNT",
+      "rarity": "UNCOMMON",
+      "weight": 850,
+      "chancePercent": 8.5,
+      "costEstimateKzt": 250,
+      "payload": { "percent": 20, "uses": 1 },
+      "image": "/site/case/rewards/discount-20.png"
+    },
+    {
+      "id": "discount_30",
+      "name": "−30% на сеанс",
+      "description": "Скидка 30% на следующий платный сеанс",
+      "type": "DISCOUNT",
+      "rarity": "RARE",
+      "weight": 500,
+      "chancePercent": 5.0,
+      "costEstimateKzt": 400,
+      "payload": { "percent": 30, "uses": 1 },
+      "image": "/site/case/rewards/discount-20.png"
+    },
+    {
+      "id": "discount_50",
+      "name": "−50% на сеанс",
+      "description": "Скидка 50% на следующий платный сеанс",
+      "type": "DISCOUNT",
+      "rarity": "EPIC",
+      "weight": 250,
+      "chancePercent": 2.5,
+      "costEstimateKzt": 700,
+      "payload": { "percent": 50, "uses": 1 },
+      "image": "/site/case/rewards/discount-20.png"
+    },
+    {
+      "id": "balance_1000",
+      "name": "+1000 ₸ на баланс",
+      "description": "1000 ₸ на основной баланс",
+      "type": "BALANCE",
+      "rarity": "UNCOMMON",
+      "weight": 1000,
+      "chancePercent": 10.0,
+      "costEstimateKzt": 1000,
+      "payload": { "amount": 1000, "wallet": "balance" },
+      "image": "/site/case/rewards/balance-500.png"
+    },
+    {
+      "id": "balance_2000",
+      "name": "+2000 ₸ на баланс",
+      "description": "2000 ₸ на основной баланс",
+      "type": "BALANCE",
+      "rarity": "RARE",
+      "weight": 500,
+      "chancePercent": 5.0,
+      "costEstimateKzt": 2000,
+      "payload": { "amount": 2000, "wallet": "balance" },
+      "image": "/site/case/rewards/balance-500.png"
+    },
+    {
+      "id": "balance_3000",
+      "name": "+3000 ₸ на баланс",
+      "description": "3000 ₸ на основной баланс",
+      "type": "BALANCE",
+      "rarity": "EPIC",
+      "weight": 250,
+      "chancePercent": 2.5,
+      "costEstimateKzt": 3000,
+      "payload": { "amount": 3000, "wallet": "balance" },
+      "image": "/site/case/rewards/balance-500.png"
+    },
+    {
+      "id": "bar_cola",
+      "name": "CocaCola 1л",
+      "description": "CocaCola 1 л — заберите на баре",
+      "type": "BAR_ITEM",
+      "rarity": "UNCOMMON",
+      "weight": 350,
+      "chancePercent": 3.5,
+      "costEstimateKzt": 470,
+      "payload": { "productName": "CocaCola 1л" },
+      "image": "/site/case/rewards/bar-cola.png",
+      "requiresClaim": true,
+      "dailyLimit": null
+    },
+    {
+      "id": "bar_energy",
+      "name": "Gorilla Energy",
+      "description": "Gorilla Energy — заберите на баре",
+      "type": "BAR_ITEM",
+      "rarity": "UNCOMMON",
+      "weight": 250,
+      "chancePercent": 2.5,
+      "costEstimateKzt": 450,
+      "payload": { "productName": "Gorilla Energy" },
+      "image": "/site/case/rewards/bar-energy.png",
+      "requiresClaim": true
+    },
+    {
+      "id": "bar_tea",
+      "name": "FuseTea / MaxiЧай 1л",
+      "description": "FuseTea / MaxiЧай 1 л — заберите на баре",
+      "type": "BAR_ITEM",
+      "rarity": "RARE",
+      "weight": 200,
+      "chancePercent": 2.0,
+      "costEstimateKzt": 430,
+      "payload": { "productName": "FuseTea 1л" },
+      "image": "/site/case/rewards/bar-tea.png",
+      "requiresClaim": true
+    }
+  ],
+  "doNotAdd": [
+    "Время меньше 30 минут",
+    "Зональные призы (только STD/VIP/Boot)",
+    "Скидки ниже 10%",
+    "Баланс меньше 1000 ₸"
+  ]
+}

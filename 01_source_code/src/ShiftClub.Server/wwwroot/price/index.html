@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ПРАЙС · SHIFT Cyber Club</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@500;600;700&family=DM+Sans:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Manrope:wght@500;600;700&family=Orbitron:wght@600;700&family=Oswald:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="price.css?v=15" />
+  <link rel="stylesheet" href="price-themes.css?v=15" />
+</head>
+<body class="theme-arena">
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.4 2" /></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><path d="M3.5 11h17v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z" /><path d="M2.5 7.2h19V11h-19z" /><path d="M12 7.2V21" /><path d="M12 7.2S10.6 3.2 8.2 3.2a2.4 2.4 0 0 0 0 4.8" /><path d="M12 7.2s1.4-4 3.8-4a2.4 2.4 0 0 1 0 4.8" /></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2.4v2.2M12 19.4v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.4 19.6l1.6-1.6M18 6l1.6-1.6" /></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z" /></symbol>
+    <symbol id="i-sofa" viewBox="0 0 24 24"><path d="M5 12V8.2a2.2 2.2 0 0 1 2.2-2.2h9.6A2.2 2.2 0 0 1 19 8.2V12" /><path d="M2.6 13.4a2 2 0 0 1 4 0V16h10.8v-2.6a2 2 0 0 1 4 0V19H2.6z" /></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.6 8.6a15.5 15.5 0 0 1 18.8 0" /><path d="M5.8 12.2a10.6 10.6 0 0 1 12.4 0" /><path d="M8.9 15.7a6 6 0 0 1 6.2 0" /><circle cx="12" cy="19.2" r="1.1" fill="currentColor" stroke="none" /></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.4" y="6.4" width="19.2" height="11.6" rx="2.2" /><path d="M6.4 10.4h.02M10.2 10.4h.02M13.9 10.4h.02M17.6 10.4h.02M7.6 14.2h8.8" /></symbol>
+    <symbol id="i-tower" viewBox="0 0 24 24"><rect x="5.4" y="2.6" width="13.2" height="18.8" rx="2.2" /><circle cx="12" cy="10" r="3.1" /><path d="M9.4 18.4h5.2M12 5.6h.02" /></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.4 2.6 4.8 13.6h6L10.2 21.4l8.9-11.2h-6.2z" /></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v5.4M12 7.6h.02" /></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3.4 7.2h17.2v11.2a1.6 1.6 0 0 1-1.6 1.6H5a1.6 1.6 0 0 1-1.6-1.6z" /><path d="M3.4 7.2 5.2 4.4h13.6l1.8 2.8" /><path d="M15.2 13.2h3.4" /></symbol>
+  </svg>
+
+  <div class="theme-hud" id="themeHud" aria-live="polite">
+    <b id="themeName">ARENA</b>
+    <em>Enter · дизайн</em>
+    <span id="themeIndex">1 / 5</span>
+  </div>
+
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__glow bg__glow--a"></div>
+    <div class="bg__glow bg__glow--b"></div>
+    <div class="bg__glow bg__glow--c"></div>
+    <div class="bg__scan"></div>
+    <div class="bg__vignette"></div>
+  </div>
+
+  <main class="board">
+    <aside class="rail rail--brand">
+      <div class="logo">
+        <span class="logo__mark">SHIFT</span>
+        <span class="logo__sub">cyber club</span>
+      </div>
+
+      <h1 class="title" aria-label="Прайс">
+        <span>П</span><span>Р</span><span>А</span><span>Й</span><span>С</span>
+      </h1>
+
+      <p class="tagline">Прокачай свой<br />игровой опыт</p>
+
+      <div class="promo-badge" id="promoBadge" hidden>
+        <em id="promoTitle">Акция</em>
+        <strong id="promoLabel">−50%</strong>
+        <span id="promoUntil"></span>
+      </div>
+
+      <div class="clock">
+        <span class="clock__time">
+          <b id="clockHH">00</b><i class="clock__sep">:</i><b id="clockMM">00</b>
+        </span>
+        <em class="clock__meta" id="clockMeta">—</em>
+      </div>
+    </aside>
+
+    <section class="cards" id="cards" aria-label="Тарифы"></section>
+
+    <aside class="rail rail--perks" aria-label="Преимущества">
+      <div class="perk" style="--i:0">
+        <svg class="perk__ico"><use href="#i-sofa" /></svg>
+        <span>Комфортная<br />атмосфера</span>
+      </div>
+      <div class="perk" style="--i:1">
+        <svg class="perk__ico"><use href="#i-wifi" /></svg>
+        <span>Быстрый<br />интернет</span>
+      </div>
+      <div class="perk" style="--i:2">
+        <svg class="perk__ico"><use href="#i-keyboard" /></svg>
+        <span>Топовая<br />периферия</span>
+      </div>
+      <div class="perk" style="--i:3">
+        <svg class="perk__ico"><use href="#i-tower" /></svg>
+        <span>Мощное<br />железо</span>
+      </div>
+    </aside>
+  </main>
+
+  <section class="loyalty-strip" id="loyaltyStrip" hidden aria-label="Бонус за пополнение"></section>
+
+  <section class="extras" id="extras" aria-label="Кальян"></section>
+
+  <footer class="ticker">
+    <span class="ticker__badge"><svg class="ticker__badge-ico"><use href="#i-bolt" /></svg>SHIFT</span>
+    <div class="ticker__viewport"><div class="ticker__track" id="tickerTrack"></div></div>
+  </footer>
+
+  <script src="price.js?v=15"></script>
+</body>
+</html>

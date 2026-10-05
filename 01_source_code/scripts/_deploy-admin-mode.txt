@@ -1,0 +1,14 @@
+﻿OK — SHIFT Club Shell 0.6.75 ClubDeploy
+
+Pre-checks:
+- MainWindow.xaml.cs: admin early-return in uiTimer (Touch+return), StateChanged, Deactivated, KeyDown — YES
+- ClientAdminMode.Touch() — YES
+- DOTNET_ROOT/PATH = D:\Dev\dotnet — YES
+
+Publish:
+- Publish-ClientUpdate.ps1 -Version 0.6.75 -ClubDeploy — EXIT 0
+- manifest.json version: 0.6.75
+- package: ShiftClub.Client.Shell-0.6.75.zip
+- Club: C:\ShiftClub\Server\data\client-updates\manifest.json
+- Shell: D:\Apps\ShiftClub\Shell\ShiftClub.Client.Shell.exe (2026-07-19 22:15:25)
+- Notes: Admin mode Senet-style: disable kiosk/watchdog revive while admin.mode

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Wi‑Fi · SHIFT</title>
+  <meta name="description" content="Подключись к Wi‑Fi сети SHIFT Cyber Club — отсканируй QR." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/promo/promo.css?v=8" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__orb bg__orb--a"></div>
+    <div class="bg__orb bg__orb--b"></div>
+  </div>
+
+  <div class="board">
+    <header class="top">
+      <div class="logo">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </div>
+      <span class="chip">Wi‑Fi</span>
+    </header>
+
+    <main class="stage stage--qr-left">
+      <aside class="qr-panel">
+        <div class="qr-frame">
+          <img
+            src="/promo/wifi/wifi-qr.png?v=2"
+            alt="QR-код Wi‑Fi Shift Club"
+            width="512"
+            height="512"
+            decoding="async"
+          />
+        </div>
+        <p class="qr-caption">
+          Наведи камеру телефона
+          <b>Shift Club</b>
+        </p>
+      </aside>
+
+      <section class="copy">
+        <p class="eyebrow">Интернет в зале</p>
+        <p class="brand">SHIFT<em>.</em></p>
+        <h1 class="title">Подключись к Wi‑Fi клуба</h1>
+        <p class="lead">
+          Отсканируй QR — телефон сам предложит сеть. Или подключись вручную по имени и паролю.
+        </p>
+        <div class="wifi-creds">
+          <div class="wifi-cred">
+            <span>Сеть</span>
+            <b>Shift Club</b>
+          </div>
+          <div class="wifi-cred">
+            <span>Пароль</span>
+            <b>12345678</b>
+          </div>
+        </div>
+        <ol class="points">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <strong>Открой камеру</strong>
+              <span>Наведи на QR слева</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <strong>Нажми «Подключиться»</strong>
+              <span>Система предложит Wi‑Fi клуба</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <strong>Готово</strong>
+              <span>Можно пользоваться интернетом в зале</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <strong>SHIFT CYBER CLUB</strong>
+      <span id="footAddr">г. Алматы, ул. Масанчи 86а</span>
+    </footer>
+  </div>
+
+  <script src="/promo/promo.js?v=6"></script>
+  <script>
+    (async () => {
+      const club = await ShiftPromo.loadClub();
+      ShiftPromo.fillAddress(document.getElementById("footAddr"), club);
+    })();
+  </script>
+</body>
+</html>

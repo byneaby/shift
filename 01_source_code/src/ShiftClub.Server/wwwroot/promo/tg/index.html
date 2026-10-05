@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Telegram · SHIFT</title>
+  <meta name="description" content="Открой приложение SHIFT в Telegram — баланс, вход на ПК и бар." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/promo/promo.css?v=7" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__orb bg__orb--a"></div>
+    <div class="bg__orb bg__orb--b"></div>
+  </div>
+
+  <div class="board">
+    <header class="top">
+      <div class="logo">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </div>
+      <span class="chip">Telegram</span>
+    </header>
+
+    <main class="stage stage--qr-left">
+      <aside class="qr-panel">
+        <div class="qr-frame">
+          <img id="qr" alt="QR-код приложения SHIFT в Telegram" width="512" height="512" decoding="async" />
+        </div>
+        <p class="qr-caption">
+          Наведи камеру телефона
+          <b id="qrHint">@shift_panel_bot</b>
+        </p>
+      </aside>
+
+      <section class="copy">
+        <p class="eyebrow">Приложение клуба</p>
+        <p class="brand">SHIFT<em>.</em></p>
+        <h1 class="title">Открой SHIFT в Telegram</h1>
+        <p class="lead">
+          Смотри баланс, заходи на ПК и заказывай из бара — прямо в Telegram. Отдельное приложение ставить не нужно.
+        </p>
+        <ol class="points">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <strong>Сфотографируй QR</strong>
+              <span>Или найди бота <span id="stepBot">@shift_panel_bot</span></span>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <strong>Нажми «Открыть»</strong>
+              <span>Внизу чата с ботом</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <strong>Готово</strong>
+              <span>Баланс, вход на ПК, бар и бонусы — в одном месте</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <strong>SHIFT CYBER CLUB</strong>
+      <span id="footAddr">г. Алматы, ул. Масанчи 86а</span>
+    </footer>
+  </div>
+
+  <script src="/promo/promo.js?v=6"></script>
+  <script>
+    (async () => {
+      const club = await ShiftPromo.loadClub();
+      const link = ShiftPromo.botLink(club && club.botUsername);
+      ShiftPromo.setQr(document.getElementById("qr"), link.miniAppUrl, null, null, 18);
+      document.getElementById("qrHint").textContent = "@" + link.username;
+      document.getElementById("stepBot").textContent = "@" + link.username;
+      ShiftPromo.fillAddress(document.getElementById("footAddr"), club);
+    })();
+  </script>
+</body>
+</html>

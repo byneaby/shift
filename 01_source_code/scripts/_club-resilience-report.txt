@@ -1,0 +1,211 @@
+﻿01:27:48 START UP=12: 27,28,29,32,33,34,35,36,56,57,58,59
+01:27:48 Free G=307.1 I=426.5 H=192.2
+01:27:48 === RESTART 12 ===
+01:27:48 Restart 27: ok
+01:27:48 Restart 28: ok
+01:27:48 Restart 29: ok
+01:27:48 Restart 32: ok
+01:27:48 Restart 33: ok
+01:27:48 Restart 34: ok
+01:27:48 Restart 35: ok
+01:27:48 Restart 36: ok
+01:27:48 Restart 56: ok
+01:27:48 Restart 57: ok
+01:27:48 Restart 58: ok
+01:27:48 Restart 59: ok
+01:27:48 Wait drop...
+01:27:53 stillUp=12
+01:28:03 stillUp=2
+01:28:03 Wait back max 300s...
+01:28:17 back=0/12
+01:28:25 BACK 27
+01:28:25 BACK 28
+01:28:25 BACK 29
+01:28:25 BACK 32
+01:28:25 BACK 33
+01:28:25 BACK 34
+01:28:25 BACK 35
+01:28:25 BACK 36
+01:28:25 BACK 56
+01:28:25 BACK 57
+01:28:26 BACK 59
+01:28:26 back=11/12
+01:28:34 BACK 58
+01:28:34 back=12/12
+01:28:34 RESTART_RESULT 12/12
+01:28:44 === SHUTDOWN 12 ===
+01:28:44 Shutdown 27: ok
+01:28:44 Shutdown 28: ok
+01:28:44 Shutdown 29: ok
+01:28:44 Shutdown 32: ok
+01:28:44 Shutdown 33: ok
+01:28:44 Shutdown 34: ok
+01:28:44 Shutdown 35: ok
+01:28:44 Shutdown 36: ok
+01:28:44 Shutdown 56: ok
+01:28:44 Shutdown 57: ok
+01:28:44 Shutdown 58: ok
+01:28:44 Shutdown 59: ok
+01:28:49 afterShutdown stillUp=12
+01:28:54 afterShutdown stillUp=12
+01:28:59 afterShutdown stillUp=12
+01:29:04 afterShutdown stillUp=12
+01:29:11 afterShutdown stillUp=12
+01:29:16 afterShutdown stillUp=12
+01:29:21 afterShutdown stillUp=12
+01:29:26 afterShutdown stillUp=12
+01:29:31 afterShutdown stillUp=12
+01:29:36 afterShutdown stillUp=12
+01:29:42 afterShutdown stillUp=12
+01:29:47 afterShutdown stillUp=12
+01:29:52 afterShutdown stillUp=12
+01:29:57 afterShutdown stillUp=12
+01:30:02 afterShutdown stillUp=12
+01:30:08 afterShutdown stillUp=11
+01:30:14 afterShutdown stillUp=10
+01:30:23 afterShutdown stillUp=3
+01:30:34 afterShutdown stillUp=2
+01:30:45 afterShutdown stillUp=0
+01:31:00 === WoL previously-online set ===
+01:31:00 WoL 27: ok
+01:31:00 WoL 28: ok
+01:31:00 WoL 29: ok
+01:31:00 WoL 32: ok
+01:31:00 WoL 33: ok
+01:31:00 WoL 34: ok
+01:31:00 WoL 35: ok
+01:31:00 WoL 36: ok
+01:31:00 WoL 56: ok
+01:31:00 WoL 57: ok
+01:31:00 WoL 58: ok
+01:31:00 WoL 59: ok
+01:31:00 Wait WoL back max 360s...
+01:31:16 wolBack=0/12
+01:31:26 WOL_BACK 27
+01:31:26 WOL_BACK 28
+01:31:26 WOL_BACK 29
+01:31:26 WOL_BACK 32
+01:31:26 WOL_BACK 33
+01:31:26 WOL_BACK 34
+01:31:26 WOL_BACK 35
+01:31:26 WOL_BACK 36
+01:31:26 WOL_BACK 56
+01:31:26 WOL_BACK 57
+01:31:26 WOL_BACK 58
+01:31:26 WOL_BACK 59
+01:31:26 wolBack=12/12
+01:31:26 WOL_PREV_RESULT 12/12
+01:31:37 === WoL OFFLINE leftover 23: 17,18,19,20,21,22,23,24,25,26,30,31,37,38,39,40,41,42,43,44,45,46,60 ===
+01:31:37 WoL-off 17: ok
+01:31:37 WoL-off 18: ok
+01:31:37 WoL-off 19: ok
+01:31:37 WoL-off 20: ok
+01:31:37 WoL-off 21: ok
+01:31:37 WoL-off 22: ok
+01:31:37 WoL-off 23: ok
+01:31:37 WoL-off 24: ok
+01:31:37 WoL-off 25: ok
+01:31:37 WoL-off 26: ok
+01:31:37 WoL-off 30: ok
+01:31:37 WoL-off 31: ok
+01:31:37 WoL-off 37: ok
+01:31:37 WoL-off 38: ok
+01:31:37 WoL-off 39: ok
+01:31:37 WoL-off 40: ok
+01:31:37 WoL-off 41: ok
+01:31:37 WoL-off 42: ok
+01:31:37 WoL-off 43: ok
+01:31:37 WoL-off 44: ok
+01:31:37 WoL-off 45: ok
+01:31:37 WoL-off 46: ok
+01:31:37 WoL-off 60: ok
+01:31:37 Wait offline wave max 420s...
+01:31:57 OFF_BACK 42
+01:31:59 OFF_BACK 60
+01:32:01 offBack=2/23 totalPingUp=29
+01:32:14 OFF_BACK 18
+01:32:14 OFF_BACK 19
+01:32:14 OFF_BACK 20
+01:32:14 OFF_BACK 21
+01:32:14 OFF_BACK 22
+01:32:14 OFF_BACK 23
+01:32:14 OFF_BACK 24
+01:32:14 OFF_BACK 25
+01:32:14 OFF_BACK 26
+01:32:14 OFF_BACK 30
+01:32:14 OFF_BACK 31
+01:32:15 OFF_BACK 40
+01:32:15 OFF_BACK 41
+01:32:15 OFF_BACK 43
+01:32:15 OFF_BACK 44
+01:32:20 offBack=17/23 totalPingUp=29
+01:32:32 OFF_BACK 17
+01:32:32 OFF_BACK 39
+01:32:33 OFF_BACK 46
+01:32:34 offBack=20/23 totalPingUp=31
+01:32:53 offBack=20/23 totalPingUp=33
+01:33:10 offBack=20/23 totalPingUp=32
+01:33:24 offBack=20/23 totalPingUp=32
+01:33:38 offBack=20/23 totalPingUp=32
+01:33:52 offBack=20/23 totalPingUp=32
+01:34:06 offBack=20/23 totalPingUp=32
+01:34:20 offBack=20/23 totalPingUp=32
+01:34:34 offBack=20/23 totalPingUp=32
+01:34:48 offBack=20/23 totalPingUp=32
+01:35:02 offBack=20/23 totalPingUp=32
+01:35:16 offBack=20/23 totalPingUp=32
+01:35:30 offBack=20/23 totalPingUp=32
+01:35:44 offBack=20/23 totalPingUp=32
+01:35:58 offBack=20/23 totalPingUp=32
+01:36:12 offBack=20/23 totalPingUp=32
+01:36:26 offBack=20/23 totalPingUp=32
+01:36:40 offBack=20/23 totalPingUp=32
+01:36:54 offBack=20/23 totalPingUp=32
+01:37:08 offBack=20/23 totalPingUp=32
+01:37:22 offBack=20/23 totalPingUp=32
+01:37:36 offBack=20/23 totalPingUp=32
+01:37:50 offBack=20/23 totalPingUp=32
+01:38:04 offBack=20/23 totalPingUp=32
+01:38:18 offBack=20/23 totalPingUp=32
+01:38:32 offBack=20/23 totalPingUp=32
+01:38:46 offBack=20/23 totalPingUp=32
+01:38:46 WOL_OFFLINE_RESULT 20/23
+01:38:47 === FINAL ===
+01:38:47 FINAL 17 ping=True status=2 ip=192.168.1.117
+01:38:47 FINAL 18 ping=True status=2 ip=192.168.1.108
+01:38:47 FINAL 19 ping=True status=2 ip=192.168.1.119
+01:38:47 FINAL 20 ping=True status=2 ip=192.168.1.120
+01:38:47 FINAL 21 ping=True status=2 ip=192.168.1.118
+01:38:47 FINAL 22 ping=True status=2 ip=192.168.1.102
+01:38:47 FINAL 23 ping=True status=2 ip=192.168.1.103
+01:38:47 FINAL 24 ping=True status=2 ip=192.168.1.116
+01:38:47 FINAL 25 ping=True status=2 ip=192.168.1.125
+01:38:47 FINAL 26 ping=True status=2 ip=192.168.1.122
+01:38:47 FINAL 27 ping=True status=2 ip=192.168.1.127
+01:38:47 FINAL 28 ping=True status=2 ip=192.168.1.123
+01:38:47 FINAL 29 ping=True status=2 ip=192.168.1.129
+01:38:47 FINAL 30 ping=True status=2 ip=192.168.1.121
+01:38:47 FINAL 31 ping=True status=2 ip=192.168.1.131
+01:38:47 FINAL 32 ping=True status=2 ip=192.168.1.132
+01:38:47 FINAL 33 ping=True status=2 ip=192.168.1.126
+01:38:47 FINAL 34 ping=True status=2 ip=192.168.1.134
+01:38:47 FINAL 35 ping=True status=2 ip=192.168.1.135
+01:38:47 FINAL 36 ping=True status=2 ip=192.168.1.128
+01:38:47 FINAL 37 ping=False status=0 ip=192.168.1.112
+01:38:47 FINAL 38 ping=False status=2 ip=
+01:38:47 FINAL 39 ping=True status=2 ip=192.168.1.139
+01:38:47 FINAL 40 ping=True status=2 ip=192.168.1.104
+01:38:47 FINAL 41 ping=True status=2 ip=192.168.1.141
+01:38:47 FINAL 42 ping=True status=2 ip=192.168.1.142
+01:38:47 FINAL 43 ping=True status=2 ip=192.168.1.143
+01:38:47 FINAL 44 ping=True status=2 ip=192.168.1.105
+01:38:47 FINAL 45 ping=False status=0 ip=192.168.1.106
+01:38:47 FINAL 46 ping=True status=2 ip=192.168.1.107
+01:38:47 FINAL 56 ping=True status=2 ip=192.168.1.156
+01:38:47 FINAL 57 ping=True status=2 ip=192.168.1.157
+01:38:47 FINAL 58 ping=True status=2 ip=192.168.1.158
+01:38:47 FINAL 59 ping=True status=2 ip=192.168.1.159
+01:38:47 FINAL 60 ping=True status=2 ip=192.168.1.160
+01:38:47 FINAL_UP 32/35
+01:38:47 Free G=420.8 I=422.6 H=192.2
+01:38:47 === LARGE WRITEBACK >100MB ===

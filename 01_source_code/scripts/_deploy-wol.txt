@@ -1,0 +1,36 @@
+﻿STATUS: OK
+TIME: 2026-07-19 20:56:07
+DOTNET_ROOT: D:\Dev\dotnet
+BUILD: Infrastructure+Server Release OK; Web npm build OK
+PUBLISH: Release -> D:\ShiftClub\SHIFT PROJECT\_publish_wol_tmp -> C:\ShiftClub\Server (overlay; secrets.env/data/logs preserved)
+TASK: ShiftClubApi restarted
+HEALTH: http://127.0.0.1:5080/health => 200 Healthy
+CODE: WoL markers: ShiftClub.Server.dll contains '/wake'; ShiftClub.Infrastructure.dll contains 'WakeOnLan'; ShiftClub.Infrastructure.dll contains 'computer.wake'
+LOG:
+Stopping ShiftClubApi...
+SUCCESS: The scheduled task "ShiftClubApi" has been terminated successfully.
+SKIP preserve: data
+DIR copied: runtimes
+API files/dirs processed: 73
+secrets.env exists: True
+data exists: True
+logs exists: True
+Start-ShiftClubApi.ps1 exists: True
+ShiftClub.Server.dll timestamp: 07/19/2026 20:54:56
+ShiftClub.Infrastructure.dll timestamp: 07/19/2026 20:54:41
+Web -> wwwroot OK
+Web -> www OK
+Starting ShiftClubApi...
+SUCCESS: Attempted to run the scheduled task "ShiftClubApi".
+Folder: \
+HostName:      WIN-KOMOLOPI2T3
+TaskName:      \ShiftClubApi
+Next Run Time: N/A
+Status:        Running
+Logon Mode:    Interactive/Background
+HEALTH: 200 Healthy
+HEALTHY: True
+WOL_MARKERS:
+  ShiftClub.Server.dll contains '/wake'
+  ShiftClub.Infrastructure.dll contains 'WakeOnLan'
+  ShiftClub.Infrastructure.dll contains 'computer.wake'

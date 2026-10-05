@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SHIFT CYBER CLUB — компьютерный клуб в Алматы</title>
+  <meta name="description" content="SHIFT CYBER CLUB · г. Алматы, ул. Масанчи 86а. Мощные ПК, три зоны, бар и кальян. Смотри свободные места онлайн." />
+  <meta property="og:title" content="SHIFT CYBER CLUB" />
+  <meta property="og:description" content="Киберклуб в Алматы на Масанчи 86а. Играй. Побеждай." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site/site.css?v=16" />
+</head>
+<body>
+  <header class="top" id="top">
+    <div class="wrap top__inner">
+      <a class="logo" href="#top">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </a>
+      <nav class="top__nav" aria-label="Разделы">
+        <a href="#floor">Зал</a>
+        <a href="#zones">Зоны</a>
+        <a href="#price">Прайс</a>
+        <a href="#loyalty">Лояльность</a>
+        <a href="#visit">Адрес</a>
+      </nav>
+      <a class="btn btn-sm" id="topTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Telegram</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-label="SHIFT CYBER CLUB">
+      <div class="hero__bg" style="background-image:url('/site/media/hero.jpg?v=13')"></div>
+      <div class="hero__veil" aria-hidden="true"></div>
+      <div class="wrap hero__copy">
+        <p class="brand">SHIFT CYBER CLUB</p>
+        <h1>Играй на полную</h1>
+        <p class="hero__lead">Киберклуб в сердце Алматы. Мощные ПК, три зоны и бар у зала.</p>
+        <div class="hero__actions">
+          <a class="btn btn-lg" href="#floor">Свободные ПК</a>
+          <a class="btn btn-lg btn-ghost" id="heroTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Открыть бота</a>
+        </div>
+      </div>
+      <div class="hero__scroll" aria-hidden="true"><span></span></div>
+    </section>
+
+    <section class="banner" id="live" aria-live="polite">
+      <div class="wrap banner__row">
+        <div class="banner__stat">
+          <strong id="statFree">—</strong>
+          <span>свободно</span>
+        </div>
+        <div class="banner__stat">
+          <strong id="statBusy">—</strong>
+          <span>занято</span>
+        </div>
+        <div class="banner__stat">
+          <strong id="statTotal">—</strong>
+          <span>всего ПК</span>
+        </div>
+        <a class="btn" href="#floor">Смотреть карту зала</a>
+      </div>
+    </section>
+
+    <section class="panel panel--floor" id="floor">
+      <div class="wrap">
+        <header class="panel__head">
+          <div>
+            <p class="eyebrow">Сейчас в зале</p>
+            <h2>Свободные места</h2>
+            <p class="panel__lead panel__lead--desk">Живая карта. Зелёный — свободен, оранжевый — занят.</p>
+            <p class="panel__lead panel__lead--mob">Список по зонам в реальном времени. Обновляется каждые 8 сек.</p>
+          </div>
+          <div class="legend legend--desk" aria-hidden="true">
+            <span><i class="dot dot--free"></i>Свободен</span>
+            <span><i class="dot dot--busy"></i>Занят</span>
+            <span><i class="dot dot--off"></i>Офлайн</span>
+          </div>
+        </header>
+
+        <div class="floor-shell">
+          <div class="floor-viewport" id="floorViewport">
+            <div class="floor-scaler" id="floorScaler">
+              <div class="floor-board" id="floorBoard"></div>
+            </div>
+          </div>
+          <div class="floor-fallback" id="floorFallback" hidden></div>
+          <p class="floor-status muted" id="floorStatus">Загрузка карты…</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="split" id="zones">
+      <article class="bleed" style="background-image:url('/site/media/zone-standard.jpg?v=13')">
+        <div class="bleed__veil"></div>
+        <div class="bleed__copy">
+          <p class="eyebrow">STANDARD</p>
+          <h2>CS2 и классика</h2>
+          <p>Соло или пати. Counter-Strike и привычный зал.</p>
+        </div>
+      </article>
+      <article class="bleed" style="background-image:url('/site/media/zone-vip.jpg?v=13')">
+        <div class="bleed__veil"></div>
+        <div class="bleed__copy">
+          <p class="eyebrow">VIP</p>
+          <h2>Dota 2 · комфорт</h2>
+          <p>Длинные сессии без суеты. Фокус на игре.</p>
+        </div>
+      </article>
+      <article class="bleed" style="background-image:url('/site/media/zone-bootcamp.jpg?v=13')">
+        <div class="bleed__veil"></div>
+        <div class="bleed__copy">
+          <p class="eyebrow">BOOTCAMP</p>
+          <h2>Команда и scrim</h2>
+          <p>Тренировки под CS2 и турнирные сетапы.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel panel--price" id="price">
+      <div class="wrap">
+        <header className="panel__head">
+          <div>
+            <p className="eyebrow">Тарифы</p>
+            <h2>Прайс</h2>
+            <p className="panel__lead" id="priceLead">ПК по зонам, PlayStation 5 и кальян. Цены в тенге.</p>
+          </div>
+          <div class="price-promo" id="pricePromo" hidden></div>
+        </header>
+
+        <div class="tariff-grid" id="tariffGrid">
+          <article class="tariff" style="--c:#ff6a00">
+            <h3>STANDARD</h3>
+            <ul>
+              <li><span>Час</span><b>500 ₸</b></li>
+              <li><span>2 + 1</span><b>1000 ₸</b></li>
+              <li><span>3 + 2</span><b>1500 ₸</b></li>
+              <li><span>День 12–18</span><b>1500 ₸</b></li>
+              <li><span>Ночь 23–08</span><b>2000 ₸</b></li>
+            </ul>
+          </article>
+          <article class="tariff" style="--c:#17a3ff">
+            <h3>BOOTCAMP</h3>
+            <ul>
+              <li><span>Час</span><b>750 ₸</b></li>
+              <li><span>2 + 1</span><b>1500 ₸</b></li>
+              <li><span>3 + 2</span><b>2000 ₸</b></li>
+              <li><span>День 12–18</span><b>2000 ₸</b></li>
+              <li><span>Ночь 23–08</span><b>2500 ₸</b></li>
+            </ul>
+          </article>
+          <article class="tariff" style="--c:#ffc021">
+            <h3>VIP</h3>
+            <ul>
+              <li><span>Час</span><b>750 ₸</b></li>
+              <li><span>2 + 1</span><b>1500 ₸</b></li>
+              <li><span>3 + 2</span><b>2000 ₸</b></li>
+              <li><span>День 12–18</span><b>2000 ₸</b></li>
+              <li><span>Ночь 23–08</span><b>2500 ₸</b></li>
+            </ul>
+          </article>
+          <article class="tariff tariff--ps" style="--c:#2e75ff">
+            <h3>PS5</h3>
+            <ul>
+              <li><span>Час</span><b>1000 ₸</b></li>
+              <li><span>2 + 1</span><b>2000 ₸</b></li>
+            </ul>
+            <p class="tariff__note">PlayStation 5 · 2 часа, третий в подарок</p>
+          </article>
+        </div>
+
+        <div class="tariff-extras" id="tariffExtras">
+          <div class="tariff-extras__head">
+            <p class="eyebrow">Дополнительно</p>
+            <h3>Кальян</h3>
+          </div>
+          <ul class="tariff-extras__row" id="tariffExtrasRow">
+            <li><span>Лайт <em>мягкий микс</em></span><b>3500 ₸</b></li>
+            <li><span>Хард <em>крепкий микс</em></span><b>6500 ₸</b></li>
+            <li><span>Замена чаши</span><b>2000 ₸</b></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel--loyalty" id="loyalty">
+      <div class="wrap">
+        <header class="panel__head">
+          <div>
+            <p class="eyebrow">Программа клуба</p>
+            <h2>Лояльность</h2>
+            <p class="panel__lead" id="loyaltyLead">Уровни, бонусы за пополнение и награды — актуальные настройки клуба.</p>
+          </div>
+        </header>
+
+        <div class="loyal-grid" id="loyaltyGrid">
+          <article class="loyal-card" id="loyalLevels">
+            <h3>Уровни</h3>
+            <div class="loyal-list muted" id="loyalLevelsList">Загрузка…</div>
+          </article>
+          <article class="loyal-card" id="loyalDeposit">
+            <h3>Бонус за пополнение</h3>
+            <div class="loyal-list muted" id="loyalDepositList">Загрузка…</div>
+          </article>
+          <article class="loyal-card" id="loyalStreak">
+            <h3>Серия визитов</h3>
+            <div class="loyal-list muted" id="loyalStreakList">Загрузка…</div>
+          </article>
+          <article class="loyal-card" id="loyalBday">
+            <h3>День рождения</h3>
+            <div class="loyal-list muted" id="loyalBdayText">Загрузка…</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel--dark" id="bar">
+      <div class="wrap bar-grid">
+        <div class="bar-grid__copy">
+          <p class="eyebrow">BAR &amp; HOOKAH</p>
+          <h2>Без отрыва от игры</h2>
+          <p>Энергетики, напитки, снеки и кальян — к твоему месту.</p>
+          <ul class="price-row">
+            <li><span>Кальян лайт</span><b>3500 ₸</b></li>
+            <li><span>Кальян хард</span><b>6500 ₸</b></li>
+            <li><span>Замена чаши</span><b>2000 ₸</b></li>
+          </ul>
+        </div>
+        <div class="bar-grid__media" style="background-image:url('/site/media/bar.jpg?v=13')" role="img" aria-label="Бар клуба"></div>
+      </div>
+    </section>
+
+    <section class="cta" style="background-image:url('/site/media/atmosphere.jpg?v=13')">
+      <div class="cta__veil"></div>
+      <div class="wrap cta__copy">
+        <p class="brand">SHIFT</p>
+        <h2>Аккаунт в Telegram — и ты за ПК</h2>
+        <p>Баланс, QR-вход и свободные места в боте.</p>
+        <a class="btn btn-lg" id="ctaTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Открыть @shift_panel_bot</a>
+      </div>
+    </section>
+
+    <section class="panel" id="visit">
+      <div class="wrap visit">
+        <div class="visit__copy">
+          <p class="eyebrow">АДРЕС</p>
+          <h2>г. Алматы,<br />ул. Масанчи 86а</h2>
+          <p class="visit__name">SHIFT CYBER CLUB</p>
+          <div class="visit__actions">
+            <a class="btn btn-lg" href="https://go.2gis.com/YszAd" target="_blank" rel="noopener">Открыть в 2ГИС</a>
+            <a class="btn btn-lg btn-ghost" id="visitTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Telegram-бот</a>
+          </div>
+        </div>
+        <div class="visit__map">
+          <iframe
+            title="SHIFT CYBER CLUB на 2ГИС"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://widgets.2gis.com/widget?type=firmsonmap&amp;options=%7B%22zoom%22%3A17%2C%22center%22%3A%2276.93079%2C43.244325%22%2C%22city%22%3A%22almaty%22%2C%22id%22%3A%2270000001114343411%22%7D"
+            allowfullscreen
+          ></iframe>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__grid">
+      <div>
+        <div class="logo"><span class="logo__mark"></span><span class="logo__text">SHIFT</span></div>
+        <p class="fine" id="footCopy">© SHIFT CYBER CLUB</p>
+      </div>
+      <p>г. Алматы, ул. Масанчи 86а</p>
+      <div class="foot__links">
+        <a href="https://go.2gis.com/YszAd" target="_blank" rel="noopener">2ГИС</a>
+        <a id="footTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Telegram</a>
+        <a href="/site/loyalty.html">Лояльность</a>
+        <a href="/hire">Вакансии</a>
+        <a href="/price/">Прайс</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/site/site.js?v=16"></script>
+</body>
+</html>

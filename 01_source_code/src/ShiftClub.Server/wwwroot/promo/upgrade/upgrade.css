@@ -1,0 +1,540 @@
+/* Campaign page: −30% пока обновляем · TV 9:16 — прайс первый */
+
+.board--upgrade {
+  max-width: min(980px, 100%);
+  width: 100%;
+}
+
+.chip--hot {
+  background: linear-gradient(135deg, #ff6a00, #ff3d00);
+  color: #fff;
+  border: none;
+  animation: pulse-chip 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-chip {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 106, 0, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 106, 0, 0); }
+}
+
+.upgrade-main {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.8vh, 22px);
+  padding-bottom: 4px;
+  min-height: 0;
+}
+
+.upgrade-hero {
+  max-width: none;
+}
+
+.upgrade-title {
+  font-size: clamp(1.55rem, 3.6vh, 2.6rem);
+  line-height: 1.05;
+  margin: 4px 0 8px;
+  background: linear-gradient(92deg, #fff 10%, #ff8a2b 55%, #ff6a00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.upgrade-lead {
+  margin: 0;
+  max-width: 42rem;
+  font-size: clamp(0.92rem, 1.55vh, 1.15rem);
+}
+
+.upgrade-lead strong {
+  color: #ff8a2b;
+  font-weight: 700;
+}
+
+/* Вертикальный стек 9:16: прайс на весь экран, QR снизу компактно */
+.upgrade-grid {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2vh, 22px);
+  align-items: stretch;
+  min-height: 0;
+}
+
+.upgrade-prices {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(10px, 1.4vh, 16px);
+  flex: 1 1 auto;
+}
+
+.uzone {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: clamp(14px, 1.8vh, 20px) clamp(14px, 2.2vw, 22px);
+  background: rgba(255, 255, 255, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.uzone::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--z, var(--orange));
+}
+
+.uzone__name {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.4vh, 1.75rem);
+  letter-spacing: 0.08em;
+  margin: 0 0 clamp(10px, 1.2vh, 14px);
+  text-transform: uppercase;
+}
+
+.urow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: clamp(7px, 1vh, 11px) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: clamp(1.2rem, 2.6vh, 1.85rem);
+}
+
+.urow:first-of-type {
+  border-top: none;
+}
+
+.urow__label {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.92em;
+}
+
+.urow__price {
+  font-weight: 800;
+  white-space: nowrap;
+  font-size: 1.08em;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.urow__price s {
+  color: #888;
+  font-weight: 500;
+  margin-right: 10px;
+  font-size: 0.72em;
+}
+
+.urow--promo .urow__price {
+  color: #ff8a2b;
+}
+
+.upgrade-action {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: clamp(10px, 1.4vh, 14px) clamp(12px, 1.8vw, 16px);
+  background:
+    linear-gradient(165deg, rgba(255, 106, 0, 0.07), transparent 42%),
+    rgba(0, 0, 0, 0.35);
+  flex: 0 0 auto;
+}
+
+.upgrade-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.upgrade-tab {
+  flex: 1;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.upgrade-tab.is-on {
+  color: #fff;
+  border-color: rgba(255, 106, 0, 0.55);
+  background: rgba(255, 106, 0, 0.18);
+}
+
+.upgrade-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.upgrade-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.upgrade-fields .span2 {
+  grid-column: 1 / -1;
+}
+
+.upgrade-fields input {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  padding: 11px 12px;
+}
+
+.upgrade-fields input:focus {
+  outline: none;
+  border-color: rgba(255, 106, 0, 0.7);
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.15);
+}
+
+.upgrade-hint {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: #9a9a9a;
+}
+
+.upgrade-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 10rem;
+  margin-top: 0;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #140800;
+  background: linear-gradient(135deg, #ff8a2b, #ff6a00);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.upgrade-cta:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.upgrade-cta:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.upgrade-err {
+  margin: 10px 0 0;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+}
+
+.upgrade-case {
+  margin-top: 18px;
+}
+
+.roulette-wrap {
+  position: relative;
+  margin: 8px 0 12px;
+}
+
+.roulette-pointer {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  margin-left: -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid #ff6a00;
+}
+
+.roulette-viewport {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 106, 0, 0.35);
+  background: #0a0a0a;
+  height: 96px;
+}
+
+.roulette-track {
+  display: flex;
+  gap: 10px;
+  height: 100%;
+  align-items: stretch;
+  padding: 8px;
+  will-change: transform;
+}
+
+.rchip {
+  flex: 0 0 88px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #151515;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  font-size: 0.68rem;
+  text-align: center;
+  color: #ddd;
+}
+
+.rchip img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.rchip.is-win {
+  border-color: #ff6a00;
+  box-shadow: 0 0 0 2px rgba(255, 106, 0, 0.35);
+}
+
+.upgrade-status {
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.upgrade-win {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 106, 0, 0.4);
+  background: rgba(255, 106, 0, 0.1);
+  text-align: center;
+}
+
+.upgrade-done {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 106, 0, 0.4);
+  background: rgba(255, 106, 0, 0.1);
+  text-align: center;
+}
+
+.upgrade-done strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  margin: 4px 0 8px;
+}
+
+.upgrade-desk-call {
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+  color: #ffd7b8;
+}
+
+.upgrade-desk-call b {
+  color: #fff;
+}
+
+.upgrade-tg-only {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upgrade-tg-only > .eyebrow {
+  margin-bottom: 0;
+  font-size: clamp(0.75rem, 1.2vh, 0.9rem);
+}
+
+.upgrade-tg-only > .muted {
+  font-size: clamp(0.82rem, 1.35vh, 0.95rem);
+  margin: 0;
+}
+
+.upgrade-tv--stack {
+  margin-top: 6px;
+  align-items: center;
+}
+
+.upgrade-tg-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.upgrade-tg-cta .qr-caption {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(0.72rem, 1.2vh, 0.85rem);
+  text-align: left;
+  letter-spacing: 0.06em;
+}
+
+.upgrade-tg-cta b {
+  font-size: clamp(0.88rem, 1.4vh, 1rem);
+  color: #ff8a2b;
+}
+
+.upgrade-steps {
+  margin: 2px 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: clamp(0.78rem, 1.25vh, 0.9rem);
+  line-height: 1.35;
+}
+
+.upgrade-steps li {
+  margin: 2px 0;
+}
+
+.upgrade-case-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #07060f;
+}
+
+body.upgrade-case-on .bg,
+body.upgrade-case-on #promoBoard {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.upgrade-win strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+  margin: 4px 0 8px;
+}
+
+/* QR компактный, справа от короткого текста */
+.upgrade-tv {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(10px, 1.6vw, 16px);
+  align-items: center;
+}
+
+.upgrade-tv .qr-frame {
+  width: clamp(72px, 11vh, 112px);
+  padding: 6px;
+  flex-shrink: 0;
+}
+
+.upgrade-tv .qr-frame img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+
+.qr-frame--sm {
+  width: clamp(72px, 11vh, 112px);
+}
+
+.upgrade-tv-title {
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 1.7vh, 1.2rem);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 0 0 2px;
+}
+
+.upgrade-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #ff8a2b;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.upgrade-pc-note {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: clamp(0.75rem, 1.2vh, 0.85rem);
+  color: var(--muted);
+}
+
+.upgrade-pc-note strong {
+  color: #fff;
+  font-size: 0.95em;
+}
+
+/* Portrait TV / phone: ещё сильнее акцент на прайс */
+@media (max-aspect-ratio: 10/16), (max-width: 560px) {
+  .upgrade-title {
+    font-size: clamp(1.45rem, 4.2vw, 2.2rem);
+  }
+
+  .upgrade-lead {
+    display: none;
+  }
+
+  .urow {
+    font-size: clamp(1.35rem, 4.2vw, 1.95rem);
+  }
+
+  .uzone__name {
+    font-size: clamp(1.2rem, 3.6vw, 1.65rem);
+  }
+
+  .upgrade-tv .qr-frame,
+  .qr-frame--sm {
+    width: clamp(68px, 18vw, 96px);
+  }
+
+  .upgrade-tg-only > .muted {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .upgrade-steps {
+    display: none;
+  }
+
+  .upgrade-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .upgrade-fields .span2 {
+    grid-column: auto;
+  }
+}
+
+@media (min-aspect-ratio: 12/10) and (min-width: 900px) {
+  /* На широком экране — две колонки зон, QR всё ещё снизу компактный */
+  .upgrade-prices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

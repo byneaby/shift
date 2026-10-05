@@ -1,0 +1,7 @@
+﻿STATUS: OK
+TIME: 2026-07-19 20:47:56
+DOTNET_ROOT: D:\Dev\dotnet
+PUBLISH: Release -> temp -> C:\ShiftClub\Server (overlay; secrets.env/data/logs preserved)
+TASK: ShiftClubApi restarted
+HEALTH: http://127.0.0.1:5080/health => Healthy
+CODE: TransferCoreAsync frees source CurrentSessionId BEFORE claiming target (IX_computers_CurrentSessionId comment present: True)

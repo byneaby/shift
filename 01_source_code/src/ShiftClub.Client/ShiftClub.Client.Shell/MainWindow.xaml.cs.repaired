@@ -1,0 +1,1796 @@
+﻿using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Microsoft.Extensions.Configuration;
+using ShiftClub.Shared.Contracts.ClientLauncher;
+using ShiftClub.Shared.Contracts.Computers;
+using ShiftClub.Shared.Contracts.Sessions;
+using ShiftClub.Shared.Enums;
+
+namespace ShiftClub.Client.Shell;
+
+public partial class MainWindow : Window
+{
+    private readonly ShellClientAgent _agent;
+    private readonly DispatcherTimer _uiTimer;
+    private readonly KioskGuard _kiosk;
+    private readonly string _serverUrl;
+    private Guid? _boundSessionId;
+    private int? _sessionTotalSeconds;
+    private int _localRemaining;
+    private bool _allowBackgroundForGame;
+    private string _appCategory = "Все";
+    private string _shopCategoryId = "";
+    private string _search = "";
+    private string _tab = "home";
+    private string? _localLockPin;
+    private TaskCompletionSource<bool>? _dialogTcs;
+    /// <summary>User opened «Купить новый сеанс» — don't hide tariff panel on UI refresh.</summary>
+    private bool _showBuySessionExplicit;
+    private int _buyDurationMinutes = 60;
+    private static readonly int[] BuyDurationPresets = [30, 60, 120, 180, 240];
+    private readonly Dictionary<Guid, (ClientBarProductDto Product, decimal Qty)> _cart = new();
+
+    public MainWindow()
+    {
+        InitializeComponent();
+
+        var config = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .Build();
+
+        _serverUrl = (config["Server:BaseUrl"] ?? "http://192.168.1.200:5080").TrimEnd('/');
+        _agent = new ShellClientAgent(_serverUrl);
+        _agent.Changed += OnAgentChanged;
+        _agent.UiMessageRequested += msg => Dispatcher.InvokeAsync(async () => await ShowInfoAsync("Сообщение с кассы", msg));
+        // Диспетчер задач только с панели кассы (удалённая команда OpenTaskManager)
+        _agent.TaskManagerRequested += () => Dispatcher.Invoke(OpenTaskManager);
+        _agent.Start();
+
+        _kiosk = new KioskGuard();
+        _kiosk.BypassAttempt += reason => _ = _agent.ReportSecurityAlertAsync(reason);
+        _kiosk.Start();
+
+        VersionLabel.Text = $"v{ClientVersionInfo.Version}";
+        LoginVersionLabel.Text = $"v{ClientVersionInfo.Version}";
+        WaitingVersionLabel.Text = $"v{ClientVersionInfo.Version}";
+
+        _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _uiTimer.Tick += (_, _) =>
+        {
+            ClockText.Text = DateTime.Now.ToString("HH:mm");
+            RefreshSessionTimer();
+            RefreshIdleLoginHint();
+            EnforceKioskFrame();
+            // Keep soft-kiosk (Win/Alt+Tab/Taskmgr) even while a game is in foreground.
+            _kiosk.PauseForGame = false;
+        };
+        _uiTimer.Start();
+
+        Loaded += (_, _) =>
+        {
+            EnforceKioskFrame();
+            ApplyMode();
+        };
+        SourceInitialized += (_, _) => EnforceKioskFrame();
+        Closing += Window_Closing;
+    }
+
+    private void EnforceKioskFrame()
+    {
+        if (WindowStyle != WindowStyle.None)
+            WindowStyle = WindowStyle.None;
+        if (ResizeMode != ResizeMode.NoResize)
+            ResizeMode = ResizeMode.NoResize;
+        ShowInTaskbar = false;
+
+        if (!_allowBackgroundForGame)
+        {
+            if (WindowState != WindowState.Maximized)
+                WindowState = WindowState.Maximized;
+            if (!Topmost)
+                Topmost = true;
+        }
+        else if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    private void Window_StateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Maximized;
+        EnforceKioskFrame();
+    }
+
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        if (!_allowBackgroundForGame)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                Topmost = true;
+                Activate();
+            }, DispatcherPriority.ApplicationIdle);
+        }
+    }
+
+    private void Window_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_kiosk.AllowStaffExit)
+            return;
+
+        e.Cancel = true;
+        _ = _agent.ReportSecurityAlertAsync("Попытка закрыть оболочку");
+        EnforceKioskFrame();
+        Activate();
+    }
+
+    private void OnAgentChanged() => Dispatcher.Invoke(ApplyMode);
+
+    private void ApplyMode()
+    {
+        PanelWaiting.Visibility = Visibility.Collapsed;
+        PanelLogin.Visibility = Visibility.Collapsed;
+        PanelShell.Visibility = Visibility.Collapsed;
+        PanelUiLock.Visibility = _agent.IsUiLocked ? Visibility.Visible : Visibility.Collapsed;
+        if (!_agent.IsUiLocked)
+            _localLockPin = null;
+
+        OnlineText.Text = _agent.IsOnline ? "Онлайн" : "Офлайн";
+        OnlineText.Foreground = new SolidColorBrush(_agent.IsOnline
+            ? Color.FromRgb(0x3D, 0xDC, 0x97)
+            : Color.FromRgb(0xFF, 0x8A, 0x8A));
+        OnlineDot.Fill = OnlineText.Foreground;
+        OnlineBadge.Background = new SolidColorBrush(_agent.IsOnline
+            ? Color.FromRgb(0x14, 0x24, 0x1A)
+            : Color.FromRgb(0x2A, 0x14, 0x14));
+        OnlineBadge.BorderBrush = new SolidColorBrush(_agent.IsOnline
+            ? Color.FromArgb(0x55, 0x3D, 0xDC, 0x97)
+            : Color.FromArgb(0x66, 0xFF, 0x4D, 0x4D));
+
+        var pcName = ResolvePcDisplayName();
+        var pcNumber = FormatPcNumberBackdrop(pcName);
+        LoginPcName.Text = pcNumber;
+        WaitingPcName.Text = pcNumber;
+
+        FooterStatus.Text = string.IsNullOrWhiteSpace(_agent.LastError)
+            ? $"v{ClientVersionInfo.Version} · {_agent.StatusText}"
+            : $"{_agent.StatusText} · {_agent.LastError}";
+
+        if (!string.IsNullOrWhiteSpace(_agent.LastOrderFlash))
+            ShopFlash.Text = _agent.LastOrderFlash;
+
+        switch (_agent.Mode)
+        {
+            case ShellMode.WaitingApproval:
+            case ShellMode.Connecting when string.IsNullOrWhiteSpace(_agent.State.DeviceToken):
+                PanelWaiting.Visibility = Visibility.Visible;
+                RegCodeText.Text = string.IsNullOrWhiteSpace(_agent.State.MacAddress)
+                    ? "MAC не найден"
+                    : _agent.State.MacAddress;
+                break;
+
+            case ShellMode.InSession when _agent.Session is not null:
+            case ShellMode.LoggedIn when _agent.Customer is not null:
+                // Games may steal focus (Topmost=false), but session end must reclaim UI.
+                if (_agent.Mode != ShellMode.InSession)
+                    _allowBackgroundForGame = false;
+                PanelShell.Visibility = Visibility.Visible;
+                BindProfile();
+                BindSessionChrome();
+                ShowTab(_tab);
+                if (_agent.Mode == ShellMode.InSession)
+                    BindSession(_agent.Session!);
+                FillTariffs();
+                break;
+
+            // Сеанс есть, но Mode ещё не InSession (гонка Unlock/SessionStarted)
+            case ShellMode.Locked when _agent.Session is { Status: SessionStatus.Active or SessionStatus.Paused }:
+            case ShellMode.Offline when _agent.Session is { Status: SessionStatus.Active or SessionStatus.Paused }:
+                PanelShell.Visibility = Visibility.Visible;
+                BindProfile();
+                BindSessionChrome();
+                BindSession(_agent.Session!);
+                ShowTab(_tab);
+                break;
+
+            default:
+                _allowBackgroundForGame = false;
+                EnforceKioskFrame();
+                PanelLogin.Visibility = Visibility.Visible;
+                BindLoginBookingHold();
+                break;
+        }
+    }
+
+    private void BindLoginBookingHold()
+    {
+        var hold = _agent.BookingHold;
+        if (hold is null)
+        {
+            LoginBookingHold.Visibility = Visibility.Collapsed;
+            LoginBookingHold.Text = "";
+            LoginButton.IsEnabled = true;
+            LoginBox.IsEnabled = true;
+            PinBox.IsEnabled = true;
+            return;
+        }
+
+        var from = hold.StartsAt.ToOffset(TimeSpan.FromHours(5));
+        var to = hold.EndsAt.ToOffset(TimeSpan.FromHours(5));
+        if (hold.IsOwner)
+        {
+            LoginBookingHold.Visibility = Visibility.Visible;
+            LoginBookingHold.Foreground = (System.Windows.Media.Brush)FindResource("Accent");
+            LoginBookingHold.Text = $"Ваша бронь {hold.Number} · {from:HH:mm}–{to:HH:mm}";
+            LoginButton.IsEnabled = true;
+            LoginBox.IsEnabled = true;
+            PinBox.IsEnabled = true;
+        }
+        else
+        {
+            LoginBookingHold.Visibility = Visibility.Visible;
+            LoginBookingHold.Foreground = (System.Windows.Media.Brush)FindResource("Danger");
+            LoginBookingHold.Text =
+                $"ПК забронирован ({hold.Number}) {from:HH:mm}–{to:HH:mm}\n"
+                + $"Клиент: {hold.ContactName}. Вход только по телефону брони или с кассы.";
+            // Вход оставляем доступным — сервер пустит только владельца брони.
+            LoginButton.IsEnabled = true;
+            LoginBox.IsEnabled = true;
+            PinBox.IsEnabled = true;
+        }
+    }
+
+    private string ResolvePcDisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(_agent.State.DisplayName))
+            return _agent.State.DisplayName!;
+        if (!string.IsNullOrWhiteSpace(_agent.ComputerName))
+            return _agent.ComputerName!;
+        return Environment.MachineName;
+    }
+
+    /// <summary>Backdrop on login/waiting: only the station number (e.g. "01"), not "PC 01".</summary>
+    private static string FormatPcNumberBackdrop(string displayName)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(displayName, @"(\d+)\s*$");
+        if (!m.Success)
+            m = System.Text.RegularExpressions.Regex.Match(displayName, @"(\d+)");
+        if (!m.Success)
+            return displayName.Trim();
+
+        var digits = m.Groups[1].Value;
+        return digits.Length == 1 ? digits.PadLeft(2, '0') : digits;
+    }
+
+    private void BindProfile()
+    {
+        var c = _agent.Customer;
+        var session = _agent.Session;
+        var guest = session?.GuestName;
+        var name = c?.FullName ?? guest ?? "Гость";
+        ProfileName.Text = name;
+        ProfileLoyalty.Text = c?.LoyaltyLevelName ?? (session is null ? "Без аккаунта" : "Гостевой сеанс");
+        AvatarLetter.Text = string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+
+        if (c is not null)
+        {
+            BalanceLabel.Text = "БАЛАНС";
+            BalanceText.Text = $"{c.Balance:0} ₸";
+            BonusText.Text = c.BonusBalance > 0
+                ? $"Бонусы {c.BonusBalance:0} ₸ · тратятся первыми"
+                : "Бонусы: 0 ₸";
+            TimeBankText.Text = FormatTimeBank(c);
+            BalanceHint.Text = "Пополнение — на кассе. Бонусы начисляются при пополнении по уровню лояльности.";
+        }
+        else if (session is not null)
+        {
+            BalanceLabel.Text = "ТАРИФ";
+            var tariff = session.TariffName ?? "Сеанс";
+            BalanceText.Text = tariff;
+            BonusText.Text = session.TotalPrice > 0
+                ? $"{session.TotalPrice:0} ₸ · {session.PaymentMethod}"
+                : $"{session.PaymentMethod}";
+            TimeBankText.Text = "";
+            BalanceHint.Text = "Продление и оплата — у администратора на кассе";
+        }
+        else
+        {
+            BalanceLabel.Text = "БАЛАНС";
+            BalanceText.Text = "—";
+            BonusText.Text = "";
+            TimeBankText.Text = "";
+            BalanceHint.Text = "Войдите в аккаунт или дождитесь сеанса с кассы";
+        }
+
+        var progress = c?.LoyaltyProgress ?? 0;
+        var goal = Math.Max(1, c?.LoyaltyGoal ?? 500);
+        RatingBar.Maximum = goal;
+        RatingBar.Value = Math.Clamp(progress, 0, goal);
+        RatingLabel.Text = "РЕЙТИНГ";
+        RatingNumbers.Text = $"{progress}/{goal}";
+        LoyaltyText.Text = c?.LoyaltyLevelName is { Length: > 0 } lvl
+            ? $"УРОВЕНЬ: {lvl.ToUpperInvariant()}"
+            : (c is null ? "Рейтинг доступен в аккаунте" : "Копите траты для уровня лояльности");
+
+        var first = name.Split(' ').FirstOrDefault() ?? name;
+        HomeHello.Text = $"ПРИВЕТ, {first.ToUpperInvariant()}!";
+        if (session is not null && c is not null && session.CustomerId == c.CustomerId)
+        {
+            HomeSub.Text = "Сеанс с аккаунта. Завершить можно кнопкой «Завершить сеанс» (остаток — в банк зоны).";
+        }
+        else if (session is not null)
+        {
+            HomeSub.Text = "Сеанс идёт — можно играть или заказать из бара. Завершить сеанс — кнопкой ниже.";
+        }
+        else if (c is not null && c.CurrentZoneTimeBankMinutes > 0)
+        {
+            HomeSub.Text =
+                $"В банке {c.CurrentZoneName ?? "этой зоны"} есть {c.CurrentZoneTimeBankMinutes} мин — можно играть с банка или купить новый сеанс.";
+        }
+        else if (c is not null)
+        {
+            HomeSub.Text = "Выберите тариф и длительность, чтобы начать сеанс с баланса.";
+        }
+        else
+        {
+            HomeSub.Text = "Дождитесь запуска сеанса с кассы или войдите в аккаунт.";
+        }
+
+        RefreshIdleLoginHint();
+
+        // Во время аккаунтного сеанса «Выйти» = завершить сеанс + выход. Гостевой с кассы — без кнопки выхода из аккаунта.
+        LogoutButton.Visibility = c is not null
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        HomeEndSessionButton.Visibility = session is not null
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        UnlockHintText.Text = c is not null
+            ? "Введите PIN аккаунта (тот же, что при входе)"
+            : "Введите PIN, который задали при блокировке, или позовите администратора";
+    }
+
+    private void RefreshIdleLoginHint()
+    {
+        if (_agent.Customer is null || _agent.Session is not null)
+            return;
+        if (PanelShell.Visibility != Visibility.Visible)
+            return;
+
+        var left = _agent.IdleLoginSecondsLeft;
+        if (left is null)
+            return;
+
+        var m = left.Value / 60;
+        var s = left.Value % 60;
+        HomeSub.Text =
+            $"Начните сеанс в течение {m}:{s:00} — иначе будет автоматический выход из аккаунта.";
+        if (left.Value <= 30)
+            StatusTextSync();
+    }
+
+    private void StatusTextSync()
+    {
+        // подтянуть статус из агента (автовыход пишет туда текст)
+        var bal = _agent.Customer is not null ? $"Баланс: {_agent.Customer.Balance:0} ₸" : _agent.StatusText;
+        FooterStatus.Text = string.IsNullOrWhiteSpace(_agent.LastError)
+            ? $"v{ClientVersionInfo.Version} · {_agent.StatusText} · {bal}"
+            : $"{_agent.StatusText} · {_agent.LastError}";
+    }
+
+    private void BindSessionChrome()
+    {
+        var pc = _agent.Session?.ComputerName ?? _agent.ComputerName ?? Environment.MachineName;
+        var zone = _agent.Session?.ZoneName;
+        SessionPcText.Text = $"{pc} - SHIFT";
+        if (_agent.Session is null)
+        {
+            RemainingText.Text = "--:--";
+            RemainingChip.Visibility = Visibility.Collapsed;
+            HomeSessionBox.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            RemainingChip.Visibility = Visibility.Visible;
+            if (!string.IsNullOrWhiteSpace(zone))
+                SessionPcText.Text = $"{pc} - {zone}";
+            HomeSessionBox.Visibility = Visibility.Visible;
+            HomeSessionInfo.Text =
+                $"{_agent.Session.TariffName ?? "Сеанс"} · {_agent.Session.TotalPrice:0} ₸ · {_agent.Session.PaymentMethod}";
+        }
+
+        ApplyClientBillingUi();
+        BindProfile();
+    }
+
+    /// <summary>
+    /// Сеанс без аккаунта (или чужой аккаунт) — только касса.
+    /// Свой аккаунт на ПК — можно Add time с баланса (как iCafe).
+    /// </summary>
+    private bool IsCashDeskManagedSession()
+    {
+        var session = _agent.Session;
+        if (session is null) return false;
+        if (session.CustomerId is null) return true;
+        if (_agent.Customer is null) return true;
+        return session.CustomerId != _agent.Customer.CustomerId;
+    }
+
+    private bool CanClientUseBalance()
+    {
+        if (_agent.Customer is null) return false;
+        if (_agent.Session is null) return true;
+        return !IsCashDeskManagedSession()
+               && _agent.Session.CustomerId == _agent.Customer.CustomerId;
+    }
+
+    private void ApplyClientBillingUi()
+    {
+        var cashDesk = IsCashDeskManagedSession();
+        var accountReady = _agent.Customer is not null && _agent.Session is null;
+        var accountSession = CanClientUseBalance() && _agent.Session is not null;
+
+        HomeAccountStartPanel.Visibility = accountReady ? Visibility.Visible : Visibility.Collapsed;
+        HeaderExtendButton.Visibility = accountSession ? Visibility.Visible : Visibility.Collapsed;
+        HomeClientExtendPanel.Visibility = accountSession ? Visibility.Visible : Visibility.Collapsed;
+        HomeExtend15Button.Visibility = accountSession ? Visibility.Visible : Visibility.Collapsed;
+        HomeExtend30Button.Visibility = accountSession ? Visibility.Visible : Visibility.Collapsed;
+        HomeExtend60Button.Visibility = accountSession ? Visibility.Visible : Visibility.Collapsed;
+        HomeExtend120Button.Visibility = accountSession ? Visibility.Visible : Visibility.Collapsed;
+        HomeCashDeskHint.Visibility = cashDesk ? Visibility.Visible : Visibility.Collapsed;
+        if (!accountSession)
+            ExtendPopup.Visibility = Visibility.Collapsed;
+
+        ApplyTimeBankStartUi(accountReady);
+
+        // Гостевой / кассовый сеанс: магазин только «у кассы»
+        if (cashDesk || _agent.Customer is null)
+        {
+            ShopPayGuestHint.Visibility = Visibility.Visible;
+            ShopPayAccountPanel.Visibility = Visibility.Collapsed;
+            for (var i = 0; i < ShopPayCombo.Items.Count; i++)
+            {
+                if (ShopPayCombo.Items[i] is ComboBoxItem { Tag: string t }
+                    && t.Equals("PayAtCashier", StringComparison.OrdinalIgnoreCase))
+                {
+                    ShopPayCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            ShopPayGuestHint.Visibility = Visibility.Collapsed;
+            ShopPayAccountPanel.Visibility = Visibility.Visible;
+            foreach (ComboBoxItem item in ShopPayCombo.Items)
+                item.IsEnabled = true;
+        }
+
+        if (!accountSession)
+            ExtendPopup.Visibility = Visibility.Collapsed;
+
+        RenderNews();
+    }
+
+    private string FormatTimeBank(ClientCustomerAuthDto c)
+    {
+        var zoneMins = c.CurrentZoneTimeBankMinutes;
+        var zoneName = c.CurrentZoneName ?? "эта зона";
+        if (zoneMins > 0)
+            return $"Банк {zoneName}: {zoneMins} мин";
+
+        if (c.TimeBanks is { Count: > 0 })
+        {
+            var parts = string.Join(", ", c.TimeBanks.Select(b => $"{b.ZoneName}:{b.Minutes}"));
+            return $"Банк в других зонах: {parts}";
+        }
+
+        return c.TimeBankMinutes > 0 ? $"Банк: {c.TimeBankMinutes} мин" : "";
+    }
+
+    private void ApplyTimeBankStartUi(bool accountReady)
+    {
+        if (!accountReady || _agent.Customer is null)
+        {
+            _showBuySessionExplicit = false;
+            HomeTimeBankChoice.Visibility = Visibility.Collapsed;
+            HomeBuySessionPanel.Visibility = Visibility.Visible;
+            return;
+        }
+
+        var zoneMins = _agent.Customer.CurrentZoneTimeBankMinutes;
+        var zoneName = _agent.Customer.CurrentZoneName ?? "этой зоны";
+        if (zoneMins > 0)
+        {
+            HomeTimeBankChoice.Visibility = Visibility.Visible;
+            HomeTimeBankTitle.Text = $"Банк времени · {zoneName}: {zoneMins} мин";
+            HomeTimeBankHint.Text =
+                $"Можно запустить сеанс из банка {zoneName}. Минуты других зон на этом ПК недоступны.";
+            TimeBankRingText.Text = zoneMins.ToString();
+            // Пока пользователь не нажал «Купить новый сеанс», прячем тарифы — иначе тик UI их закрывает.
+            HomeBuySessionPanel.Visibility = _showBuySessionExplicit
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            StartFromBankButton.Content = $"ИГРАТЬ С БАНКА · {zoneMins} МИН";
+        }
+        else
+        {
+            HomeTimeBankChoice.Visibility = Visibility.Collapsed;
+            HomeBuySessionPanel.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void ShowBuySession_Click(object sender, RoutedEventArgs e)
+    {
+        _showBuySessionExplicit = true;
+        HomeBuySessionPanel.Visibility = Visibility.Visible;
+        FillTariffs();
+    }
+
+    private async void StartFromBank_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_agent.Customer is null)
+                throw new InvalidOperationException("Войдите в аккаунт");
+            var minutes = _agent.Customer.CurrentZoneTimeBankMinutes;
+            if (minutes <= 0)
+                throw new InvalidOperationException("Нет минут в банке этой зоны");
+
+            var tariff = _agent.Tariffs.FirstOrDefault(t => t.IsActive && t.Kind == TariffKind.Hourly)
+                         ?? _agent.Tariffs.FirstOrDefault(t => t.IsActive)
+                         ?? throw new InvalidOperationException("Нет доступного тарифа для этой зоны");
+
+            await _agent.StartBalanceSessionAsync(tariff.Id, minutes, useTimeBank: true);
+            await _agent.RefreshAccountAsync();
+            ShowTab("home");
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("SHIFT", ex.Message);
+        }
+    }
+
+    private void ShowTab(string tab)
+    {
+        _tab = tab;
+        TabHome.Visibility = tab == "home" ? Visibility.Visible : Visibility.Collapsed;
+        TabGames.Visibility = tab == "games" ? Visibility.Visible : Visibility.Collapsed;
+        TabShop.Visibility = tab == "shop" ? Visibility.Visible : Visibility.Collapsed;
+        TabHelp.Visibility = tab == "help" ? Visibility.Visible : Visibility.Collapsed;
+
+        PageTitle.Text = tab switch
+        {
+            "games" => "Игры",
+            "shop" => "Магазин",
+            "help" => "Поддержка",
+            _ => "Главная"
+        };
+
+        SetNav(NavHome, tab == "home");
+        SetNav(NavGames, tab == "games");
+        SetNav(NavShop, tab == "shop");
+        SetNav(NavHelp, tab == "help");
+
+        if (tab == "games")
+            RenderApps();
+        if (tab == "shop")
+            RenderShop();
+    }
+
+    private void SetNav(Button btn, bool active)
+    {
+        btn.Style = (Style)FindResource(active ? "NavButtonActive" : "NavButton");
+    }
+
+    private void Nav_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string tag })
+            ShowTab(tag);
+    }
+
+    private void FillTariffs()
+    {
+        var selected = (TariffCombo.SelectedItem as ComboBoxItem)?.Tag as Guid?;
+        TariffCombo.Items.Clear();
+
+        // Как iCafe: один прайс — пакеты и почасовые, доступные сейчас для зоны ПК.
+        foreach (var t in _agent.Tariffs
+                     .Where(x => x.IsAvailableNow && x.IsActive)
+                     .Where(x => x.Kind is TariffKind.Package or TariffKind.Hourly or TariffKind.Free)
+                     .OrderBy(x => x.SortOrder)
+                     .ThenBy(x => x.Name))
+        {
+            var label = FormatTariffLabel(t);
+            TariffCombo.Items.Add(new ComboBoxItem { Content = label, Tag = t.Id });
+        }
+
+        if (TariffCombo.Items.Count == 0)
+        {
+            DurationButtonsPanel.Children.Clear();
+            SessionPriceQuote.Text = "Нет доступных тарифов";
+            return;
+        }
+
+        if (selected is Guid id)
+        {
+            foreach (ComboBoxItem item in TariffCombo.Items)
+            {
+                if (item.Tag is Guid g && g == id)
+                {
+                    TariffCombo.SelectedItem = item;
+                    RefreshBuyDurationUi();
+                    return;
+                }
+            }
+        }
+
+        TariffCombo.SelectedIndex = 0;
+        RefreshBuyDurationUi();
+    }
+
+    private static string FormatTariffLabel(TariffDto t)
+    {
+        var zone = string.IsNullOrWhiteSpace(t.ZoneName) ? "" : $"{t.ZoneName} · ";
+        var code = t.Code ?? "";
+        if (t.Kind == TariffKind.Package && t.FixedPrice is not null)
+        {
+            var hours = t.FixedDurationMinutes is > 0 ? t.FixedDurationMinutes.Value / 60 : 0;
+            if (code.Contains("2P1", StringComparison.OrdinalIgnoreCase) || t.Name == "2+1")
+                return $"{zone}2+1 · {hours} ч · {t.FixedPrice:0} ₸ (2+1 бесплатно)";
+            if (code.Contains("3P2", StringComparison.OrdinalIgnoreCase) || t.Name == "3+2")
+                return $"{zone}3+2 · {hours} ч · {t.FixedPrice:0} ₸ (3+2 бесплатно)";
+            return hours > 0
+                ? $"{zone}{t.Name} · {hours} ч · {t.FixedPrice:0} ₸"
+                : $"{zone}{t.Name} · {t.FixedPrice:0} ₸";
+        }
+
+        return t.Kind switch
+        {
+            TariffKind.Free => $"{zone}{t.Name} · бесплатно",
+            _ => $"{zone}{t.Name} · {t.PricePerHour:0} ₸/ч"
+        };
+    }
+
+    private TariffDto? SelectedBuyTariff()
+    {
+        if (TariffCombo.SelectedItem is not ComboBoxItem { Tag: Guid id })
+            return null;
+        return _agent.Tariffs.FirstOrDefault(x => x.Id == id);
+    }
+
+    private void TariffCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        RefreshBuyDurationUi();
+
+    private void RefreshBuyDurationUi()
+    {
+        var t = SelectedBuyTariff();
+        DurationButtonsPanel.Children.Clear();
+        if (t is null)
+        {
+            SessionPriceQuote.Text = "";
+            return;
+        }
+
+        if (t.Kind == TariffKind.Package && t.FixedDurationMinutes is > 0)
+        {
+            _buyDurationMinutes = t.FixedDurationMinutes.Value;
+            DurationLabel.Text = FormatPackageDurationHint(t);
+            DurationButtonsPanel.Children.Clear();
+        }
+        else if (t.Kind == TariffKind.Free)
+        {
+            _buyDurationMinutes = Math.Max(t.MinDurationMinutes ?? 60, 30);
+            DurationLabel.Text = "Длительность";
+            foreach (var m in BuyDurationPresets)
+                DurationButtonsPanel.Children.Add(MakeDurationChip(m, m == _buyDurationMinutes, enabled: true));
+        }
+        else
+        {
+            // Почасовой «1 час» — берём длительность тарифа, без произвольных 60/120/180 кнопок
+            _buyDurationMinutes = t.MinDurationMinutes is > 0 ? t.MinDurationMinutes.Value : 60;
+            DurationLabel.Text = "Длительность тарифа";
+            DurationButtonsPanel.Children.Clear();
+        }
+
+        UpdateSessionPriceQuote();
+    }
+
+    private static string FormatPackageDurationHint(TariffDto t)
+    {
+        var code = t.Code ?? "";
+        var hours = (t.FixedDurationMinutes ?? 0) / 60;
+        if (code.Contains("2P1", StringComparison.OrdinalIgnoreCase) || t.Name == "2+1")
+            return $"2+1 · {hours} ч (2 оплата + 1 бесплатно)";
+        if (code.Contains("3P2", StringComparison.OrdinalIgnoreCase) || t.Name == "3+2")
+            return $"3+2 · {hours} ч (3 оплата + 2 бесплатно)";
+        return hours > 0 ? $"Пакет · {hours} ч" : "Длительность пакета";
+    }
+
+    private Button MakeDurationChip(int minutes, bool selected, bool enabled)
+    {
+        var btn = new Button
+        {
+            Content = $"{minutes} мин",
+            Tag = minutes,
+            Margin = new Thickness(0, 0, 8, 8),
+            Padding = new Thickness(14, 8, 14, 8),
+            IsEnabled = enabled,
+            Style = (Style)FindResource(selected ? "AccentButton" : "GhostButton")
+        };
+        if (enabled)
+            btn.Click += DurationChip_Click;
+        return btn;
+    }
+
+    private void DurationChip_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: int minutes })
+            return;
+        _buyDurationMinutes = minutes;
+        RefreshBuyDurationUi();
+    }
+
+    private void UpdateSessionPriceQuote()
+    {
+        var t = SelectedBuyTariff();
+        if (t is null)
+        {
+            SessionPriceQuote.Text = "";
+            return;
+        }
+
+        var price = QuoteTariffPrice(t, _buyDurationMinutes);
+        SessionPriceQuote.Text = price <= 0
+            ? $"{_buyDurationMinutes} мин · бесплатно"
+            : $"{_buyDurationMinutes} мин · {price:0.##} ₸";
+    }
+
+    /// <summary>Клиентский расчёт как SessionPricing на сервере.</summary>
+    private static decimal QuoteTariffPrice(TariffDto t, int minutes)
+    {
+        if (minutes <= 0) return 0;
+        if (t.Kind == TariffKind.Free) return 0;
+
+        if (t.Kind == TariffKind.Package && t.FixedPrice is not null)
+        {
+            var fixedMins = t.FixedDurationMinutes ?? minutes;
+            if (minutes <= fixedMins)
+                return t.FixedPrice.Value;
+
+            return t.FixedPrice.Value + QuoteExtendPrice(t, minutes - fixedMins);
+        }
+
+        var billable = ToBillableMinutes(t.BillingMode, minutes);
+        var rate = t.PricePerHour > 0 ? t.PricePerHour / 60m : 0m;
+        var price = Math.Round(rate * billable, 2, MidpointRounding.AwayFromZero);
+        if (t.MinCharge > price)
+            price = t.MinCharge;
+        return price;
+    }
+
+    private static decimal QuoteExtendPrice(TariffDto t, int additionalMinutes)
+    {
+        if (additionalMinutes <= 0) return 0;
+        var rate = t.PricePerHour > 0
+            ? t.PricePerHour / 60m
+            : t.FixedPrice is > 0 && t.FixedDurationMinutes is > 0
+                ? t.FixedPrice.Value / t.FixedDurationMinutes.Value
+                : 0m;
+        var billable = ToBillableMinutes(t.BillingMode, additionalMinutes);
+        return Math.Round(rate * billable, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static int ToBillableMinutes(BillingMode mode, int minutes) => mode switch
+    {
+        BillingMode.Block15 => (int)Math.Ceiling(minutes / 15d) * 15,
+        BillingMode.Block30 => (int)Math.Ceiling(minutes / 30d) * 30,
+        _ => minutes
+    };
+
+    private async void StartSession_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_agent.Customer is null)
+                throw new InvalidOperationException("Войдите в аккаунт");
+            var t = SelectedBuyTariff()
+                    ?? throw new InvalidOperationException("Выберите тариф");
+
+            var minutes = _buyDurationMinutes;
+            if (t.Kind == TariffKind.Package && t.FixedDurationMinutes is > 0)
+                minutes = t.FixedDurationMinutes.Value;
+            if (minutes <= 0)
+                throw new InvalidOperationException("Укажите длительность");
+
+            var price = QuoteTariffPrice(t, minutes);
+            var wallet = _agent.Customer.Balance + _agent.Customer.BonusBalance;
+            if (price > 0 && wallet < price)
+                throw new InvalidOperationException(
+                    $"Недостаточно средств: нужно {price:0} ₸, на счёте {wallet:0} ₸");
+
+            if (!await ShowConfirmAsync(
+                    "Покупка сеанса",
+                    $"{t.Name}\n{minutes} мин · {price:0.##} ₸\n\nСписать с баланса?"))
+                return;
+
+            await _agent.StartBalanceSessionAsync(t.Id, minutes, useTimeBank: false);
+            await _agent.RefreshAccountAsync();
+            ShowTab("home");
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("SHIFT", ex.Message);
+        }
+    }
+
+    private void RenderApps()
+    {
+        BuildCategoryFilters();
+        AppsPanel.Children.Clear();
+        var apps = _agent.Apps.AsEnumerable();
+        if (_appCategory != "Все")
+            apps = apps.Where(a => string.Equals(a.Category, _appCategory, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(_search))
+            apps = apps.Where(a => a.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var app in apps)
+        {
+            UIElement media;
+            var imageUri = ResolveProductImageUri(app.IconPath);
+            if (imageUri is not null)
+            {
+                media = new Image
+                {
+                    Source = new BitmapImage(imageUri),
+                    Stretch = Stretch.UniformToFill
+                };
+            }
+            else
+            {
+                media = new TextBlock
+                {
+                    Text = string.IsNullOrEmpty(app.Name) ? "?" : app.Name[..1].ToUpperInvariant(),
+                    FontSize = 42,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+
+            var titleOverlay = new Border
+            {
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Background = new LinearGradientBrush(
+                    Color.FromArgb(0x00, 0, 0, 0),
+                    Color.FromArgb(0xE6, 0, 0, 0),
+                    90),
+                Padding = new Thickness(10, 36, 10, 10),
+                Child = new StackPanel
+                {
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text = app.Name,
+                            FontWeight = FontWeights.SemiBold,
+                            FontSize = 13,
+                            TextWrapping = TextWrapping.Wrap,
+                            MaxHeight = 40,
+                            Foreground = Brushes.White
+                        },
+                        new TextBlock
+                        {
+                            Text = app.FileExists ? app.Category : $"{app.Category} · нет файла",
+                            FontSize = 11,
+                            Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)),
+                            Margin = new Thickness(0, 2, 0, 0)
+                        }
+                    }
+                }
+            };
+
+            var card = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x16, 0x16, 0x18)),
+                CornerRadius = new CornerRadius(16),
+                Margin = new Thickness(8),
+                Cursor = Cursors.Hand,
+                Opacity = app.FileExists ? 1 : 0.45,
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF)),
+                BorderThickness = new Thickness(1),
+                ClipToBounds = true,
+                Child = new Grid
+                {
+                    Children =
+                    {
+                        new Border
+                        {
+                            Background = new LinearGradientBrush(
+                                Color.FromRgb(0xFF, 0x6A, 0x00),
+                                Color.FromRgb(0x14, 0x14, 0x14),
+                                140),
+                            Child = media
+                        },
+                        titleOverlay
+                    }
+                }
+            };
+            card.MouseLeftButtonUp += (_, _) => LaunchApp(app);
+            AppsPanel.Children.Add(card);
+        }
+
+        if (AppsPanel.Children.Count == 0)
+        {
+            AppsPanel.Children.Add(new TextBlock
+            {
+                Text = "Нет программ. Добавьте их в панели клуба → Программы.",
+                Foreground = (Brush)FindResource("Muted"),
+                Margin = new Thickness(8)
+            });
+        }
+    }
+
+    private async void LaunchApp(SoftwareAppDto app)
+    {
+        try
+        {
+            var path = Environment.ExpandEnvironmentVariables(app.ExePath ?? "");
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                await ShowInfoAsync(
+                    "SHIFT",
+                    "Файл приложения не найден на этом ПК.\n\n" + path);
+                return;
+            }
+
+            if (_agent.Session is null)
+            {
+                await ShowInfoAsync("SHIFT", "Сначала запустите сеанс.");
+                return;
+            }
+
+            _agent.LaunchApp(app);
+            _allowBackgroundForGame = true;
+            Topmost = false;
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("Ошибка запуска", ex.Message);
+        }
+    }
+
+    private void BuildCategoryFilters()
+    {
+        var cats = new List<string> { "Все" };
+        cats.AddRange(_agent.Apps.Select(a => a.Category).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x));
+        CategoryFilterPanel.Children.Clear();
+        foreach (var cat in cats)
+        {
+            var selected = string.Equals(cat, _appCategory, StringComparison.OrdinalIgnoreCase);
+            var btn = new Button
+            {
+                Content = cat,
+                Style = (Style)FindResource(selected ? "PillButtonActive" : "PillButton"),
+                Tag = cat
+            };
+            btn.Click += (_, _) =>
+            {
+                _appCategory = cat;
+                RenderApps();
+            };
+            CategoryFilterPanel.Children.Add(btn);
+        }
+    }
+
+    private void RenderShop()
+    {
+        BuildShopCategories();
+        ShopPanel.Children.Clear();
+        var products = _agent.BarProducts.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(_shopCategoryId) && Guid.TryParse(_shopCategoryId, out var cid))
+            products = products.Where(p => p.CategoryId == cid);
+        if (!string.IsNullOrWhiteSpace(_search))
+            products = products.Where(p => p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+        var hues = new[]
+        {
+            Color.FromRgb(0xFF, 0x6A, 0x00),
+            Color.FromRgb(0xC4, 0x4D, 0x00),
+            Color.FromRgb(0x3A, 0x2A, 0x1A),
+            Color.FromRgb(0x5C, 0x3A, 0x14),
+            Color.FromRgb(0x2A, 0x1A, 0x10)
+        };
+        var i = 0;
+        foreach (var p in products)
+        {
+            var color = hues[i++ % hues.Length];
+            var addBtn = new Button
+            {
+                Content = "В корзину",
+                Style = (Style)FindResource("AccentButton"),
+                Padding = new Thickness(10, 6, 10, 6),
+                Tag = p,
+                IsEnabled = p.IsAvailable && _agent.Session is not null
+            };
+            addBtn.Click += (_, _) => AddToCart(p);
+
+            UIElement media;
+            var imageUri = ResolveProductImageUri(p.ImageUrl);
+            if (imageUri is not null)
+            {
+                media = new Border
+                {
+                    Height = 110,
+                    CornerRadius = new CornerRadius(14),
+                    Margin = new Thickness(0, 0, 0, 10),
+                    ClipToBounds = true,
+                    Child = new Image
+                    {
+                        Source = new BitmapImage(imageUri),
+                        Stretch = Stretch.UniformToFill
+                    }
+                };
+            }
+            else
+            {
+                media = new Border
+                {
+                    Height = 110,
+                    CornerRadius = new CornerRadius(14),
+                    Background = new SolidColorBrush(color),
+                    Margin = new Thickness(0, 0, 0, 10),
+                    Child = new TextBlock
+                    {
+                        Text = p.Name.Length > 0 ? p.Name[..1].ToUpperInvariant() : "?",
+                        FontSize = 36,
+                        FontWeight = FontWeights.Bold,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Foreground = Brushes.White
+                    }
+                };
+            }
+            DockPanel.SetDock(media, Dock.Top);
+
+            var card = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x16, 0x16, 0x18)),
+                CornerRadius = new CornerRadius(16),
+                Margin = new Thickness(8),
+                Padding = new Thickness(10),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF)),
+                BorderThickness = new Thickness(1),
+                Child = new DockPanel
+                {
+                    Children =
+                    {
+                        media,
+                        new DockPanel
+                        {
+                            Children =
+                            {
+                                addBtn,
+                                new StackPanel
+                                {
+                                    Children =
+                                    {
+                                        new TextBlock
+                                        {
+                                            Text = p.Name,
+                                            FontWeight = FontWeights.SemiBold,
+                                            FontSize = 13,
+                                            TextWrapping = TextWrapping.Wrap
+                                        },
+                                        new TextBlock
+                                        {
+                                            Text = $"{p.SalePrice:0} ₸",
+                                            Foreground = (Brush)FindResource("Accent2"),
+                                            FontWeight = FontWeights.Bold,
+                                            Margin = new Thickness(0, 4, 0, 0)
+                                        },
+                                        new TextBlock
+                                        {
+                                            Text = p.IsAvailable
+                                                ? (_agent.Session is null ? "Нужен сеанс" : p.CategoryName)
+                                                : "Нет в наличии",
+                                            FontSize = 11,
+                                            Foreground = (Brush)FindResource("Muted")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            DockPanel.SetDock(addBtn, Dock.Right);
+            ShopPanel.Children.Add(card);
+        }
+
+        if (ShopPanel.Children.Count == 0)
+        {
+            ShopPanel.Children.Add(new TextBlock
+            {
+                Text = "Товаров пока нет. Добавьте их в панели: Бар → Товары.",
+                Foreground = (Brush)FindResource("Muted"),
+                Margin = new Thickness(8)
+            });
+        }
+
+        RefreshCartUi();
+    }
+
+    private void AddToCart(ClientBarProductDto product)
+    {
+        if (_agent.Session is null)
+        {
+            _ = ShowInfoAsync("Магазин", "Заказ доступен во время сеанса");
+            return;
+        }
+
+        if (!product.IsAvailable)
+            return;
+
+        if (_cart.TryGetValue(product.Id, out var existing))
+            _cart[product.Id] = (product, existing.Qty + 1);
+        else
+            _cart[product.Id] = (product, 1);
+
+        ShopFlash.Text = $"В корзине: {product.Name}";
+        RefreshCartUi();
+    }
+
+    private void ChangeCartQty(Guid productId, decimal delta)
+    {
+        if (!_cart.TryGetValue(productId, out var line))
+            return;
+        var next = line.Qty + delta;
+        if (next <= 0)
+            _cart.Remove(productId);
+        else
+            _cart[productId] = (line.Product, next);
+        RefreshCartUi();
+    }
+
+    private void ClearCart_Click(object sender, RoutedEventArgs e)
+    {
+        _cart.Clear();
+        ShopFlash.Text = "";
+        RefreshCartUi();
+    }
+
+    private void RefreshCartUi()
+    {
+        ShopCartLines.Children.Clear();
+        var totalQty = _cart.Values.Sum(x => x.Qty);
+        var totalSum = _cart.Values.Sum(x => x.Product.SalePrice * x.Qty);
+
+        if (_cart.Count == 0)
+        {
+            ShopCartSummary.Text = "Корзина пуста";
+            ShopCartHint.Text = "Добавьте товары и оформите одним заказом";
+            CheckoutCartButton.IsEnabled = false;
+            return;
+        }
+
+        ShopCartSummary.Text = $"Корзина: {totalQty:0} шт · {totalSum:0} ₸";
+        ShopCartHint.Text = "Проверьте позиции и нажмите «Оформить заказ»";
+        CheckoutCartButton.IsEnabled = _agent.Session is not null;
+
+        foreach (var (id, line) in _cart.OrderBy(x => x.Value.Product.Name))
+        {
+            var row = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+            var minus = new Button
+            {
+                Content = "−",
+                Width = 36,
+                Style = (Style)FindResource("GhostButton"),
+                Tag = id
+            };
+            minus.Click += (_, _) => ChangeCartQty(id, -1);
+            var plus = new Button
+            {
+                Content = "+",
+                Width = 36,
+                Style = (Style)FindResource("GhostButton"),
+                Tag = id,
+                Margin = new Thickness(6, 0, 0, 0)
+            };
+            plus.Click += (_, _) => ChangeCartQty(id, 1);
+            var controls = new StackPanel { Orientation = Orientation.Horizontal };
+            controls.Children.Add(minus);
+            controls.Children.Add(plus);
+            DockPanel.SetDock(controls, Dock.Right);
+            row.Children.Add(controls);
+            row.Children.Add(new TextBlock
+            {
+                Text = $"{line.Product.Name} × {line.Qty:0} · {line.Product.SalePrice * line.Qty:0} ₸",
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            });
+            ShopCartLines.Children.Add(row);
+        }
+    }
+
+    private async void CheckoutCart_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_agent.Session is null)
+                throw new InvalidOperationException("Заказ доступен во время сеанса");
+            if (_cart.Count == 0)
+                throw new InvalidOperationException("Корзина пуста");
+
+            var mode = "PayAtCashier";
+            if (!IsCashDeskManagedSession() && _agent.Customer is not null
+                && ShopPayCombo.SelectedItem is ComboBoxItem { Tag: string tag })
+                mode = tag;
+
+            var lines = _cart.Values
+                .Select(x => new ClientPlaceBarOrderItemRequest(x.Product.Id, x.Qty))
+                .ToList();
+            var total = _cart.Values.Sum(x => x.Product.SalePrice * x.Qty);
+            var preview = string.Join("\n", _cart.Values.Select(x => $"• {x.Product.Name} × {x.Qty:0}"));
+            if (!await ShowConfirmAsync(
+                    "Оформить заказ?",
+                    $"{preview}\n\nИтого: {total:0} ₸"))
+                return;
+
+            await _agent.PlaceBarOrderAsync(lines, mode);
+            _cart.Clear();
+            ShopFlash.Text = _agent.LastOrderFlash ?? "Заказ отправлен";
+            RenderShop();
+            BindProfile();
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("Магазин", ex.Message);
+        }
+    }
+
+    private async Task OrderProduct(ClientBarProductDto product)
+    {
+        AddToCart(product);
+        await Task.CompletedTask;
+    }
+
+    private Uri? ResolveProductImageUri(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return null;
+        if (Uri.TryCreate(imageUrl, UriKind.Absolute, out var abs))
+            return abs;
+        if (Uri.TryCreate($"{_serverUrl}{imageUrl}", UriKind.Absolute, out var rel))
+            return rel;
+        return null;
+    }
+
+    private void BuildShopCategories()
+    {
+        ShopCategoryPanel.Children.Clear();
+        void AddCat(string label, string id)
+        {
+            var selected = _shopCategoryId == id;
+            var btn = new Button
+            {
+                Content = label,
+                Style = (Style)FindResource(selected ? "PillButtonActive" : "PillButton"),
+                Tag = id
+            };
+            btn.Click += (_, _) =>
+            {
+                _shopCategoryId = id;
+                RenderShop();
+            };
+            ShopCategoryPanel.Children.Add(btn);
+        }
+
+        AddCat("Все товары", "");
+        foreach (var c in _agent.BarCategories)
+            AddCat(c.Name, c.Id.ToString());
+    }
+
+    private void Search_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (sender is TextBox box)
+            _search = box.Text.Trim();
+        if (_tab == "games")
+            RenderApps();
+        if (_tab == "shop")
+            RenderShop();
+    }
+
+    private void BindSession(SessionDto session)
+    {
+        var rem = session.RemainingSeconds
+                  ?? (session.PlannedEndsAt is DateTimeOffset ends
+                      ? Math.Max(0, (int)(ends - DateTimeOffset.UtcNow).TotalSeconds)
+                      : 0);
+
+        var isNew = _boundSessionId != session.Id;
+        if (isNew || rem > _localRemaining + 5 || rem < _localRemaining - 30)
+        {
+            _boundSessionId = session.Id;
+            _localRemaining = rem;
+            _sessionTotalSeconds = Math.Max(rem, Math.Max(1, session.DurationMinutes * 60));
+        }
+
+        UpdateSessionTimerDisplay();
+    }
+
+    private void RefreshSessionTimer()
+    {
+        if (_agent.Session is null || PanelShell.Visibility != Visibility.Visible)
+            return;
+        if (_agent.Session.Status != SessionStatus.Paused && _localRemaining > 0)
+            _localRemaining--;
+        UpdateSessionTimerDisplay();
+    }
+
+    private void UpdateSessionTimerDisplay()
+    {
+        var rem = Math.Max(0, _localRemaining);
+        var h = rem / 3600;
+        var m = rem % 3600 / 60;
+        var s = rem % 60;
+        RemainingText.Text = h > 0 ? $"{h}ч {m:00}м" : $"{m} мин";
+        _ = s;
+    }
+
+    private void RenderNews()
+    {
+        NewsPanel.Children.Clear();
+        var items = _agent.News;
+        NewsEmptyHint.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var n in items)
+        {
+            var catColor = n.Category?.ToLowerInvariant() switch
+            {
+                "promo" => Color.FromRgb(0xFF, 0x6A, 0x00),
+                "event" => Color.FromRgb(0x3D, 0xDC, 0x97),
+                "maintenance" => Color.FromRgb(0xFF, 0x4D, 0x4D),
+                _ => Color.FromRgb(0xFF, 0x8A, 0x2B)
+            };
+
+            var label = n.IsPinned ? "Закреплено" : (n.Category ?? "Info");
+            var content = new StackPanel
+            {
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = label,
+                        FontSize = 11,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = new SolidColorBrush(catColor)
+                    },
+                    new TextBlock
+                    {
+                        Text = n.Title,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 16,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 4, 0, 0)
+                    },
+                    new TextBlock
+                    {
+                        Text = n.Body,
+                        Foreground = (Brush)FindResource("Muted"),
+                        FontSize = 13,
+                        TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 6, 0, 0)
+                    }
+                }
+            };
+
+            var chevron = new TextBlock
+            {
+                Text = "›",
+                FontSize = 28,
+                Foreground = (Brush)FindResource("Muted"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(12, 0, 0, 0)
+            };
+            DockPanel.SetDock(chevron, Dock.Right);
+
+            var row = new DockPanel();
+            row.Children.Add(chevron);
+            row.Children.Add(content);
+
+            NewsPanel.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x16, 0x16, 0x18)),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(18),
+                Margin = new Thickness(0, 0, 0, 10),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF)),
+                BorderThickness = new Thickness(1),
+                Child = row
+            });
+        }
+    }
+
+    private async void Login_Click(object sender, RoutedEventArgs e)
+    {
+        LoginError.Text = "";
+        try
+        {
+            await _agent.LoginCustomerAsync(LoginBox.Text.Trim(), PinBox.Password);
+            _tab = "home";
+        }
+        catch (Exception ex)
+        {
+            LoginError.Text = ex.Message;
+        }
+    }
+
+    private async void EndSession_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_agent.Session is null)
+                return;
+
+            var ownAccountSession = _agent.Customer is not null
+                                    && _agent.Session.CustomerId == _agent.Customer.CustomerId;
+
+            if (ownAccountSession)
+            {
+                if (!await ShowConfirmAsync(
+                        "Завершить сеанс?",
+                        "Сеанс будет закрыт. Вы останетесь в аккаунте."))
+                    return;
+
+                var saveBank = await ShowConfirmAsync(
+                    "Банк времени",
+                    "Сохранить остаток минут в банк этой зоны?\n\n«Да» — сохранить\n«Нет» — минуты сгорят");
+                await _agent.EndSessionAsync(saveRemaining: saveBank);
+            }
+            else
+            {
+                if (!await ShowConfirmAsync(
+                        "Завершить сеанс?",
+                        "Гостевой сеанс будет закрыт на этом ПК.\nЕсли нажали случайно — отмените и позовите администратора."))
+                    return;
+                await _agent.EndSessionAsync(saveRemaining: false);
+            }
+
+            ShowTab("home");
+            BindProfile();
+            BindSessionChrome();
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("SHIFT", ex.Message);
+        }
+    }
+
+    private async void Logout_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_agent.Customer is null)
+                return;
+
+            var hasOwnSession = _agent.Session is not null
+                                && _agent.Session.CustomerId == _agent.Customer.CustomerId;
+            if (hasOwnSession)
+            {
+                if (!await ShowConfirmAsync(
+                        "Выход",
+                        "Завершить сеанс и выйти из аккаунта?"))
+                    return;
+
+                var saveBank = await ShowConfirmAsync(
+                    "Банк времени",
+                    "Сохранить остаток минут в банк этой зоны?\n\n«Да» — сохранить\n«Нет» — минуты сгорят");
+                await _agent.LogoutCustomerAsync(saveRemaining: saveBank);
+            }
+            else
+            {
+                if (!await ShowConfirmAsync("Выход", "Выйти из аккаунта?"))
+                    return;
+                await _agent.LogoutCustomerAsync();
+            }
+
+            ShowTab("home");
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("SHIFT", ex.Message);
+        }
+    }
+
+    private void ExtendMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CanClientUseBalance())
+        {
+            _ = ShowInfoAsync("SHIFT", "Продление с баланса доступно для сеанса вашего аккаунта. Кассовый сеанс — через администратора.");
+            return;
+        }
+
+        ExtendPopup.Visibility = Visibility.Visible;
+    }
+
+    private void CloseExtend_Click(object sender, RoutedEventArgs e) =>
+        ExtendPopup.Visibility = Visibility.Collapsed;
+
+    private async void ExtendSession_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!CanClientUseBalance())
+                throw new InvalidOperationException("Продление с баланса недоступно для этого сеанса. Обратитесь на кассу.");
+
+            var minutes = int.Parse(((Button)sender).Tag?.ToString() ?? "30");
+            var tariff = _agent.Session is null
+                ? null
+                : _agent.Tariffs.FirstOrDefault(t => t.Id == _agent.Session.TariffId);
+            var expected = tariff is null ? 0m : QuoteExtendPrice(tariff, minutes);
+            var msg = expected > 0
+                ? $"Продлить на {minutes} мин?\nС баланса будет списано ≈ {expected:0.##} ₸"
+                : $"Продлить на {minutes} мин с баланса?";
+            if (!await ShowConfirmAsync("Продление", msg))
+                return;
+
+            await _agent.ExtendSessionAsync(minutes);
+            await _agent.RefreshAccountAsync();
+            ExtendPopup.Visibility = Visibility.Collapsed;
+            if (_agent.Session is not null)
+                BindSession(_agent.Session);
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("SHIFT", ex.Message);
+        }
+    }
+
+    private void TaskManager_Click(object sender, RoutedEventArgs e) => OpenTaskManager();
+
+    private void OpenTaskManager()
+    {
+        TaskManagerError.Text = "";
+        PanelTaskManager.Visibility = Visibility.Visible;
+        RefreshTaskManagerList();
+    }
+
+    private void TaskManagerClose_Click(object sender, RoutedEventArgs e)
+    {
+        PanelTaskManager.Visibility = Visibility.Collapsed;
+        TaskManagerList.ItemsSource = null;
+        TaskManagerError.Text = "";
+    }
+
+    private void TaskManagerRefresh_Click(object sender, RoutedEventArgs e) => RefreshTaskManagerList();
+
+    private void RefreshTaskManagerList()
+    {
+        try
+        {
+            var snap = ProcessInventory.Capture();
+            TaskManagerList.ItemsSource = snap.Processes;
+            TaskManagerHint.Text = $"{snap.Processes.Count} процессов · {snap.CapturedAt.ToLocalTime():HH:mm:ss}";
+            TaskManagerError.Text = "";
+        }
+        catch (Exception ex)
+        {
+            TaskManagerError.Text = ex.Message;
+        }
+    }
+
+    private async void TaskManagerKill_Click(object sender, RoutedEventArgs e)
+    {
+        if (TaskManagerList.SelectedItem is not ComputerProcessDto proc)
+        {
+            TaskManagerError.Text = "Выберите процесс";
+            return;
+        }
+
+        if (!proc.CanKill)
+        {
+            TaskManagerError.Text = "Этот процесс защищён";
+            return;
+        }
+
+        var ok = await ShowConfirmAsync("Завершить процесс?", $"{proc.Name} (PID {proc.Pid})");
+        if (!ok) return;
+
+        try
+        {
+            ProcessInventory.Kill(proc.Pid, null);
+            RefreshTaskManagerList();
+        }
+        catch (Exception ex)
+        {
+            TaskManagerError.Text = ex.Message;
+        }
+    }
+
+    private void LockUi_Click(object sender, RoutedEventArgs e)
+    {
+        UnlockPinBox.Password = "";
+        UnlockError.Text = "";
+
+        // Гость без аккаунта: сначала задаёт свой PIN для разблокировки
+        if (_agent.Customer is null)
+        {
+            SetLockPinBox.Password = "";
+            SetLockPinConfirmBox.Password = "";
+            SetLockPinError.Text = "";
+            PanelSetLockPin.Visibility = Visibility.Visible;
+            return;
+        }
+
+        _localLockPin = null;
+        _agent.LockUi();
+    }
+
+    private void ConfirmSetLockPin_Click(object sender, RoutedEventArgs e)
+    {
+        SetLockPinError.Text = "";
+        var pin = SetLockPinBox.Password?.Trim() ?? "";
+        var confirm = SetLockPinConfirmBox.Password?.Trim() ?? "";
+        if (pin.Length is < 4 or > 8 || !pin.All(char.IsDigit))
+        {
+            SetLockPinError.Text = "PIN: 4–8 цифр";
+            return;
+        }
+        if (pin != confirm)
+        {
+            SetLockPinError.Text = "PIN не совпадает";
+            return;
+        }
+
+        _localLockPin = pin;
+        PanelSetLockPin.Visibility = Visibility.Collapsed;
+        _agent.LockUi();
+    }
+
+    private void CancelSetLockPin_Click(object sender, RoutedEventArgs e)
+    {
+        PanelSetLockPin.Visibility = Visibility.Collapsed;
+        SetLockPinBox.Password = "";
+        SetLockPinConfirmBox.Password = "";
+        SetLockPinError.Text = "";
+    }
+
+    private async void UnlockUi_Click(object sender, RoutedEventArgs e)
+    {
+        UnlockError.Text = "";
+        try
+        {
+            var entered = UnlockPinBox.Password?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(entered))
+            {
+                UnlockError.Text = "Введите PIN";
+                return;
+            }
+
+            if (_agent.Customer is not null)
+            {
+                await _agent.LoginCustomerAsync(_agent.Customer.Phone, entered);
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(_localLockPin))
+                {
+                    UnlockError.Text = "Разблокировка только с кассы (Unlock) или задайте PIN при блокировке";
+                    return;
+                }
+
+                if (!string.Equals(entered, _localLockPin, StringComparison.Ordinal))
+                {
+                    UnlockError.Text = "Неверный PIN";
+                    return;
+                }
+            }
+
+            _localLockPin = null;
+            UnlockPinBox.Password = "";
+            _agent.UnlockUi();
+        }
+        catch (Exception ex)
+        {
+            UnlockError.Text = ex.Message;
+        }
+    }
+
+    private async void CallAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var msg = HelpMessageBox?.Text;
+            await _agent.CallAdminAsync(string.IsNullOrWhiteSpace(msg) ? null : msg.Trim());
+            await ShowInfoAsync("SHIFT", "Вызов отправлен на кассу.");
+        }
+        catch (Exception ex)
+        {
+            await ShowInfoAsync("SHIFT", ex.Message);
+        }
+    }
+
+    private async void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            _allowBackgroundForGame = false;
+            ExtendPopup.Visibility = Visibility.Collapsed;
+            EnforceKioskFrame();
+            Activate();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F12
+                 && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control
+                 && (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            if (!await ShowConfirmAsync(
+                    "SHIFT · персонал",
+                    "Закрыть оболочку SHIFT?\n\nТолько для персонала клуба."))
+                return;
+            if (!await ShowConfirmAsync(
+                    "Подтверждение",
+                    "Повторно подтвердите закрытие оболочки.\nКлиент останется без киоска до перезапуска watchdog."))
+                return;
+
+            _ = _agent.ReportSecurityAlertAsync("Персонал закрыл оболочку (Ctrl+Shift+F12)");
+            _kiosk.AllowStaffExit = true;
+            Close();
+        }
+    }
+
+    private Task ShowInfoAsync(string title, string message) =>
+        ShowDialogAsync(title, message, confirmOnly: true);
+
+    private Task<bool> ShowConfirmAsync(string title, string message) =>
+        ShowDialogAsync(title, message, confirmOnly: false);
+
+    private Task<bool> ShowDialogAsync(string title, string message, bool confirmOnly)
+    {
+        _dialogTcs?.TrySetResult(false);
+        var tcs = new TaskCompletionSource<bool>();
+        _dialogTcs = tcs;
+
+        ShellDialogTitle.Text = title;
+        ShellDialogMessage.Text = message;
+        ShellDialogCancel.Visibility = confirmOnly ? Visibility.Collapsed : Visibility.Visible;
+        ShellDialogOk.Content = confirmOnly ? "OK" : "Да";
+        ShellDialogCancel.Content = "Нет";
+        PanelShellDialog.Visibility = Visibility.Visible;
+        return tcs.Task;
+    }
+
+    private void ShellDialogOk_Click(object sender, RoutedEventArgs e)
+    {
+        PanelShellDialog.Visibility = Visibility.Collapsed;
+        _dialogTcs?.TrySetResult(true);
+        _dialogTcs = null;
+    }
+
+    private void ShellDialogCancel_Click(object sender, RoutedEventArgs e)
+    {
+        PanelShellDialog.Visibility = Visibility.Collapsed;
+        _dialogTcs?.TrySetResult(false);
+        _dialogTcs = null;
+    }
+
+    protected override async void OnClosed(EventArgs e)
+    {
+        _uiTimer.Stop();
+        _kiosk.Dispose();
+        await _agent.DisposeAsync();
+        base.OnClosed(e);
+    }
+}

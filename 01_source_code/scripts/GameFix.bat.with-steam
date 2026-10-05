@@ -1,0 +1,318 @@
+@chcp 65001 >nul
+set "gamedrive=D:"
+set "NetShareName=CCBootShare"
+set "NetShareSource=C:\iCafeCloudShare"
+set "SaveShaders=1"
+set "GameSave=1"
+set "ICafeHDD=0"
+call :netshare_server "%NetShareSource%" "%NetShareName%" "FULL"
+call :do_gamefix_permission
+
+rem ==== GameFix for Rockstar ====
+
+tasklist | find /I "SocialClubHelper.exe"
+if %errorlevel% equ 0 (
+	taskkill /F /IM SocialClubHelper.exe
+	timeout 2
+)
+reg export HKLM\SOFTWARE\WOW6432Node\Rockstar Games "D:\Grand Theft Auto V\rockstar.reg" /y
+call :do_mklink "%LocalAppData%" "Rockstar Games" 1 "Rockstar\APPDATA\Local"
+call :do_mklink "%ProgramData%" "Rockstar Games" 1 "Rockstar\ProgramData"
+
+rem ==== GameFix for Steam (SHIFT Club / Shell  configs survive reboot) ====
+rem Keep Steam closed while linking userdata/config
+tasklist | find /I "steam.exe"
+if %errorlevel% equ 0 (
+	taskkill /F /IM steam.exe /T
+	timeout 2
+)
+tasklist | find /I "steamwebhelper.exe"
+if %errorlevel% equ 0 (
+	taskkill /F /IM steamwebhelper.exe /T
+	timeout 1
+)
+rem AppData (volatile C: profile) -> Games disk GameFixes
+call :do_mklink "%LocalAppData%" "Steam" 1 "Steam\APPDATA\Local"
+call :do_mklink "%AppData%" "Steam" 1 "Steam\APPDATA\Roaming"
+call :do_mklink "%ProgramData%" "Steam" 1 "Steam\ProgramData"
+rem Also fix common club Windows profiles (GameFix may run as Admin/SYSTEM)
+for /d %%U in ("%SystemDrive%\Users\*") do (
+	if /I not "%%~nxU"=="Public" if /I not "%%~nxU"=="Default User" (
+		if exist "%%U\AppData\Local\" call :do_mklink "%%U\AppData\Local" "Steam" 1 "Steam\APPDATA\Local"
+		if exist "%%U\AppData\Roaming\" call :do_mklink "%%U\AppData\Roaming" "Steam" 1 "Steam\APPDATA\Roaming"
+	)
+)
+rem Steam install on games disk: userdata + config -> GameFixes (CS2 cfg / login)
+if exist "%gamedrive%\Steam\" (
+	call :do_mklink "%gamedrive%\Steam" "userdata" 1 "Steam\userdata"
+	call :do_mklink "%gamedrive%\Steam" "config" 1 "Steam\config"
+)
+
+goto do_mklink_end
+:do_mklink
+:: do_mklink "source_path" "source_name" "source_copy" "target_path"
+set "source_path=%~1"
+set "source_name=%~2"
+set "source_copy=%~3"
+set "target_path=%~4"
+:: if not absolute path
+If "%target_path:~1,1%" equ ":" goto mklink_next
+If "%target_path:~0,2%" equ "\\" goto mklink_next
+set "target_path=%gamedrive%\GameFixes\%target_path%"
+:mklink_next
+:: Try to create the target path if missing; if still absent (server share not ready), exit immediately
+:: to preserve the existing junction  deleting it without being able to recreate risks data loss.
+If not exist "%target_path%\" ( 2>nul mkdir "%target_path%\" )
+If not exist "%target_path%\" exit /b 0
+
+2>nul dir /AL /B "%source_path%" | find "%source_name%"
+If %errorlevel% equ 0 (
+	rmdir "%source_path%\%source_name%"
+)
+2>nul dir /AD /B "%source_path%" | find "%source_name%"
+If %errorlevel% equ 0 (
+	If %source_copy% equ 1 (
+		xcopy "%source_path%\%source_name%\*" "%target_path%\" /y /s /e
+	)
+	rmdir "%source_path%\%source_name%" /s /q
+)
+
+if not exist "%source_path%\%source_name%\" (
+	mkdir "%source_path%\%source_name%\"
+	rmdir "%source_path%\%source_name%\"
+)
+mklink /D "%source_path%\%source_name%\" "%target_path%\"
+if errorlevel 1 echo [do_mklink FAILED] "%source_path%\%source_name%" -^> "%target_path%" >&2
+exit /b 0
+:do_mklink_end
+
+goto do_everyone_name_end
+:do_everyone_name
+:: https://groups.google.com/g/alt.msdos.batch.nt/c/__xbYef0Z_Y
+set "everyone_name=Everyone"
+for /f "tokens=1* delims= " %%a in ('whoami /groups ^| find "S-1-1-0"') do ( set "everyone_name=%%a" )
+:loop_do_everyone_name_end
+exit /b 0
+:do_everyone_name_end
+
+goto do_gamefix_permission_end
+:do_gamefix_permission
+:: Skip if Everyone(S-1-1-0) already has access on the root, to avoid costly recursive traversal on every boot
+:: Diskless clients have no persistent storage, so a marker file is not an option  query ACL state directly
+:: ICACLS outputs the localised display name, not the SID, so resolve the Everyone display name first
+call :do_everyone_name
+2>nul ICACLS "%gamedrive%\GameFixes" | find "%everyone_name%" >nul
+if %errorlevel% equ 0 exit /b 0
+ICACLS "%gamedrive%\GameFixes" /grant:r "*S-1-1-0":(OI)(CI)F /inheritance:e /T /Q
+exit /b 0
+:do_gamefix_permission_end
+
+goto create_desktop_shortcut_end
+:create_desktop_shortcut
+set "shortcut_name=%~1"
+set "shortcut_exe_path=%~2"
+set "shortcut_work_path=%~3"
+
+echo On Error Resume Next > "%~dp0CreateShortcut.vbs"
+echo Set WshShell = WScript.CreateObject("WScript.Shell") >> "%~dp0CreateShortcut.vbs"
+echo strDesktop = WshShell.SpecialFolders("Desktop") >> "%~dp0CreateShortcut.vbs"
+echo set oShellLink = WshShell.CreateShortcut(strDesktop ^& "\" ^& "%shortcut_name%" ^& ".lnk") >> "%~dp0CreateShortcut.vbs"
+echo oShellLink.TargetPath = "%shortcut_exe_path%" >> "%~dp0CreateShortcut.vbs"
+echo oShellLink.Description = "%shortcut_name%" >> "%~dp0CreateShortcut.vbs"
+echo oShellLink.WorkingDirectory = "%shortcut_work_path%" >> "%~dp0CreateShortcut.vbs"
+echo oShellLink.Save >> "%~dp0CreateShortcut.vbs"
+
+call wscript -e:vbs "%~dp0CreateShortcut.vbs"
+exit /b 0
+:create_desktop_shortcut_end
+
+goto replace_file_string_end
+:replace_file_string
+set "file_path=%~1"
+set "file_string=%~2"
+set "file_replace=%~3"
+echo On Error Resume Next > "%~dp0ReplaceFileString.vbs"
+echo Dim Fso, textFile, textString >> "%~dp0ReplaceFileString.vbs"
+echo Set Fso = CreateObject("Scripting.FileSystemObject") >> "%~dp0ReplaceFileString.vbs"
+echo Set textFile = Fso.OpenTextFile("%file_path%", 1) >> "%~dp0ReplaceFileString.vbs"
+echo textString = Replace(textFile.ReadAll, "%file_string%", "%file_replace%") >> "%~dp0ReplaceFileString.vbs"
+echo textFile.Close >> "%~dp0ReplaceFileString.vbs"
+echo Set textFile = Fso.OpenTextFile("%file_path%", 2) >> "%~dp0ReplaceFileString.vbs"
+echo textFile.Write textString >> "%~dp0ReplaceFileString.vbs"
+echo textFile.Close >> "%~dp0ReplaceFileString.vbs"
+
+call wscript -e:vbs "%~dp0ReplaceFileString.vbs"
+exit /b 0
+:replace_file_string_end
+
+
+goto netshare_client_end
+:netshare_client
+set "server_ip=%~1"
+call :fix_win11_24H2
+:network_store_interface
+REM Network Store Interface Service for client
+2>nul sc query | find /i "SERVICE_NAME: nsi"
+if %errorlevel% equ 0 (
+	goto workstation_service
+) else (
+	goto start_nsi_service
+)
+
+:start_nsi_service
+2>nul sc config nsi start= AUTO
+2>nul net start nsi
+
+:workstation_service
+REM Workstation
+2>nul sc query | find /i "SERVICE_NAME: LanmanWorkstation"
+if %errorlevel% equ 0 (
+	goto netshare_exit
+) else (
+	goto start_workstation
+)
+
+:start_workstation
+2>nul sc config LanmanWorkstation start= AUTO
+2>nul net start LanmanWorkstation
+
+:netshare_exit
+fsutil behavior set SymlinkEvaluation L2R:1
+powershell -command "cmdkey /add:%server_ip% /user:$((Get-LocalUser | Where-Object SID -like '*-501').Name)" 
+exit /b 0
+:netshare_client_end
+
+goto netshare_server_end
+:netshare_server
+REM Netshare Required Services for server
+:: call :netshare_server "source" "target" "permission"
+set "netshare_source=%~1"
+set "netshare_target=%~2"
+set "netshare_permission=%~3"
+
+If not exist "%netshare_source%" ( mkdir "%netshare_source%" )
+rem firewall enable
+netsh advfirewall firewall delete rule name="CCBootShare"
+netsh advfirewall firewall add rule name="CCBootShare" dir=in action=allow protocol=TCP localport=445
+
+call :fix_win11_24H2
+
+:rpc_endpoint_mapper
+REM RPC Endpoint Mapper
+2>nul sc query | find /i "SERVICE_NAME: RpcEptMapper"
+if not errorlevel 1 (goto dcom_server_process_launcher) else goto start_rpc_mapper_service
+
+:start_rpc_mapper_service
+2>nul sc config nsi start= AUTO
+2>nul net start nsi
+
+:dcom_server_process_launcher
+REM DCOM Server Process Launcher
+2>nul sc query | find /i "SERVICE_NAME: DcomLaunch"
+if not errorlevel 1 (goto remote_procedure_call) else goto start_dcom_service
+
+:start_dcom_service
+2>nul sc config DcomLaunch start= AUTO
+2>nul net start DcomLaunch
+
+:remote_procedure_call
+REM Remote Procedure Call - RPC
+2>nul sc query | find /i "SERVICE_NAME: RpcSs" 
+if not errorlevel 1 (goto security_accounts_manager) else goto start_rpc_service
+
+:start_rpc_service
+2>nul sc config RpcSs start= AUTO
+2>nul net start RpcSs
+
+:security_accounts_manager
+REM Security Accounts Manager
+2>nul sc query | find /i "SERVICE_NAME: SamSs"
+if not errorlevel 1 (goto server_service) else goto start_security_service
+
+:start_security_service
+2>nul sc config SamSs start= AUTO
+2>nul net start SamSs
+
+:server_service
+REM Server
+2>nul sc query | find /i "SERVICE_NAME: LanmanServer"
+if not errorlevel 1 (goto get_sid_guest) else goto start_server_service
+
+:start_server_service
+2>nul sc config LanmanServer start= AUTO
+2>nul net start LanmanServer
+
+:get_sid_guest
+echo get sid guest variable
+for /f "delims= " %%a in ('powershell -command "(Get-LocalUser | Where-Object SID -like '*-501').SID.Value"') do (
+	set "sid_guest=%%a"
+	goto loop_end_guest_sid
+)
+
+:loop_end_guest_sid
+
+echo create script for regini
+@echo \Registry\Machine\SECURITY [1 5 7 11 17 21]> x
+@echo \Registry\Machine\SECURITY\policy [1 5 7 11 17 21]>> x
+@echo \Registry\Machine\SECURITY\policy\accounts [1 5 7 11 17 21]>> x
+@echo \Registry\Machine\SECURITY\policy\accounts\%sid_guest% [1 5 7 11 17 21]>> x
+@echo \Registry\Machine\SECURITY\policy\accounts\%sid_guest%\ActSysAc [1 5 7 11 17 21]>> x
+
+echo add permission for machine/security
+powershell -command "Enable-LocalUser -SID (Get-LocalUser | Where-Object SID -like '*-501').SID"
+regini x
+del x
+@echo Windows Registry Editor Version 5.00 > y.reg
+@echo [HKEY_LOCAL_MACHINE\SECURITY\Policy\Accounts\%sid_guest%\ActSysAc] >> y.reg
+@echo @=hex(0):42,00,00,00 >> y.reg
+2>nul reg import y.reg
+del y.reg
+
+:: call :do_everyone_name
+
+:: delete share if target is different
+for /f "skip=1 tokens=1,2" %%a in ('net share %netshare_target%') do (
+	if /i not "%%b"=="%netshare_source%" (
+		2>nul net share "%netshare_target%" /delete /y
+	)
+	goto netshare_server_next
+)
+:netshare_server_next
+
+net share %netshare_target%
+if %errorlevel% neq 0 (
+	if exist "%netshare_source%" (
+		for /f "tokens=1* delims= " %%a in ('whoami /groups ^| find "S-1-1-0"') do ( net share %netshare_target%="%netshare_source%" /unlimited /y /grant:"%%a",%netshare_permission% )
+	)
+)
+:: ICACLS outputs the localised display name, not the SID, so resolve the Everyone display name first
+:: Use a single-line if to avoid the (OI)(CI) flags conflicting with if-block parentheses
+call :do_everyone_name
+2>nul ICACLS "%netshare_source%" | find "%everyone_name%" >nul
+if %errorlevel% neq 0  ICACLS "%netshare_source%" /grant:r "*S-1-1-0":(OI)(CI)F /inheritance:e /T
+exit /b 0
+:netshare_server_end
+
+goto fix_win11_24H2_end
+:fix_win11_24H2
+(
+echo Windows Registry Editor Version 5.00
+echo.
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters]
+echo "RequireSecuritySignature"=dword:00000000
+echo.
+echo [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation]
+echo "AllowInsecureGuestAuth"=dword:00000001
+echo.
+echo [HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Policies\Microsoft\Windows\LanmanWorkstation]
+echo "AllowInsecureGuestAuth"=dword:00000001
+) > temp.reg
+
+:: Import the REG file
+reg import temp.reg
+
+:: Delete the temporary file
+del /q temp.reg
+exit /b 0
+:fix_win11_24H2_end
+

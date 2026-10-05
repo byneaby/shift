@@ -1,0 +1,19 @@
+SHIFT Club session transfer fix verification — 2026-07-19 20:40:18
+
+1. SessionService.cs
+   TransferCoreAsync: YES
+   'Перенос только в ту же зону': YES
+2. FloorMapPage.tsx
+   freeComputers filters selected.zoneId: YES
+   dialog 'той же зоны': YES
+3. Web build: OK (npm run build)
+4. Copied dist -> C:\ShiftClub\Server\wwwroot and www
+5. API publish + DLL copy (preserved secrets.env, data, logs, wwwroot/www): OK
+6. ShiftClubApi restarted: Running
+7. Health http://127.0.0.1:5080/health: 200 Healthy
+8. Deployed artifact strings
+   wwwroot JS HIT: index-0u8QLjfG.js
+   Infrastructure.dll 'только в ту же зону' UTF8=False UTF16=True
+   findstr wwwroot: no stdout (binary/minify ok if HIT above)
+
+VERDICT: Source OK; web+API redeployed; health Healthy; strings present in deployed artifacts.

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ShiftClub.Client.Keeper</AssemblyName>
+    <RootNamespace>ShiftClub.Client.Keeper</RootNamespace>
+    <ApplicationIcon />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ShiftClub.Shared\ShiftClub.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

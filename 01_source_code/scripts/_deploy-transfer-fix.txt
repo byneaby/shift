@@ -1,0 +1,26 @@
+﻿SHIFT Club deploy — session transfer fix
+Date: 2026-07-19 20:05 (local)
+Host: WIN-KOMOLOPI2T3
+
+BUILD
+- Dotnet: D:\Dev\dotnet\dotnet.exe (PATH + DOTNET_ROOT = D:\Dev\dotnet)
+- ShiftClub.Infrastructure Release: SUCCESS (exit 0; warnings only, 0 errors)
+- ShiftClub.Server Release: SUCCESS (exit 0; 0 errors)
+- Web (npm run build in src/ShiftClub.Web): SUCCESS (exit 0; dist produced)
+- Publish: SUCCESS -> D:\ShiftClub\SHIFT PROJECT\.publish-transfer-fix
+
+DEPLOY
+- No Publish-Server script found under scripts/; used: stop task → copy publish files → copy web → restart task
+- API deploy path: C:\ShiftClub\Server
+- Preserved: secrets.env, data/, logs/, Start-ShiftClubApi.ps1
+- API files copied: 72 (+ runtimes/)
+- Web deploy: C:\ShiftClub\Server\wwwroot (also mirrored to C:\ShiftClub\Server\www)
+- ShiftClub.Server.dll timestamp on dest: 2026-07-19 20:01:19
+
+RESTART
+- Scheduled task ShiftClubApi: STOPPED then RUN — SUCCESS
+- Status after restart: Running
+- Listening: 0.0.0.0:5080 (dotnet PID 15912 via C:\ShiftClub\dotnet\dotnet.exe)
+- Health: http://127.0.0.1:5080/health → 200 Healthy
+
+RESULT: build OK, deploy OK, API restarted YES

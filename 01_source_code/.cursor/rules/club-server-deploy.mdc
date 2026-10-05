@@ -1,0 +1,23 @@
+---
+description: Club server deploy paths and canonical client location
+alwaysApply: true
+---
+
+# SHIFT Club — разработка vs сервер клуба
+
+- **Этот ПК / workspace** — основная разработка: API, web, Shell, тесты.
+  - **Канон исходников:** `C:\ShiftClub\Project` (диск **C:** — клиенты CCBoot его не видят).
+  - **Не хранить исходники на Games `D:`** — весь `D:` виден клиентским ПК.
+- **Локальный API (dev):** `http://localhost:5080` или `http://192.168.1.200:5080`.
+- **Сервер клуба `192.168.1.250`:**
+  - API: `C:\ShiftClub\Server` · задача `ShiftClubApi` · порт **5080** (на **C:**, чтобы жить при offline Games/D: / superclient)
+  - .NET runtime (portable): `C:\ShiftClub\dotnet`
+  - Секреты: `C:\ShiftClub\Server\secrets.env` (не в git; шаблон `secrets.env.example`)
+  - Legacy на `D:\ShiftClub\` — только `MOVED-TO-C.txt`, без API/исходников/секретов
+  - **Канонический клиент (CCBoot / Games disk):** `D:\Apps\ShiftClub\Shell\` — **только publish (exe/dll)**, без `.cs` / `.csproj` / git
+  - Зеркало/legacy: `D:\01 SHIFT\Shell` — держать в sync при релизе, но автозагрузка образа → `D:\Apps\ShiftClub\Shell`
+- **Публикация клиента:** `scripts/Publish-ClientUpdate.ps1 -Version x.y.z -ClubDeploy`
+  - кладёт zip+manifest в `C:\ShiftClub\Server\data\client-updates`
+  - обновляет файлы в `D:\Apps\ShiftClub\Shell` (и опционально `D:\01 SHIFT\Shell`)
+- **iCafe/CCBoot** на клубе — не ломать загрузку без явной просьбы.
+- Staff login после ротации: сменить `Seed__OwnerPassword` в `secrets.env` и перезапустить задачу.

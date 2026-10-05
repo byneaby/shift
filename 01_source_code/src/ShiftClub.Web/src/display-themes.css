@@ -1,0 +1,485 @@
+/* Floor TV display — 5 layouts (Enter to cycle), mirrors /price themes. */
+
+.display-theme-hud {
+  position: fixed;
+  z-index: 40;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.display-theme-hud b {
+  color: #fff;
+  font-weight: 700;
+}
+
+.display-theme-hud em {
+  font-style: normal;
+  opacity: 0.55;
+}
+
+body.display-idle .display-theme-hud {
+  opacity: 0;
+}
+
+/* ── 1) ARENA — кибер (базовый) ─────────────────────────── */
+.display-shell.display-theme-arena {
+  font-family: Rajdhani, Manrope, "Segoe UI", system-ui, sans-serif;
+}
+
+/* ── 2) LEDGER — ведомость ──────────────────────────────── */
+.display-shell.display-theme-ledger {
+  --d-ink: #e8edf2;
+  --d-muted: #7d8b99;
+  --d-accent: #5eead4;
+  font-family: "Space Grotesk", Manrope, system-ui, sans-serif;
+  background: #0c1116;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+.display-shell.display-theme-ledger .display-bg {
+  background: #0c1116;
+}
+
+.display-shell.display-theme-ledger .display-bg__grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  animation: none;
+  opacity: 0.75;
+  mask-image: none;
+}
+
+.display-shell.display-theme-ledger .display-bg__glow,
+.display-shell.display-theme-ledger .display-bg__scan {
+  display: none;
+}
+
+.display-shell.display-theme-ledger .display-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #141a21;
+  border-radius: 0;
+}
+
+.display-shell.display-theme-ledger .display-logo {
+  border: 0;
+  background: none;
+  padding: 0;
+  flex-direction: row;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.display-shell.display-theme-ledger .display-logo__mark {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.18em;
+}
+
+.display-shell.display-theme-ledger .display-title {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
+
+.display-shell.display-theme-ledger .display-stats {
+  gap: 6px;
+}
+
+.display-shell.display-theme-ledger .display-stat {
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f141a;
+  min-width: 72px;
+  padding: 6px 10px;
+}
+
+.display-shell.display-theme-ledger .display-stat strong {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 22px;
+}
+
+.display-shell.display-theme-ledger .display-clock {
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0f141a;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.display-shell.display-theme-ledger .display-legend {
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+  background: transparent;
+  padding: 6px 4px;
+}
+
+.display-shell.display-theme-ledger .display-map-frame {
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #10161d;
+  clip-path: none;
+}
+
+.display-shell.display-theme-ledger .display-fmap {
+  border-radius: 0 !important;
+  border: 0 !important;
+  background: #10161d !important;
+}
+
+.display-shell.display-theme-ledger .display-fmap .fmap-pc.floor-pc-tile {
+  border-radius: 2px;
+  background: #151c24;
+}
+
+.display-shell.display-theme-ledger .display-foot {
+  border-radius: 0;
+  background: #141a21;
+}
+
+/* ── 3) BOULEVARD — тёплый зал ──────────────────────────── */
+.display-shell.display-theme-boulevard {
+  --d-ink: #f7f3ea;
+  --d-muted: #a89b86;
+  --d-accent: #e8913a;
+  font-family: Oswald, Manrope, system-ui, sans-serif;
+  background: #12100e;
+  gap: 8px;
+}
+
+.display-shell.display-theme-boulevard .display-bg {
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 0%, rgba(232, 145, 58, 0.18), transparent 55%),
+    linear-gradient(180deg, #1a1612 0%, #12100e 100%);
+}
+
+.display-shell.display-theme-boulevard .display-bg__grid {
+  background-image:
+    linear-gradient(rgba(232, 145, 58, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 145, 58, 0.06) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.display-shell.display-theme-boulevard .display-bg__glow--a {
+  background: rgba(232, 145, 58, 0.28);
+}
+
+.display-shell.display-theme-boulevard .display-bg__glow--b {
+  background: rgba(180, 90, 40, 0.18);
+}
+
+.display-shell.display-theme-boulevard .display-logo__mark,
+.display-shell.display-theme-boulevard .display-title {
+  font-family: "Bebas Neue", Oswald, Impact, sans-serif;
+  letter-spacing: 0.12em;
+}
+
+.display-shell.display-theme-boulevard .display-title {
+  color: #e8913a;
+  font-size: clamp(28px, 3.2vw, 42px);
+}
+
+.display-shell.display-theme-boulevard .display-stat {
+  border-radius: 4px;
+  background: rgba(232, 145, 58, 0.08);
+  border-color: rgba(232, 145, 58, 0.28);
+}
+
+.display-shell.display-theme-boulevard .display-stat strong {
+  font-family: "Bebas Neue", Oswald, sans-serif;
+  font-size: 28px;
+  color: #f7f3ea;
+}
+
+.display-shell.display-theme-boulevard .display-clock {
+  background: #1c1814;
+  border-color: rgba(232, 145, 58, 0.35);
+  font-family: "Bebas Neue", Oswald, sans-serif;
+}
+
+.display-shell.display-theme-boulevard .display-map-frame {
+  border-radius: 6px;
+  border-color: rgba(232, 145, 58, 0.25);
+  background: #161310;
+  clip-path: none;
+}
+
+.display-shell.display-theme-boulevard .display-fmap {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(232, 145, 58, 0.12), transparent 65%),
+    #161310 !important;
+  border-radius: 4px !important;
+}
+
+.display-shell.display-theme-boulevard .display-fmap .fmap-pc.floor-pc-tile {
+  border-radius: 4px;
+  background: #1a1612;
+}
+
+.display-shell.display-theme-boulevard .display-foot {
+  background: linear-gradient(90deg, #1c1814, #12100e);
+  border-top-color: rgba(232, 145, 58, 0.3);
+}
+
+.display-shell.display-theme-boulevard .display-foot__badge {
+  background: #e8913a;
+  color: #12100e;
+}
+
+/* ── 4) NEON — асимметрия ───────────────────────────────── */
+.display-shell.display-theme-neon {
+  --d-ink: #f0fbff;
+  --d-muted: #7dd3fc;
+  --d-accent: #22d3ee;
+  font-family: "Chakra Petch", Rajdhani, system-ui, sans-serif;
+  background: #030712;
+  gap: 6px;
+  padding: 10px 14px 0;
+}
+
+.display-shell.display-theme-neon .display-bg {
+  background:
+    radial-gradient(ellipse 50% 40% at 85% 15%, rgba(34, 211, 238, 0.2), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 10% 80%, rgba(168, 85, 247, 0.18), transparent 50%),
+    #030712;
+}
+
+.display-shell.display-theme-neon .display-bg__grid {
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
+  transform: skewY(-2deg);
+}
+
+.display-shell.display-theme-neon .display-bg__glow--a {
+  background: rgba(34, 211, 238, 0.3);
+}
+
+.display-shell.display-theme-neon .display-bg__glow--b {
+  background: rgba(168, 85, 247, 0.25);
+}
+
+.display-shell.display-theme-neon .display-head {
+  align-items: flex-end;
+}
+
+.display-shell.display-theme-neon .display-logo {
+  transform: skewX(-6deg);
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.2);
+}
+
+.display-shell.display-theme-neon .display-logo__mark {
+  font-family: Orbitron, "Chakra Petch", sans-serif;
+  color: #67e8f9;
+  text-shadow: 0 0 18px rgba(34, 211, 238, 0.55);
+}
+
+.display-shell.display-theme-neon .display-title {
+  font-family: Orbitron, "Chakra Petch", sans-serif;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+}
+
+.display-shell.display-theme-neon .display-stat {
+  border-radius: 0 12px 0 12px;
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(8, 20, 36, 0.85);
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.12);
+}
+
+.display-shell.display-theme-neon .display-stat strong {
+  font-family: Orbitron, sans-serif;
+  color: #a5f3fc;
+}
+
+.display-shell.display-theme-neon .display-clock {
+  border-radius: 0 16px 0 16px;
+  border-color: rgba(168, 85, 247, 0.45);
+  background: rgba(20, 10, 40, 0.8);
+  box-shadow: 0 0 28px rgba(168, 85, 247, 0.25);
+  font-family: Orbitron, sans-serif;
+}
+
+.display-shell.display-theme-neon .display-map-frame {
+  clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.12);
+}
+
+.display-shell.display-theme-neon .display-fmap {
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 20%, rgba(34, 211, 238, 0.1), transparent 60%),
+    #060a14 !important;
+}
+
+.display-shell.display-theme-neon .display-fmap .fmap-pc.floor-pc-tile {
+  border-radius: 0 8px 0 8px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--pc-accent) 25%, transparent);
+}
+
+.display-shell.display-theme-neon .display-foot__badge {
+  background: #22d3ee;
+  color: #042f2e;
+}
+
+/* ── 5) CINEMA — крупный кино-экран ─────────────────────── */
+.display-shell.display-theme-cinema {
+  --d-ink: #fff;
+  --d-muted: rgba(255, 255, 255, 0.55);
+  --d-accent: #fff;
+  font-family: Unbounded, Manrope, system-ui, sans-serif;
+  background: #090909;
+  gap: 6px;
+  padding: 10px 16px 0;
+}
+
+.display-shell.display-theme-cinema .display-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
+    #090909;
+}
+
+.display-shell.display-theme-cinema .display-bg__grid {
+  opacity: 0.25;
+}
+
+.display-shell.display-theme-cinema .display-bg__glow--a {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.display-shell.display-theme-cinema .display-bg__glow--b,
+.display-shell.display-theme-cinema .display-bg__glow--c {
+  background: rgba(255, 80, 40, 0.12);
+}
+
+.display-shell.display-theme-cinema .display-logo {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.display-shell.display-theme-cinema .display-logo__mark {
+  font-family: Unbounded, sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.2em;
+}
+
+.display-shell.display-theme-cinema .display-title {
+  font-family: Unbounded, sans-serif;
+  font-size: clamp(22px, 2.6vw, 34px);
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.display-shell.display-theme-cinema .display-stats {
+  gap: 10px;
+}
+
+.display-shell.display-theme-cinema .display-stat {
+  border: 0;
+  background: transparent;
+  padding: 0 8px;
+  min-width: auto;
+  border-radius: 0;
+  border-left: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.display-shell.display-theme-cinema .display-stat strong {
+  font-family: Unbounded, sans-serif;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.display-shell.display-theme-cinema .display-clock {
+  border: 0;
+  background: transparent;
+  font-family: Unbounded, sans-serif;
+  font-size: clamp(28px, 3.5vw, 44px);
+  padding: 0;
+  letter-spacing: 0.04em;
+}
+
+.display-shell.display-theme-cinema .display-legend {
+  opacity: 0.7;
+  background: transparent;
+  border: 0;
+  justify-content: flex-start;
+}
+
+.display-shell.display-theme-cinema .display-map-frame {
+  clip-path: none;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0e0e0e;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.display-shell.display-theme-cinema .display-fmap {
+  background: #0e0e0e !important;
+  border-radius: 0 !important;
+}
+
+.display-shell.display-theme-cinema .display-fmap .fmap-pc.floor-pc-tile {
+  border-radius: 2px;
+  background: #141414;
+}
+
+.display-shell.display-theme-cinema .display-fmap .fmap-pc.floor-pc-tile .floor-pc-tile-num {
+  font-family: Unbounded, sans-serif;
+  font-weight: 700;
+}
+
+.display-shell.display-theme-cinema .display-fmap .fmap-pc.floor-pc-tile .floor-pc-tile-time {
+  font-family: Unbounded, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.display-shell.display-theme-cinema .display-foot {
+  background: #000;
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.display-shell.display-theme-cinema .display-foot__badge {
+  background: #fff;
+  color: #111;
+}
+
+/* Tiny PC cells: hide icon so status text fits */
+@container (max-width: 58px) {
+  .display-fmap .floor-pc-tile-ico,
+  .fmap-pc.floor-pc-tile .floor-pc-tile-ico {
+    display: none;
+  }
+}
+
+@container (max-width: 48px) {
+  .display-fmap .fmap-pc.floor-pc-tile .floor-pc-tile-time,
+  .fmap-pc.floor-pc-tile .floor-pc-tile-time {
+    font-size: clamp(7px, 20cqmin, 11px);
+  }
+}

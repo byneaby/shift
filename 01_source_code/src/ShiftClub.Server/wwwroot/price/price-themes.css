@@ -1,0 +1,1049 @@
+/* SHIFT price board — alternate layouts (Enter to cycle).
+   Themes change structure, type, density — not only hue. */
+
+.theme-hud {
+  position: fixed;
+  z-index: 40;
+  top: calc(var(--u) * 0.7);
+  right: calc(var(--u) * 1.2);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.55);
+  padding: calc(var(--u) * 0.35) calc(var(--u) * 0.7);
+  font-size: calc(var(--u) * 0.85);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.theme-hud b {
+  color: #fff;
+  font-weight: 700;
+}
+
+.theme-hud em {
+  font-style: normal;
+  opacity: 0.55;
+}
+
+body.is-idle .theme-hud {
+  opacity: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   1) ARENA — текущий кибер-зал (три колонки)
+   ═══════════════════════════════════════════════════════════ */
+body.theme-arena {
+  font-family: Rajdhani, "Segoe UI", system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2) LEDGER — «кассовая ведомость»: верхняя планка + табличные колонки
+   ═══════════════════════════════════════════════════════════ */
+body.theme-ledger {
+  --ink: #e8edf2;
+  --muted: #7d8b99;
+  --bg-0: #0c1116;
+  font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  grid-template-rows: 1fr auto auto auto;
+}
+
+body.theme-ledger .bg {
+  background: #0c1116;
+}
+
+body.theme-ledger .bg__grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: calc(var(--u) * 2.2) calc(var(--u) * 2.2);
+  animation: none;
+  opacity: 0.7;
+  mask-image: none;
+}
+
+body.theme-ledger .bg__glow,
+body.theme-ledger .bg__scan {
+  display: none;
+}
+
+body.theme-ledger .board {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "brand"
+    "cards";
+  gap: calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 1.6) calc(var(--u) * 0.6);
+}
+
+body.theme-ledger .rail--brand {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 1.2);
+  padding: calc(var(--u) * 0.7) calc(var(--u) * 1.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #141a21;
+}
+
+body.theme-ledger .logo {
+  transform: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  flex-direction: row;
+  align-items: baseline;
+  gap: calc(var(--u) * 0.5);
+}
+
+body.theme-ledger .logo__mark {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: calc(var(--u) * 1.8);
+  letter-spacing: 0.18em;
+}
+
+body.theme-ledger .logo__sub {
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  font-size: calc(var(--u) * 0.75);
+}
+
+body.theme-ledger .title {
+  margin: 0;
+  flex-direction: row;
+  font-size: calc(var(--u) * 2.4);
+  letter-spacing: 0.28em;
+  gap: 0.08em;
+}
+
+body.theme-ledger .title span {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #fff;
+  filter: none;
+  animation: none;
+}
+
+body.theme-ledger .tagline {
+  display: none;
+}
+
+body.theme-ledger .promo-badge {
+  margin: 0;
+  padding: calc(var(--u) * 0.4) calc(var(--u) * 0.7);
+  border-radius: 0;
+  border-color: #c4a35a;
+  box-shadow: none;
+  animation: none;
+  background: rgba(196, 163, 90, 0.12);
+}
+
+body.theme-ledger .promo-badge strong {
+  font-size: calc(var(--u) * 1.2);
+  color: #e8c97a;
+}
+
+body.theme-ledger .clock {
+  margin: 0;
+  text-align: right;
+}
+
+body.theme-ledger .clock__time {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: calc(var(--u) * 2.2);
+}
+
+body.theme-ledger .rail--perks {
+  display: none;
+}
+
+body.theme-ledger .cards {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #10161c;
+}
+
+body.theme-ledger .card {
+  clip-path: none !important;
+  border-radius: 0;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+}
+
+body.theme-ledger .card:last-child {
+  border-right: 0;
+}
+
+body.theme-ledger .card__inner {
+  clip-path: none;
+  background: transparent;
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.1);
+}
+
+body.theme-ledger .card__inner::after {
+  display: none;
+}
+
+body.theme-ledger .card__head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: calc(var(--u) * 0.55);
+}
+
+body.theme-ledger .card__name {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: calc(var(--u) * 1.35);
+  letter-spacing: 0.2em;
+  color: var(--c);
+}
+
+body.theme-ledger .card__slashes,
+body.theme-ledger .card__sale {
+  display: none;
+}
+
+body.theme-ledger .row {
+  grid-template-columns: 1fr auto;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  padding: calc(var(--u) * 0.45) 0;
+  animation: none;
+}
+
+body.theme-ledger .row__ico {
+  display: none;
+}
+
+body.theme-ledger .row__label b {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  font-size: calc(var(--u) * 1.05);
+}
+
+body.theme-ledger .row__price {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: calc(var(--u) * 1.55);
+  font-weight: 500;
+  color: #f4f7fa;
+}
+
+body.theme-ledger .loyalty-strip,
+body.theme-ledger .extras {
+  border-radius: 0;
+  background: #141a21;
+}
+
+body.theme-ledger .ticker {
+  background: #0a0e12;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3) BOULEVARD — горизонтальные полосы зон на всю ширину
+   ═══════════════════════════════════════════════════════════ */
+body.theme-boulevard {
+  --ink: #f7f3ea;
+  --muted: #a89f8e;
+  --bg-0: #12100e;
+  font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+body.theme-boulevard .bg {
+  background:
+    radial-gradient(ellipse 90% 50% at 50% 0%, #2a2118 0%, transparent 55%),
+    linear-gradient(180deg, #17140f, #0e0c0a);
+}
+
+body.theme-boulevard .bg__grid {
+  display: none;
+}
+
+body.theme-boulevard .bg__glow--a {
+  background: rgba(232, 145, 58, 0.2);
+}
+
+body.theme-boulevard .bg__glow--b {
+  background: rgba(90, 140, 180, 0.12);
+}
+
+body.theme-boulevard .bg__glow--c {
+  background: rgba(200, 160, 90, 0.1);
+}
+
+body.theme-boulevard .board {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "brand"
+    "cards"
+    "perks";
+  gap: calc(var(--u) * 0.7);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.8);
+}
+
+body.theme-boulevard .rail--brand {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--u) * 1.5);
+  border-bottom: 3px solid #e8913a;
+  padding-bottom: calc(var(--u) * 0.7);
+}
+
+body.theme-boulevard .logo {
+  transform: none;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+body.theme-boulevard .logo__mark {
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: calc(var(--u) * 3.4);
+  letter-spacing: 0.08em;
+  color: #f7f3ea;
+}
+
+body.theme-boulevard .logo__sub {
+  color: #e8913a;
+  letter-spacing: 0.35em;
+}
+
+body.theme-boulevard .title {
+  margin: 0;
+  flex-direction: row;
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: calc(var(--u) * 4.2);
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+
+body.theme-boulevard .title span {
+  background: none;
+  -webkit-background-clip: unset;
+  color: #f7f3ea;
+  filter: none;
+  animation: none;
+}
+
+body.theme-boulevard .tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(var(--u) * 1);
+  letter-spacing: 0.08em;
+  text-transform: none;
+  font-weight: 500;
+  max-width: 18ch;
+  line-height: 1.3;
+}
+
+body.theme-boulevard .promo-badge {
+  margin: 0;
+  border-color: #e8913a;
+  background: #e8913a;
+  animation: none;
+  box-shadow: none;
+}
+
+body.theme-boulevard .promo-badge em,
+body.theme-boulevard .promo-badge span {
+  color: rgba(18, 16, 14, 0.7);
+}
+
+body.theme-boulevard .promo-badge strong {
+  color: #12100e;
+  font-family: "Bebas Neue", Impact, sans-serif;
+}
+
+body.theme-boulevard .clock {
+  margin: 0;
+}
+
+body.theme-boulevard .clock__time {
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: calc(var(--u) * 3);
+  color: #e8913a;
+}
+
+body.theme-boulevard .cards {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.55);
+  min-height: 0;
+}
+
+body.theme-boulevard .card {
+  flex: 1 1 0;
+  min-height: 0;
+  clip-path: none !important;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+}
+
+body.theme-boulevard .card__inner {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.28fr) 1fr;
+  grid-template-rows: 1fr;
+  align-items: stretch;
+  gap: calc(var(--u) * 1.2);
+  clip-path: none;
+  padding: calc(var(--u) * 0.55) calc(var(--u) * 1);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 18%, #1a1612), #161310 45%);
+  border-left: 6px solid var(--c);
+}
+
+body.theme-boulevard .card__inner::after {
+  display: none;
+}
+
+body.theme-boulevard .card__head {
+  border: 0;
+  padding: 0;
+  align-items: center;
+  writing-mode: horizontal-tb;
+}
+
+body.theme-boulevard .card__name {
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: calc(var(--u) * 2.6);
+  letter-spacing: 0.08em;
+  color: var(--c);
+}
+
+body.theme-boulevard .card__slashes {
+  display: none;
+}
+
+body.theme-boulevard .card__sale {
+  background: #e8913a;
+  color: #12100e;
+  box-shadow: none;
+}
+
+body.theme-boulevard .card__rows {
+  display: grid !important;
+  grid-template-columns: repeat(var(--rowcount, 5), minmax(min-content, 1fr));
+  grid-template-rows: 1fr !important;
+  gap: calc(var(--u) * 0.5);
+  height: 100%;
+  align-content: center;
+}
+
+body.theme-boulevard .row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: calc(var(--u) * 0.2);
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 calc(var(--u) * 0.5);
+  animation: none;
+}
+
+body.theme-boulevard .row:last-child {
+  border-right: 0;
+}
+
+body.theme-boulevard .row__ico {
+  display: none;
+}
+
+body.theme-boulevard .row__label b {
+  font-size: calc(var(--u) * 0.95);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+body.theme-boulevard .row__label em {
+  display: none;
+}
+
+body.theme-boulevard .row__price-wrap {
+  align-items: flex-start;
+  min-width: max-content;
+}
+
+body.theme-boulevard .row__price {
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: clamp(calc(var(--u) * 1.55), calc(var(--u) * 2.1), calc(var(--u) * 2.4));
+  color: #f7f3ea;
+}
+
+body.theme-boulevard .rail--perks {
+  flex-direction: row;
+  gap: calc(var(--u) * 1);
+  justify-content: space-between;
+}
+
+body.theme-boulevard .perk {
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--u) * 0.5);
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  font-size: calc(var(--u) * 0.95);
+  color: var(--muted);
+}
+
+body.theme-boulevard .perk br {
+  display: none;
+}
+
+body.theme-boulevard .perk__ico {
+  color: #e8913a;
+}
+
+body.theme-boulevard .loyalty-strip {
+  background: linear-gradient(90deg, rgba(232, 145, 58, 0.16), #12100e);
+  border-top-color: rgba(232, 145, 58, 0.4);
+}
+
+body.theme-boulevard .loyalty-strip__head h2,
+body.theme-boulevard .loyalty-strip__bonus {
+  color: #e8913a;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4) NEON — центрированный заголовок + асимметричная сетка карточек
+   ═══════════════════════════════════════════════════════════ */
+body.theme-neon {
+  --ink: #eef7ff;
+  --muted: #7ea0c0;
+  --bg-0: #03060f;
+  font-family: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+}
+
+body.theme-neon .bg {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0, 255, 200, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 10%, rgba(255, 0, 128, 0.14), transparent 40%),
+    linear-gradient(180deg, #050a18, #02040a);
+}
+
+body.theme-neon .bg__grid {
+  background-image:
+    linear-gradient(rgba(0, 255, 200, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 200, 0.07) 1px, transparent 1px);
+  background-size: calc(var(--u) * 3.5) calc(var(--u) * 3.5);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+}
+
+body.theme-neon .board {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "brand"
+    "cards";
+  gap: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 2);
+}
+
+body.theme-neon .rail--brand {
+  align-items: center;
+  text-align: center;
+  gap: calc(var(--u) * 0.5);
+}
+
+body.theme-neon .logo {
+  align-self: center;
+  transform: none;
+  border: 1px solid rgba(0, 255, 200, 0.55);
+  box-shadow: 0 0 18px rgba(0, 255, 200, 0.25);
+  background: rgba(0, 20, 30, 0.55);
+  padding: calc(var(--u) * 0.45) calc(var(--u) * 1.1);
+}
+
+body.theme-neon .logo__mark {
+  font-family: Orbitron, sans-serif;
+  font-size: calc(var(--u) * 1.6);
+  letter-spacing: 0.28em;
+  color: #00ffc8;
+}
+
+body.theme-neon .logo__sub {
+  color: #ff2d8a;
+  letter-spacing: 0.4em;
+}
+
+body.theme-neon .title {
+  margin: calc(var(--u) * 0.4) 0 0;
+  flex-direction: row;
+  justify-content: center;
+  font-family: Orbitron, sans-serif;
+  font-size: calc(var(--u) * 3.8);
+  letter-spacing: 0.35em;
+}
+
+body.theme-neon .title span {
+  background: linear-gradient(180deg, #fff, #7adfff);
+  -webkit-background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px rgba(0, 255, 200, 0.45));
+  animation: none;
+}
+
+body.theme-neon .tagline {
+  margin: calc(var(--u) * 0.3) 0 0;
+  color: #ff2d8a;
+  letter-spacing: 0.28em;
+  font-size: calc(var(--u) * 0.95);
+}
+
+body.theme-neon .promo-badge {
+  margin: calc(var(--u) * 0.5) auto 0;
+  border-color: #ff2d8a;
+  background: rgba(255, 45, 138, 0.15);
+  box-shadow: 0 0 20px rgba(255, 45, 138, 0.35);
+}
+
+body.theme-neon .clock {
+  margin: calc(var(--u) * 0.4) 0 0;
+}
+
+body.theme-neon .clock__time {
+  font-family: Orbitron, sans-serif;
+  justify-content: center;
+  font-size: calc(var(--u) * 2.2);
+  color: #00ffc8;
+}
+
+body.theme-neon .clock__meta {
+  text-align: center;
+}
+
+body.theme-neon .rail--perks {
+  display: none;
+}
+
+body.theme-neon .cards {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 1fr;
+  grid-template-rows: 1.1fr 0.9fr;
+  gap: calc(var(--u) * 0.8);
+  min-height: 0;
+}
+
+body.theme-neon .card {
+  clip-path: none !important;
+  border-radius: 0;
+  animation: none;
+}
+
+body.theme-neon .card:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+body.theme-neon .card:nth-child(2) {
+  grid-column: 2 / span 2;
+  grid-row: 1;
+}
+
+body.theme-neon .card:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+body.theme-neon .card:nth-child(4) {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+body.theme-neon .card__inner {
+  clip-path: none;
+  border: 1px solid color-mix(in srgb, var(--c) 70%, #fff);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5) inset,
+    0 0 24px color-mix(in srgb, var(--c) 35%, transparent);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--c) 18%, #061018), #040810 70%);
+}
+
+body.theme-neon .card__name {
+  font-family: Orbitron, sans-serif;
+  font-size: calc(var(--u) * 1.5);
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--c) 60%, transparent);
+}
+
+body.theme-neon .card__slashes {
+  display: none;
+}
+
+body.theme-neon .row__price {
+  font-family: Orbitron, sans-serif;
+  font-size: calc(var(--u) * 1.7);
+  color: #00ffc8;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.4);
+}
+
+body.theme-neon .loyalty-strip {
+  border-top-color: rgba(0, 255, 200, 0.35);
+  background: linear-gradient(90deg, rgba(0, 255, 200, 0.1), #03060f);
+}
+
+body.theme-neon .loyalty-strip__head h2,
+body.theme-neon .loyalty-strip__bonus {
+  color: #00ffc8;
+}
+
+body.theme-neon .ticker {
+  border-top: 1px solid rgba(255, 45, 138, 0.35);
+  background: #040814;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5) CINEMA — широкие панели зон, цена — главный кадр
+   ═══════════════════════════════════════════════════════════ */
+body.theme-cinema {
+  --ink: #f4efe6;
+  --muted: #9b9285;
+  --bg-0: #090807;
+  font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+}
+
+body.theme-cinema .bg {
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(180, 40, 30, 0.22), transparent 60%),
+    linear-gradient(180deg, #14110f, #070605);
+}
+
+body.theme-cinema .bg__grid,
+body.theme-cinema .bg__scan {
+  display: none;
+}
+
+body.theme-cinema .bg__glow--a {
+  background: rgba(190, 50, 35, 0.28);
+}
+
+body.theme-cinema .bg__glow--b {
+  background: rgba(210, 170, 90, 0.12);
+}
+
+body.theme-cinema .board {
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "cards"
+    "brand";
+  gap: calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 1.6) calc(var(--u) * 0.6);
+}
+
+body.theme-cinema .rail--perks {
+  display: none;
+}
+
+body.theme-cinema .cards {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  gap: calc(var(--u) * 0.9);
+  min-height: 0;
+}
+
+body.theme-cinema .card {
+  clip-path: none !important;
+  border-radius: 0;
+  animation: none;
+}
+
+body.theme-cinema .card__inner {
+  clip-path: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(var(--u) * 1.3);
+  border: 0;
+  background:
+    linear-gradient(180deg, transparent 35%, rgba(0, 0, 0, 0.72)),
+    linear-gradient(145deg, color-mix(in srgb, var(--c) 35%, #1a120e), #0c0a08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+body.theme-cinema .card__inner::after {
+  display: none;
+}
+
+body.theme-cinema .card__head {
+  border: 0;
+  padding: 0;
+}
+
+body.theme-cinema .card__name {
+  font-family: "Unbounded", Impact, sans-serif;
+  font-size: calc(var(--u) * 1.7);
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-cinema .card__slashes {
+  display: none;
+}
+
+body.theme-cinema .card__sale {
+  background: #fff;
+  color: #111;
+  box-shadow: none;
+}
+
+body.theme-cinema .card__rows {
+  display: flex !important;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.35);
+  margin-top: auto;
+}
+
+body.theme-cinema .row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--u) * 0.6);
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: calc(var(--u) * 0.35) 0 0;
+  animation: none;
+}
+
+body.theme-cinema .row[data-key="hour"] {
+  flex-direction: column;
+  align-items: flex-start;
+  border-top: 0;
+  padding-top: 0;
+  margin-bottom: calc(var(--u) * 0.4);
+}
+
+body.theme-cinema .row[data-key="hour"] .row__label b {
+  font-size: calc(var(--u) * 0.9);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body.theme-cinema .row[data-key="hour"] .row__price {
+  font-family: "Unbounded", Impact, sans-serif;
+  font-size: calc(var(--u) * 4.2);
+  line-height: 0.95;
+  color: #fff;
+}
+
+body.theme-cinema .row__ico {
+  display: none;
+}
+
+body.theme-cinema .row__label em {
+  display: none;
+}
+
+body.theme-cinema .row__price {
+  font-family: "Unbounded", Impact, sans-serif;
+  font-size: calc(var(--u) * 1.45);
+}
+
+body.theme-cinema .rail--brand {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 1.2);
+  padding: calc(var(--u) * 0.7) calc(var(--u) * 1);
+  background: rgba(0, 0, 0, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.theme-cinema .logo {
+  transform: none;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+body.theme-cinema .logo__mark {
+  font-family: "Unbounded", Impact, sans-serif;
+  font-size: calc(var(--u) * 1.5);
+  letter-spacing: 0.12em;
+}
+
+body.theme-cinema .title {
+  display: none;
+}
+
+body.theme-cinema .tagline {
+  margin: 0;
+  max-width: 28ch;
+  font-size: calc(var(--u) * 1);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+body.theme-cinema .promo-badge {
+  margin: 0;
+  border-color: #fff;
+  background: #fff;
+  animation: none;
+  box-shadow: none;
+}
+
+body.theme-cinema .promo-badge em,
+body.theme-cinema .promo-badge span {
+  color: #666;
+}
+
+body.theme-cinema .promo-badge strong {
+  color: #111;
+  font-family: "Unbounded", Impact, sans-serif;
+}
+
+body.theme-cinema .clock {
+  margin: 0;
+}
+
+body.theme-cinema .clock__time {
+  font-family: "Unbounded", Impact, sans-serif;
+  font-size: calc(var(--u) * 2);
+}
+
+body.theme-cinema .loyalty-strip {
+  background: #100e0c;
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+body.theme-cinema .loyalty-strip__head h2,
+body.theme-cinema .loyalty-strip__bonus {
+  color: #f0d9a0;
+}
+
+body.theme-cinema .extras {
+  background: #0c0a08;
+}
+
+body.theme-cinema .ticker {
+  background: #050403;
+}
+
+/* Portrait / narrow safety for alternate themes */
+@media (max-width: 1200px), (orientation: portrait) {
+  body.theme-neon .cards,
+  body.theme-ledger .cards,
+  body.theme-cinema .cards,
+  body.theme-boulevard .cards {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: none !important;
+  }
+
+  body.theme-neon .card:nth-child(n) {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  body.theme-boulevard .card__inner {
+    grid-template-columns: 1fr;
+  }
+
+  body.theme-boulevard .card__rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.theme-ledger .rail--brand,
+  body.theme-boulevard .rail--brand,
+  body.theme-cinema .rail--brand {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Cross-theme text safety ───────────────────────────── */
+body[class*="theme-"] .board,
+body[class*="theme-"] .loyalty-strip,
+body[class*="theme-"] .extras,
+body[class*="theme-"] .card,
+body[class*="theme-"] .card__inner,
+body[class*="theme-"] .row,
+body[class*="theme-"] .extras__item {
+  min-width: 0;
+}
+
+body[class*="theme-"] .row__label,
+body[class*="theme-"] .extras__label,
+body[class*="theme-"] .loyalty-strip__head > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+body[class*="theme-"] .row__price-wrap,
+body[class*="theme-"] .row__price,
+body[class*="theme-"] .row__was,
+body[class*="theme-"] .extras__price,
+body[class*="theme-"] .loyalty-strip__bonus {
+  flex-shrink: 0;
+  min-width: max-content;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+body.theme-boulevard .card__rows {
+  min-width: 0;
+  overflow: visible;
+}
+
+body.theme-boulevard .row {
+  min-width: 0;
+  overflow: visible;
+}
+
+body.theme-boulevard .row__price-wrap {
+  min-width: max-content;
+}
+
+body.theme-boulevard .row__price {
+  font-size: clamp(calc(var(--u) * 1.6), calc(var(--u) * 2.2), calc(var(--u) * 2.4));
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+body.theme-cinema .row[data-key="hour"] .row__price {
+  font-size: clamp(calc(var(--u) * 2.2), 7.2vh, calc(var(--u) * 3.8));
+  max-width: none;
+  overflow: visible;
+}
+
+body.theme-ledger .row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+body.theme-neon .cards {
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.theme-neon .card__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.theme-hud {
+  max-width: min(40vw, 280px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

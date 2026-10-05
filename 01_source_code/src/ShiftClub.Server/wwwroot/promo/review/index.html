@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Отзыв 2ГИС · SHIFT</title>
+  <meta name="description" content="Оставь отзыв о SHIFT в 2ГИС." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/promo/promo.css?v=7" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__orb bg__orb--a"></div>
+    <div class="bg__orb bg__orb--b"></div>
+  </div>
+
+  <div class="board">
+    <header class="top">
+      <div class="logo">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </div>
+      <span class="chip">2ГИС</span>
+    </header>
+
+    <main class="stage stage--qr-left">
+      <aside class="qr-panel">
+        <div class="qr-frame">
+          <img id="qr" alt="QR-код отзыва в 2ГИС" width="512" height="512" decoding="async" />
+        </div>
+        <p class="qr-caption">
+          Наведи камеру телефона
+          <b>Отзыв в 2ГИС</b>
+        </p>
+      </aside>
+
+      <section class="copy">
+        <p class="eyebrow">Помоги клубу</p>
+        <p class="brand">SHIFT<em>.</em></p>
+        <h1 class="title">Оставь отзыв в 2ГИС</h1>
+        <p class="lead">
+          Займёт пару минут. Так новым гостям проще найти нас и понять, что клуб нормальный.
+        </p>
+        <ol class="points">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <strong>Сфотографируй QR</strong>
+              <span>Откроется наша страница в 2ГИС</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <strong>Нажми «Оставить отзыв»</strong>
+              <span>Поставь оценку и напиши пару слов</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <strong>Спасибо</strong>
+              <span>Ты помогаешь клубу расти</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <strong>МАСАНЧИ 86А</strong>
+      <span id="footAddr">г. Алматы</span>
+    </footer>
+  </div>
+
+  <script src="/promo/promo.js?v=6"></script>
+  <script>
+    (async () => {
+      const club = await ShiftPromo.loadClub();
+      ShiftPromo.setQr(document.getElementById("qr"), ShiftPromo.REVIEW_URL, null, null, 18);
+      ShiftPromo.fillAddress(document.getElementById("footAddr"), club);
+    })();
+  </script>
+</body>
+</html>

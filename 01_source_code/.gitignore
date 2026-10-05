@@ -1,0 +1,67 @@
+# Build
+bin/
+obj/
+out/
+publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+
+# IDE
+.vs/
+.idea/
+*.swp
+*~
+
+# Node
+node_modules/
+dist/
+.turbo/
+*.local
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+**/secrets.json
+**/secrets.env
+!**/secrets.env.example
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Runtime data must live in C:\ShiftClub\Server\data — not in the source tree
+src/ShiftClub.Server/data/client-updates/*
+!src/ShiftClub.Server/data/client-updates/.gitkeep
+src/ShiftClub.Server/logs/
+src/ShiftClub.Server/bin/
+src/ShiftClub.Server/obj/
+
+# Local scratch
+tmp-*/
+.tmp/
+*.log
+_*.sql
+_tariffs_*.json
+
+# Test / coverage
+TestResults/
+coverage/
+*.trx
+*.coverage
+
+# Client local
+*.db
+*.db-shm
+*.db-wal
+
+# Archives
+*.zip
+*.7z

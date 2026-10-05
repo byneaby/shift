@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <title>Добро пожаловать · SHIFT CYBER CLUB</title>
+  <meta name="description" content="SHIFT CYBER CLUB — информация о клубе, преимущества аккаунта и инструкция по регистрации." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site/site.css?v=17" />
+  <link rel="stylesheet" href="/site/start.css?v=1" />
+</head>
+<body class="start-page">
+  <header class="top is-solid" id="top">
+    <div class="wrap top__inner">
+      <a class="logo" href="#top">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </a>
+      <nav class="top__nav start-nav" aria-label="Разделы">
+        <a href="#about">О клубе</a>
+        <a href="#perks">Преимущества</a>
+        <a href="#account">Аккаунт</a>
+        <a href="#help">Помощь</a>
+      </nav>
+      <a class="btn btn-sm" id="topTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Telegram</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="start-hero" aria-label="Добро пожаловать">
+      <div class="start-hero__bg" style="background-image:url('/site/media/hero.jpg?v=13')"></div>
+      <div class="start-hero__veil" aria-hidden="true"></div>
+      <div class="wrap start-hero__grid">
+        <div class="start-hero__copy">
+          <p class="brand" id="clubBrand">SHIFT CYBER CLUB</p>
+          <h1>Добро пожаловать</h1>
+          <p class="start-hero__lead" id="clubLead">
+            Киберклуб в Алматы: мощные ПК, три зоны, бар и кальян. Играй с комфортом — с аккаунтом ещё выгоднее.
+          </p>
+          <p class="start-hero__addr muted" id="clubAddress">г. Алматы, ул. Масанчи 86а</p>
+          <div class="start-hero__actions">
+            <a class="btn btn-lg" href="#account">Создать аккаунт</a>
+            <a class="btn btn-lg btn-ghost" href="/site/">Сайт клуба</a>
+          </div>
+        </div>
+        <aside class="start-hero__card" aria-label="Сейчас в зале">
+          <p class="eyebrow">Сейчас в зале</p>
+          <div class="start-live">
+            <div>
+              <strong id="statFree">—</strong>
+              <span>свободно</span>
+            </div>
+            <div>
+              <strong id="statBusy">—</strong>
+              <span>занято</span>
+            </div>
+            <div>
+              <strong id="statTotal">—</strong>
+              <span>всего ПК</span>
+            </div>
+          </div>
+          <a class="btn btn-sm start-live__link" href="/site/#floor">Карта зала</a>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel start-about" id="about">
+      <div class="wrap">
+        <header class="panel__head">
+          <div>
+            <p class="eyebrow">О клубе</p>
+            <h2>SHIFT — твой киберзал</h2>
+            <p class="panel__lead">
+              Современные компьютеры, уютный зал и сервис без отрыва от игры. Здесь удобно играть соло, с друзьями или тренировать команду.
+            </p>
+          </div>
+        </header>
+        <div class="start-about__grid">
+          <article class="start-card">
+            <h3>Три зоны</h3>
+            <p>STANDARD для CS2 и классики, VIP для длинных сессий, BOOTCAMP для команды и scrim.</p>
+          </article>
+          <article class="start-card">
+            <h3>Бар и кальян</h3>
+            <p>Напитки, снеки и кальян — заказывай с места, не прерывая игру.</p>
+          </article>
+          <article class="start-card">
+            <h3>PlayStation 5</h3>
+            <p>Отдельная зона для консоли — играй с друзьями на большом экране.</p>
+          </article>
+          <article class="start-card">
+            <h3>Администратор на месте</h3>
+            <p>Поможет запустить сеанс, пополнить баланс, продлить время и ответить на вопросы.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel--dark start-perks" id="perks">
+      <div class="wrap">
+        <header class="panel__head">
+          <div>
+            <p class="eyebrow">Зачем аккаунт</p>
+            <h2>Преимущества SHIFT</h2>
+            <p class="panel__lead" id="perksLead">Бесплатная регистрация — один раз завёл, пользуешься на любом ПК клуба.</p>
+          </div>
+        </header>
+        <div class="start-perks__grid">
+          <article class="start-perk">
+            <span class="start-perk__n">01</span>
+            <h3>Свой баланс</h3>
+            <p>Пополняй на кассе и оплачивай время и бар с одного счёта — быстрее, чем каждый раз наличными.</p>
+          </article>
+          <article class="start-perk">
+            <span class="start-perk__n">02</span>
+            <h3>Бонусы за пополнение</h3>
+            <p id="perkBonus">Часть суммы приходит бонусом на счёт. Уровни лояльности дают ещё больше выгоды.</p>
+          </article>
+          <article class="start-perk">
+            <span class="start-perk__n">03</span>
+            <h3>Скидки на время</h3>
+            <p id="perkDiscount">Чем больше играешь — тем ниже цена часа. Условия видны в аккаунте и на кассе.</p>
+          </article>
+          <article class="start-perk">
+            <span class="start-perk__n">04</span>
+            <h3>Банк времени</h3>
+            <p>Остаток минут можно сохранить в аккаунт и использовать в следующий визит.</p>
+          </article>
+          <article class="start-perk">
+            <span class="start-perk__n">05</span>
+            <h3>Telegram и QR</h3>
+            <p>Баланс, бронь, свободные места и уведомления — в боте клуба на телефоне.</p>
+          </article>
+          <article class="start-perk">
+            <span class="start-perk__n">06</span>
+            <h3>Вход на любом ПК</h3>
+            <p>Телефон + ПИН или пароль — садишься за любой свободный компьютер в клубе.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel start-account" id="account">
+      <div class="wrap start-account__grid">
+        <div class="start-account__copy">
+          <p class="eyebrow">Регистрация</p>
+          <h2>Создай аккаунт за минуту</h2>
+          <p class="panel__lead">
+            Это бесплатно. Аккаунт нужен для баланса, бонусов и быстрого входа на ПК. Пароль и ПИН задаёшь сам — или администратор поможет на кассе.
+          </p>
+
+          <ol class="start-steps">
+            <li>
+              <span class="start-steps__n">1</span>
+              <div>
+                <strong>Открой Telegram</strong>
+                <p id="stepBot">Найди бота <b>@shift_panel_bot</b> или отсканируй QR справа.</p>
+              </div>
+            </li>
+            <li>
+              <span class="start-steps__n">2</span>
+              <div>
+                <strong>Нажми «Открыть SHIFT»</strong>
+                <p>Откроется приложение клуба — выбери регистрацию нового гостя.</p>
+              </div>
+            </li>
+            <li>
+              <span class="start-steps__n">3</span>
+              <div>
+                <strong>Укажи имя и телефон</strong>
+                <p>Телефон станет логином для входа на компьютере клуба.</p>
+              </div>
+            </li>
+            <li>
+              <span class="start-steps__n">4</span>
+              <div>
+                <strong>Войди на этом ПК</strong>
+                <p>В Shell нажми «Войти» → телефон + ПИН. ПИН можно задать при первом входе или на кассе.</p>
+              </div>
+            </li>
+            <li>
+              <span class="start-steps__n">5</span>
+              <div>
+                <strong>Пополни баланс на кассе</strong>
+                <p>Наличные, карта или Kaspi — бонусы начисляются автоматически.</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="start-account__actions">
+            <a class="btn btn-lg" id="ctaTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Открыть бота</a>
+            <a class="btn btn-lg btn-ghost" href="/promo/account/">Подробная инструкция</a>
+          </div>
+        </div>
+
+        <aside class="start-qr" aria-label="QR для регистрации">
+          <div class="start-qr__frame">
+            <img id="qr" alt="QR-код для регистрации в SHIFT" width="280" height="280" decoding="async" />
+          </div>
+          <p class="start-qr__hint">Сканируй камерой телефона</p>
+          <p class="start-qr__bot muted" id="qrHint">@shift_panel_bot</p>
+          <p class="start-qr__note muted">Или попроси администратора создать аккаунт на кассе — укажи телефон и имя.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel panel--dark start-help" id="help">
+      <div class="wrap">
+        <header class="panel__head">
+          <div>
+            <p class="eyebrow">Полезное</p>
+            <h2>Частые вопросы</h2>
+          </div>
+        </header>
+        <div class="start-faq">
+          <details class="start-faq__item" open>
+            <summary>Как начать играть без аккаунта?</summary>
+            <p>Подойди к администратору с номером этого ПК. Он запустит гостевой сеанс — оплата на кассе.</p>
+          </details>
+          <details class="start-faq__item">
+            <summary>Забыл ПИН или пароль</summary>
+            <p>Обратись на кассу с телефоном — администратор сбросит или задаст новый ПИН в карточке клиента.</p>
+          </details>
+          <details class="start-faq__item">
+            <summary>Как продлить время?</summary>
+            <p>Если вошёл в аккаунт — кнопка «Продлить» в Shell или попроси администратора. Гостевой сеанс — только через кассу.</p>
+          </details>
+          <details class="start-faq__item">
+            <summary>Где посмотреть цены?</summary>
+            <p>Актуальный прайс — на <a href="/price/">экране в зале</a> и на <a href="/site/#price">сайте клуба</a>.</p>
+          </details>
+        </div>
+
+        <div class="start-links">
+          <a class="start-link" href="/site/">
+            <strong>Сайт клуба</strong>
+            <span>Карта зала, прайс, адрес</span>
+          </a>
+          <a class="start-link" href="/price/">
+            <strong>Прайс</strong>
+            <span>Тарифы по зонам</span>
+          </a>
+          <a class="start-link" href="/site/loyalty.html">
+            <strong>Лояльность</strong>
+            <span>Уровни и бонусы</span>
+          </a>
+          <a class="start-link" href="https://go.2gis.com/YszAd" target="_blank" rel="noopener">
+            <strong>2ГИС</strong>
+            <span>Маршрут и отзывы</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__grid">
+      <div>
+        <div class="logo"><span class="logo__mark"></span><span class="logo__text">SHIFT</span></div>
+        <p class="fine" id="footCopy">© SHIFT CYBER CLUB</p>
+      </div>
+      <p id="footAddress">г. Алматы, ул. Масанчи 86а</p>
+      <div class="foot__links">
+        <a href="/start">Стартовая</a>
+        <a href="/site/">Сайт</a>
+        <a id="footTg" href="https://t.me/shift_panel_bot" target="_blank" rel="noopener">Telegram</a>
+        <a href="/promo/account/">Аккаунт</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/site/start.js?v=1"></script>
+</body>
+</html>

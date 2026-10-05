@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SHIFT — оболочка для компьютерного клуба</title>
+  <meta name="description" content="SHIFT работает поверх вашей бездисковой системы (CCBoot). Касса, зал, Shell, Telegram, Kaspi. Внедрение 100 000 ₸ · подписка 49 000 ₸/мес." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --bg2: #12161c;
+      --ink: #f2f4f7;
+      --muted: #9aa3af;
+      --line: rgba(255,255,255,0.1);
+      --accent: #3ddc97;
+      --accent2: #2e75ff;
+      --warn: #ff8a2b;
+      --card: #161b22;
+      --max: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Manrope, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    a { color: inherit; }
+    img { max-width: 100%; display: block; }
+    .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
+
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 70% 45% at 75% 15%, rgba(46,117,255,0.2), transparent 55%),
+        radial-gradient(ellipse 50% 35% at 5% 85%, rgba(61,220,151,0.12), transparent 50%),
+        linear-gradient(180deg, #0b0d10 0%, #10151c 100%);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), transparent 70%);
+      pointer-events: none;
+    }
+
+    nav {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 0;
+    }
+    .logo {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.08em;
+    }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 18px; align-items: center; font-size: 14px; font-weight: 600; }
+    .nav-links a { text-decoration: none; color: var(--muted); }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      text-decoration: none;
+      border: 1px solid var(--line);
+      padding: 10px 16px;
+      border-radius: 999px;
+      color: var(--ink) !important;
+      transition: border-color .2s, background .2s;
+    }
+    .nav-cta:hover { border-color: var(--accent); background: rgba(61,220,151,0.08); }
+
+    .hero-grid {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 36px;
+      align-items: center;
+      padding: 28px 0 64px;
+    }
+    .hero h1 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(44px, 7vw, 78px);
+      line-height: 0.94;
+      letter-spacing: 0.02em;
+      margin: 0 0 18px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-lead {
+      margin: 0 0 22px;
+      font-size: clamp(15px, 1.7vw, 18px);
+      color: var(--muted);
+      max-width: 34em;
+    }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+    .pill {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,0.03);
+    }
+    .pill strong { color: var(--accent); font-weight: 700; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 22px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      transition: transform .15s ease, background .2s, border-color .2s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #04140c; }
+    .btn-ghost { border-color: var(--line); color: var(--ink); background: rgba(255,255,255,0.03); }
+
+    .hero-shot {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #000;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      transform: perspective(1200px) rotateY(-6deg) rotateX(2deg);
+      animation: floatShot 7s ease-in-out infinite;
+    }
+    .hero-shot img { width: 100%; height: auto; }
+    .hero-shot::before {
+      content: "Живая панель · карта зала";
+      position: absolute;
+      left: 14px; bottom: 14px;
+      z-index: 2;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+    }
+    @keyframes floatShot {
+      0%, 100% { transform: perspective(1200px) rotateY(-6deg) rotateX(2deg) translateY(0); }
+      50% { transform: perspective(1200px) rotateY(-4deg) rotateX(1deg) translateY(-8px); }
+    }
+
+    section { padding: 88px 0; }
+    .section-kicker {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+      margin: 0 0 10px;
+    }
+    h2 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(34px, 5vw, 50px);
+      letter-spacing: 0.03em;
+      margin: 0 0 14px;
+      line-height: 1;
+    }
+    .section-lead {
+      margin: 0 0 36px;
+      color: var(--muted);
+      max-width: 42em;
+      font-size: 17px;
+    }
+
+    .clarify {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .clarify article {
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--card);
+    }
+    .clarify article.yes { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    .clarify article.no { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+    .clarify h3 { margin: 0 0 8px; font-size: 18px; }
+    .clarify p { margin: 0; color: var(--muted); font-size: 14px; }
+    .clarify .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      color: var(--accent);
+    }
+    .clarify .no .tag { color: var(--warn); }
+
+    .shot-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 14px;
+    }
+    .shot-card {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #000;
+      min-height: 180px;
+    }
+    .shot-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+      transition: transform .5s ease;
+    }
+    .shot-card:hover img { transform: scale(1.03); }
+    .shot-card figcaption {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      padding: 28px 14px 12px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .shot-card.tall { grid-row: span 2; min-height: 420px; }
+    .shot-side { display: grid; gap: 14px; }
+
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .feat {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(160deg, rgba(46,117,255,0.07), transparent 45%), var(--card);
+    }
+    .feat h3 { margin: 0 0 6px; font-size: 16px; }
+    .feat p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .price-box {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+    .price-main, .price-note {
+      padding: 32px 28px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--card);
+    }
+    .price-main {
+      border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+      background:
+        linear-gradient(160deg, rgba(61,220,151,0.12), transparent 40%),
+        var(--card);
+    }
+    .price-main h3, .price-note h3 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.04em;
+      margin: 0 0 12px;
+    }
+    .big-price {
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin: 0 0 6px;
+    }
+    .big-price small { font-size: 16px; color: var(--muted); font-weight: 600; }
+    .price-main ul, .price-note ul {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .price-main li::before, .price-note li::before {
+      content: "→ ";
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .price-note .warn-line { color: var(--warn); font-weight: 700; }
+
+    .stack {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      counter-reset: layer;
+    }
+    .layer {
+      padding: 22px;
+      border-radius: 14px;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+    }
+    .layer::before {
+      counter-increment: layer;
+      content: "Слой " counter(layer);
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .layer h3 { margin: 0 0 6px; font-size: 16px; }
+    .layer p { margin: 0; color: var(--muted); font-size: 13px; }
+    .layer.shift {
+      border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+      background: linear-gradient(180deg, rgba(61,220,151,0.1), transparent), var(--bg2);
+    }
+
+    .cta-band {
+      margin: 20px 0;
+      padding: 48px 40px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 90% 20%, rgba(46,117,255,0.25), transparent 40%),
+        linear-gradient(135deg, #141a22, #0f1318);
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 18px;
+    }
+    .cta-band h2 { margin: 0; }
+    .cta-band p { margin: 0; color: var(--muted); max-width: 38em; }
+
+    footer {
+      padding: 28px 0 48px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 960px) {
+      .hero-grid, .clarify, .shot-grid, .price-box, .feat-grid, .stack { grid-template-columns: 1fr; }
+      .hero-shot { transform: none; animation: none; }
+      .shot-card.tall { grid-row: auto; min-height: 260px; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .cta-band { padding: 32px 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <nav>
+        <div class="logo">SHIFT<span>.</span></div>
+        <div class="nav-links">
+          <a href="#live">Скриншоты</a>
+          <a href="#pricing">Цена</a>
+          <a class="nav-cta" href="#contact">Демо</a>
+        </div>
+      </nav>
+      <div class="hero-grid">
+        <div>
+          <h1>ОБОЛОЧКА<br />ДЛЯ КЛУБА<br /><em>ПОВЕРХ CCBOOT</em></h1>
+          <p class="hero-lead">
+            SHIFT — не бездисковая система. Это касса, карта зала, Shell на ПК, Telegram и Kaspi
+            поверх уже готового CCBoot / diskless. Вы ставите ОС клуба — железо и образы остаются своими.
+          </p>
+          <div class="pill-row">
+            <span class="pill">Внедрение <strong>100 000 ₸</strong></span>
+            <span class="pill">Подписка <strong>49 000 ₸/мес</strong></span>
+            <span class="pill">CCBoot — <strong>отдельно</strong></span>
+          </div>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="#contact">Запросить демо</a>
+            <a class="btn btn-ghost" href="#pricing">Как платят</a>
+          </div>
+        </div>
+        <figure class="hero-shot">
+          <img src="/product/shots/02-floor.jpg" alt="Карта зала SHIFT — живая панель" width="1440" height="900" />
+        </figure>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <p class="section-kicker">Важно понять</p>
+      <h2>Мы не заменяем CCBoot</h2>
+      <p class="section-lead">Бездисковая загрузка — ваш фундамент. SHIFT — операционная оболочка клуба поверх неё.</p>
+      <div class="clarify">
+        <article class="yes">
+          <span class="tag">SHIFT это</span>
+          <h3>Оболочка клуба</h3>
+          <p>Касса, сеансы, карта зала, Shell на игровых ПК, бар, брони, клиенты, Telegram, Kaspi, отчёты. Работает по LAN на вашем сервере.</p>
+        </article>
+        <article class="no">
+          <span class="tag">SHIFT это не</span>
+          <h3>Не diskless / не CCBoot</h3>
+          <p>Образы, загрузка ПК по сети, суперклиент — остаются на вашей бездисковой системе. CCBoot (или аналог) покупается и обслуживается отдельно.</p>
+        </article>
+      </div>
+      <div class="stack" style="margin-top:28px">
+        <article class="layer">
+          <h3>Железо + сеть</h3>
+          <p>Сервер, свитчи, ПК клуба</p>
+        </article>
+        <article class="layer">
+          <h3>CCBoot / diskless</h3>
+          <p>Образы, загрузка, Game disk</p>
+        </article>
+        <article class="layer shift">
+          <h3>SHIFT</h3>
+          <p>Касса · зал · Shell · гости · деньги</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="live">
+    <div class="wrap">
+      <p class="section-kicker">Живой продукт</p>
+      <h2>Реальные экраны панели</h2>
+      <p class="section-lead">Снято с рабочей системы клуба — не мокапы.</p>
+      <div class="shot-grid">
+        <figure class="shot-card tall">
+          <img src="/product/shots/02-floor.jpg" alt="Карта зала" loading="lazy" />
+          <figcaption>Карта зала · ПК, VIP, Bootcamp, PS5</figcaption>
+        </figure>
+        <div class="shot-side">
+          <figure class="shot-card">
+            <img src="/product/shots/01-home.jpg" alt="Главная панель" loading="lazy" />
+            <figcaption>Главная · все модули</figcaption>
+          </figure>
+          <figure class="shot-card">
+            <img src="/product/shots/04-bar.jpg" alt="Бар" loading="lazy" />
+            <figcaption>Бар · POS и заказы</figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="shot-grid" style="margin-top:14px; grid-template-columns: repeat(3, 1fr);">
+        <figure class="shot-card">
+          <img src="/product/shots/03-cash.jpg" alt="Касса" loading="lazy" />
+          <figcaption>Касса · смена и чеки</figcaption>
+        </figure>
+        <figure class="shot-card">
+          <img src="/product/shots/05-bookings.jpg" alt="Брони" loading="lazy" />
+          <figcaption>Бронирование</figcaption>
+        </figure>
+        <figure class="shot-card">
+          <img src="/product/shots/06-customers.jpg" alt="Клиенты" loading="lazy" />
+          <figcaption>Клиенты и лояльность</figcaption>
+        </figure>
+      </div>
+      <figure class="shot-card" style="margin-top:14px; min-height:280px;">
+        <img src="/product/shots/07-reports.jpg" alt="Отчёты" loading="lazy" />
+        <figcaption>Отчёты · загрузка, продажи, смены</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <p class="section-kicker">Возможности</p>
+      <h2>Что даёт оболочка</h2>
+      <div class="feat-grid">
+        <article class="feat">
+          <h3>Касса и Kaspi</h3>
+          <p>Смены, чеки, нал/карта/Kaspi, Z-отчёт. В чеке видно ПК или PS5.</p>
+        </article>
+        <article class="feat">
+          <h3>Карта зала</h3>
+          <p>Старт и продление пачкой, WoL, перенос, учёт консолей.</p>
+        </article>
+        <article class="feat">
+          <h3>Client Shell</h3>
+          <p>Lock-экран, вход по QR Telegram, игры, бар, OTA-обновления.</p>
+        </article>
+        <article class="feat">
+          <h3>Telegram</h3>
+          <p>Mini App для гостя и сотрудника: карта, бар, сеансы с телефона.</p>
+        </article>
+        <article class="feat">
+          <h3>Клиенты</h3>
+          <p>Баланс, банк времени по зонам, лояльность, CASE.</p>
+        </article>
+        <article class="feat">
+          <h3>Админ</h3>
+          <p>Права, аудит, мониторинг, техкоманды, отчёты CSV.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <p class="section-kicker">Цена</p>
+      <h2>Один простой тариф</h2>
+      <p class="section-lead">Без пакетов Express/Standard/Arena. Две цифры + CCBoot отдельно.</p>
+      <div class="price-box">
+        <article class="price-main">
+          <h3>SHIFT</h3>
+          <p class="big-price">100 000 ₸ <small>внедрение, разово</small></p>
+          <p class="big-price">49 000 ₸ <small>/ месяц</small></p>
+          <ul>
+            <li>настройка панели, Shell, тарифов, кассы</li>
+            <li>обучение кассира / владельца</li>
+            <li>обновления и поддержка в подписке</li>
+            <li>полный контур: зал, бар, брони, TG, Kaspi</li>
+          </ul>
+        </article>
+        <article class="price-note">
+          <h3>Отдельно</h3>
+          <ul>
+            <li class="warn-line">CCBoot / diskless — не входит в SHIFT</li>
+            <li>образы, лицензии Windows/игр</li>
+            <li>железо и интернет клуба</li>
+            <li>кастом (бот, дизайн) — по договорённости</li>
+          </ul>
+          <p style="margin:18px 0 0; color:var(--muted); font-size:14px;">
+            Пилот 14 дней на вашем зале — перед договором.
+          </p>
+          <a class="btn btn-primary" href="#contact" style="margin-top:18px; align-self:start;">Хочу демо</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="cta-band">
+        <p class="section-kicker" style="margin:0">Следующий шаг</p>
+        <h2>Покажем на живом зале</h2>
+        <p>
+          Напишите в Telegram: сколько ПК, какая бездисковая система (CCBoot и т.п.),
+          чем пользуетесь сейчас. Пришлём слот на демо 20 минут.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://t.me/" target="_blank" rel="noopener">Написать в Telegram</a>
+          <a class="btn btn-ghost" href="#live">Смотреть скриншоты</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <footer>
+      <div>SHIFT — оболочка клуба поверх diskless · не CCBoot</div>
+      <div>Внедрение 100 000 ₸ · 49 000 ₸/мес</div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Как создать аккаунт · SHIFT</title>
+  <meta name="description" content="Как создать аккаунт SHIFT за минуту." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/promo/promo.css?v=7" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__orb bg__orb--a"></div>
+    <div class="bg__orb bg__orb--b"></div>
+  </div>
+
+  <div class="board">
+    <header class="top">
+      <div class="logo">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </div>
+      <span class="chip">Аккаунт</span>
+    </header>
+
+    <main class="stage stage--qr-left">
+      <aside class="qr-panel">
+        <div class="qr-frame">
+          <img id="qr" alt="QR-код для создания аккаунта SHIFT" width="512" height="512" decoding="async" />
+        </div>
+        <p class="qr-caption">
+          Наведи камеру телефона
+          <b id="qrHint">@shift_panel_bot</b>
+        </p>
+      </aside>
+
+      <section class="copy">
+        <p class="eyebrow">За минуту</p>
+        <p class="brand">SHIFT<em>.</em></p>
+        <h1 class="title">Как создать аккаунт</h1>
+        <p class="lead">
+          Один аккаунт — вход на любой ПК клуба, свой баланс и бонусы. Пароль тот же, что и в Telegram.
+        </p>
+        <ol class="points">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <strong>Открой Telegram</strong>
+              <span id="step1">Сфотографируй QR или найди @shift_panel_bot</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <strong>Нажми «Открыть»</strong>
+              <span>Откроется приложение клуба</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <strong>Укажи имя, телефон и пароль</strong>
+              <span>Этими же данными заходишь на ПК</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">4</span>
+            <div>
+              <strong>Можно и на компьютере клуба</strong>
+              <span>Кнопка Telegram или QR на экране ПК. После регистрации подойди к кассе — покрутят кейс</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <strong>БЕСПЛАТНО</strong>
+      <span>Аккаунт · баланс · бонусы за пополнение</span>
+    </footer>
+  </div>
+
+  <script src="/promo/promo.js?v=6"></script>
+  <script>
+    (async () => {
+      const club = await ShiftPromo.loadClub();
+      const link = ShiftPromo.botLink(club && club.botUsername);
+      ShiftPromo.setQr(document.getElementById("qr"), link.miniAppUrl, null, null, 18);
+      document.getElementById("qrHint").textContent = "@" + link.username;
+      document.getElementById("step1").textContent =
+        "Сфотографируй QR или найди @" + link.username;
+    })();
+  </script>
+</body>
+</html>

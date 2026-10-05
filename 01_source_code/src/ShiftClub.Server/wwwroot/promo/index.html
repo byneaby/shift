@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Рекламные экраны · SHIFT</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/promo/promo.css?v=7" />
+  <style>
+    .hub {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      align-content: center;
+    }
+    .hub a {
+      display: grid;
+      gap: 6px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+      min-height: 110px;
+    }
+    .hub a:hover {
+      border-color: rgba(255, 106, 0, 0.55);
+      transform: translateY(-2px);
+    }
+    .hub em {
+      color: var(--orange);
+      font-style: normal;
+      font-family: var(--font-display);
+      letter-spacing: 0.14em;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+    }
+    .hub strong {
+      font-family: var(--font-display);
+      font-size: clamp(1.45rem, 3.2vw, 2rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hub span {
+      color: var(--muted);
+      font-size: 1.15rem;
+    }
+    @media (max-width: 700px) {
+      .hub { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg__grid"></div>
+    <div class="bg__orb bg__orb--a"></div>
+    <div class="bg__orb bg__orb--b"></div>
+  </div>
+
+  <div class="board">
+    <header class="top">
+      <div class="logo">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text">SHIFT</span>
+      </div>
+      <span class="chip">Экраны</span>
+    </header>
+
+    <main>
+      <p class="eyebrow">Для TV и телефонов</p>
+      <h1 class="title" style="max-width:none;margin-bottom:22px">Рекламные страницы</h1>
+      <nav class="hub" aria-label="Промо-страницы">
+        <a href="/promo/tg/index.html">
+          <em>01</em>
+          <strong>Telegram</strong>
+          <span>QR — открыть приложение клуба</span>
+        </a>
+        <a href="/promo/bonuses/index.html">
+          <em>02</em>
+          <strong>Бонусы</strong>
+          <span>Что дают регистрация и пополнение</span>
+        </a>
+        <a href="/promo/review/index.html">
+          <em>03</em>
+          <strong>Отзыв 2ГИС</strong>
+          <span>QR — оставить оценку</span>
+        </a>
+        <a href="/promo/account/index.html">
+          <em>04</em>
+          <strong>Создать аккаунт</strong>
+          <span>Простые шаги + QR</span>
+        </a>
+        <a href="/promo/wifi/index.html">
+          <em>05</em>
+          <strong>Wi‑Fi</strong>
+          <span>QR — подключиться к сети клуба</span>
+        </a>
+        <a href="/promo/case/index.html">
+          <em>06</em>
+          <strong>SHIFT CASE</strong>
+          <span>Промо-экран кейса — время, скидки, баланс, бар</span>
+        </a>
+        <a href="/promo/upgrade/index.html">
+          <em>07</em>
+          <strong>−30% пока обновляем</strong>
+          <span>Прайс со скидкой + аккаунт + кейс</span>
+        </a>
+      </nav>
+    </main>
+
+    <footer class="foot">
+      <strong>SHIFT CYBER CLUB</strong>
+      <span>Открывай на любом экране</span>
+    </footer>
+  </div>
+</body>
+</html>

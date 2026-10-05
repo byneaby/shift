@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SHIFT CASE · SHIFT</title>
+  <meta name="description" content="SHIFT CASE — открывай кейсы у кассы: время, скидки, баланс и напитки." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07060f;
+      --panel: rgba(18, 14, 32, 0.9);
+      --ink: #f3efff;
+      --muted: #9a92b3;
+      --line: rgba(168, 120, 255, 0.22);
+      --purple: #b026ff;
+      --purple-2: #7c3aed;
+      --purple-soft: #d8b4fe;
+      --cyan: #38bdf8;
+      --gold: #fbbf24;
+      --green: #4ade80;
+      --font: Manrope, system-ui, sans-serif;
+      --display: Orbitron, Manrope, sans-serif;
+      --max: 1180px;
+      --radius: 16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      overflow-x: hidden;
+    }
+    img { max-width: 100%; display: block; }
+    button { font: inherit; color: inherit; }
+
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(176, 38, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(176, 38, 255, 0.045) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse at center, #000 28%, transparent 78%);
+    }
+    .bg-glow {
+      position: fixed; width: 55vw; height: 55vw; max-width: 720px; max-height: 720px;
+      border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0;
+    }
+    .bg-glow--l {
+      top: -15%; left: -12%;
+      background: radial-gradient(circle, rgba(176, 38, 255, 0.3), transparent 70%);
+    }
+    .bg-glow--r {
+      right: -10%; top: 18%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 70%);
+    }
+    @keyframes orb {
+      from { transform: translate(0, 0) scale(1); }
+      to { transform: translate(4%, 6%) scale(1.08); }
+    }
+    @media screen {
+      .bg-glow--l { animation: orb 10s ease-in-out infinite alternate; }
+      .bg-glow--r { animation: orb 12s ease-in-out infinite alternate-reverse; }
+      .reel__track { animation: reelIdle 28s linear infinite; }
+      .open-btn { animation: pulse 2.8s ease-in-out infinite; }
+      .crate svg { animation: float 3.5s ease-in-out infinite; }
+    }
+
+    .page {
+      position: relative; z-index: 2;
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      padding: clamp(20px, 3vw, 36px) 0 clamp(28px, 4vw, 48px);
+    }
+
+    .hero { text-align: center; margin-bottom: clamp(22px, 3vw, 36px); }
+    .hero__title { margin: 0 auto 26px; max-width: 40rem; }
+    .hero__title h1 {
+      margin: 0;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 24px rgba(176, 38, 255, 0.55), 0 0 70px rgba(176, 38, 255, 0.25);
+    }
+    .hero__title h1 span {
+      background: linear-gradient(100deg, #fff, var(--purple-soft) 45%, var(--cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .hero__title p {
+      margin: 12px 0 0;
+      color: #d4cfe4;
+      font-size: clamp(1.15rem, 2.2vw, 1.4rem);
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .reel {
+      position: relative;
+      margin: 0 auto 22px;
+      max-width: 980px;
+      height: clamp(140px, 18vh, 168px);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.28));
+      border: 1px solid var(--line);
+      overflow: hidden;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+    }
+    .reel__viewport {
+      height: 100%;
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+    }
+    .reel__track {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 100%;
+      width: max-content;
+      will-change: transform;
+    }
+    @keyframes reelIdle {
+      from { transform: translateX(0); }
+      to { transform: translateX(calc(-50% - 6px)); }
+    }
+    .reel.is-spin .reel__track { animation: none; }
+    .reel__frame {
+      position: absolute; top: 50%; left: 50%; z-index: 4;
+      width: 128px; height: 140px;
+      transform: translate(-50%, -50%);
+      border: 3px solid var(--purple);
+      border-radius: 16px;
+      box-shadow:
+        0 0 0 1px rgba(176, 38, 255, 0.35),
+        0 0 28px rgba(176, 38, 255, 0.55),
+        inset 0 0 20px rgba(176, 38, 255, 0.12);
+      pointer-events: none;
+    }
+    .reel__pointer {
+      position: absolute; left: 50%; z-index: 5;
+      width: 0; height: 0;
+      transform: translateX(-50%);
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      filter: drop-shadow(0 0 8px rgba(176, 38, 255, 0.9));
+    }
+    .reel__pointer--top { top: 4px; border-top: 12px solid var(--purple); }
+    .reel__pointer--bot { bottom: 4px; border-bottom: 12px solid var(--purple); }
+
+    .chip {
+      flex: 0 0 112px;
+      width: 112px; height: 128px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(12, 10, 22, 0.95);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px; padding: 10px 8px;
+    }
+    .chip img {
+      width: 58px; height: 58px; object-fit: contain;
+      filter: drop-shadow(0 8px 14px rgba(0,0,0,0.4));
+    }
+    .chip span {
+      font-size: 0.68rem; line-height: 1.2; color: var(--muted);
+      text-align: center;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .chip.t-time { border-color: rgba(56, 189, 248, 0.45); box-shadow: inset 0 0 18px rgba(56, 189, 248, 0.08); }
+    .chip.t-balance { border-color: rgba(251, 191, 36, 0.5); box-shadow: inset 0 0 18px rgba(251, 191, 36, 0.08); }
+    .chip.t-bar { border-color: rgba(74, 222, 128, 0.45); box-shadow: inset 0 0 18px rgba(74, 222, 128, 0.08); }
+    .chip.t-discount { border-color: rgba(192, 132, 252, 0.5); box-shadow: inset 0 0 18px rgba(192, 132, 252, 0.1); }
+
+    .open-btn {
+      appearance: none; border: 0; cursor: pointer;
+      width: min(420px, 100%);
+      padding: 16px 20px 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #d946ef, var(--purple) 45%, var(--purple-2));
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 12px 40px rgba(176, 38, 255, 0.45),
+        0 0 60px rgba(176, 38, 255, 0.25);
+      transition: transform 0.2s, filter 0.2s;
+    }
+    .open-btn:hover { transform: translateY(-2px) scale(1.01); filter: brightness(1.06); }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset, 0 12px 40px rgba(176,38,255,0.45), 0 0 60px rgba(176,38,255,0.25); }
+      50% { box-shadow: 0 0 0 1px rgba(255,255,255,0.16) inset, 0 14px 48px rgba(176,38,255,0.6), 0 0 80px rgba(217,70,239,0.35); }
+    }
+    .open-btn__title {
+      display: block;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: 0.12em;
+      color: #fff;
+    }
+    .open-btn__cost {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 600;
+    }
+    .hero__note {
+      margin: 14px 0 0;
+      color: #6b6580;
+      font-size: 0.85rem;
+    }
+    .hero__note b { color: var(--purple-soft); font-weight: 700; }
+    .toast {
+      min-height: 1.3em;
+      margin: 10px 0 0;
+      color: var(--cyan);
+      font-size: 0.95rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .toast.is-on { opacity: 1; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: clamp(16px, 2vw, 22px);
+      margin-bottom: 18px;
+    }
+    .panel__title {
+      margin: 0 0 16px;
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--display);
+      font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+      letter-spacing: 0.08em;
+    }
+    .panel__ico {
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+      border-radius: 8px;
+      background: rgba(176, 38, 255, 0.2);
+      font-size: 1rem;
+    }
+
+    .prize-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .prize-card {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 6, 16, 0.85);
+      padding: 12px 8px 10px;
+      text-align: center;
+      min-height: 118px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px;
+    }
+    .prize-card img {
+      width: 52px; height: 52px; object-fit: contain;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+    }
+    .prize-card strong {
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .prize-card.t-time { border-color: rgba(56, 189, 248, 0.4); }
+    .prize-card.t-balance { border-color: rgba(251, 191, 36, 0.45); }
+    .prize-card.t-bar { border-color: rgba(74, 222, 128, 0.4); }
+    .prize-card.t-discount { border-color: rgba(192, 132, 252, 0.45); }
+
+    .cols {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 18px;
+    }
+    .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+    .steps li {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      text-align: left;
+    }
+    .steps .n {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 0.9rem;
+      background: linear-gradient(180deg, #d946ef, var(--purple-2));
+      box-shadow: 0 0 18px rgba(176, 38, 255, 0.45);
+    }
+    .steps strong { display: block; font-size: 1.15rem; margin-bottom: 2px; }
+    .steps span { color: #cfc8e0; font-size: 1.05rem; line-height: 1.4; }
+
+    .rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; text-align: left; }
+    .rules li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      color: #cfc8e0;
+      font-size: 1.08rem;
+      line-height: 1.4;
+    }
+    .rules li::before {
+      content: "✓";
+      width: 20px; height: 20px; margin-top: 1px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 0.7rem; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      box-shadow: 0 0 12px rgba(176, 38, 255, 0.45);
+    }
+    .rules li b { color: var(--ink); font-weight: 700; }
+
+    .crate {
+      margin-top: 18px;
+      display: flex; justify-content: center;
+    }
+    .crate svg {
+      width: min(180px, 40vw);
+      filter: drop-shadow(0 12px 28px rgba(176, 38, 255, 0.45));
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .foot {
+      margin-top: 28px;
+      padding-top: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      color: var(--muted);
+      font-family: var(--display);
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+    }
+    .foot::before, .foot::after {
+      content: "";
+      height: 1px; width: min(120px, 18vw);
+      background: linear-gradient(90deg, transparent, var(--purple), transparent);
+      box-shadow: 0 0 12px rgba(176, 38, 255, 0.55);
+    }
+    .foot strong { color: var(--ink); font-weight: 700; }
+
+    @media (max-width: 900px) {
+      .prize-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .cols { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .prize-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chip { flex-basis: 96px; width: 96px; height: 112px; }
+      .reel__frame { width: 108px; height: 120px; }
+    }
+
+    @page { margin: 8mm; }
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        animation: none !important;
+      }
+      html, body {
+        background: #07060f !important;
+        color: #f3efff !important;
+        overflow: visible !important;
+      }
+      .bg-grid, .bg-glow {
+        position: absolute !important;
+        filter: none !important;
+      }
+      .page { width: 100%; margin: 0; padding: 6mm 0; }
+      .hero__title h1 span {
+        color: #d8b4fe !important;
+        -webkit-text-fill-color: #d8b4fe !important;
+        background: none !important;
+      }
+      .panel, .prize-card, .chip {
+        background: #120e20 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--l" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--r" aria-hidden="true"></div>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero__title">
+        <h1>SHIFT <span>CASE</span></h1>
+        <p>Открывай кейсы и получай время, скидки, баланс и напитки с бара!</p>
+      </div>
+
+      <div class="reel" id="reel" aria-hidden="true">
+        <div class="reel__pointer reel__pointer--top"></div>
+        <div class="reel__pointer reel__pointer--bot"></div>
+        <div class="reel__frame"></div>
+        <div class="reel__viewport">
+          <div class="reel__track" id="reelTrack"></div>
+        </div>
+      </div>
+
+      <button type="button" class="open-btn" id="openBtn">
+        <span class="open-btn__title">ОТКРЫТЬ</span>
+        <span class="open-btn__cost">у кассы</span>
+      </button>
+      <p class="hero__note">Бесплатно — для гостей · открыть можно <b>только у кассы</b></p>
+      <p class="toast" id="toast" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">
+        <span class="panel__ico" aria-hidden="true">🎁</span>
+        ПРИЗЫ В КЕЙСЕ
+      </h2>
+      <div class="prize-grid" id="prizeGrid"></div>
+    </section>
+
+    <div class="cols">
+      <section class="panel">
+        <h2 class="panel__title">
+          <span class="panel__ico" aria-hidden="true">?</span>
+          КАК ЭТО РАБОТАЕТ?
+        </h2>
+        <ol class="steps">
+          <li>
+            <span class="n">1</span>
+            <div>
+              <strong>Подойди к кассе</strong>
+              <span>Скажи, что хочешь открыть SHIFT CASE</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <strong>Крутится рулетка</strong>
+              <span>Система случайно выбирает приз из кейса</span>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <strong>Забери приз сразу</strong>
+              <span>Время, скидка, баланс или напиток с бара</span>
+            </div>
+          </li>
+        </ol>
+        <div class="crate" aria-hidden="true">
+          <svg viewBox="0 0 160 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g1" x1="20" y1="30" x2="140" y2="130" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#d946ef"/>
+                <stop offset="0.5" stop-color="#b026ff"/>
+                <stop offset="1" stop-color="#7c3aed"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="40" y1="20" x2="120" y2="70" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#f0abfc"/>
+                <stop offset="1" stop-color="#a855f7"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="80" cy="122" rx="48" ry="8" fill="#b026ff" opacity="0.35"/>
+            <path d="M28 58h104l-8 54H36L28 58z" fill="url(#g1)" stroke="#e9d5ff" stroke-opacity="0.35"/>
+            <path d="M22 42h116l-6 16H28L22 42z" fill="url(#g2)" stroke="#f5d0fe" stroke-opacity="0.4"/>
+            <rect x="72" y="42" width="16" height="70" fill="#f5d0fe" opacity="0.55"/>
+            <circle cx="80" cy="78" r="10" fill="#0b0814" stroke="#f0abfc" stroke-width="2"/>
+            <path d="M80 72v12M74 78h12" stroke="#f0abfc" stroke-width="2" stroke-linecap="round"/>
+            <text x="118" y="36" fill="#fbbf24" font-size="22" font-family="Orbitron,sans-serif" font-weight="800">%</text>
+          </svg>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">
+          <span class="panel__ico" aria-hidden="true">✓</span>
+          ПРАВИЛА
+        </h2>
+        <ul class="rules">
+          <li><span>Открыть кейс можно <b>у кассы клуба</b></span></li>
+          <li><span>Приз действует только в SHIFT Cyber Club</span></li>
+          <li><span>Скидки <b>не суммируются</b> между собой</span></li>
+          <li><span>Напитки забирай на баре в день открытия</span></li>
+          <li><span>Администрация может менять состав призов</span></li>
+        </ul>
+      </section>
+    </div>
+
+    <footer class="foot">
+      <strong>SHIFT CYBER CLUB</strong>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      const PRIZES = [
+        { name: "+30 мин", type: "t-time", image: "/site/case/rewards/time-30.png" },
+        { name: "+1 час", type: "t-time", image: "/site/case/rewards/time-60.png" },
+        { name: "+2 часа", type: "t-time", image: "/site/case/rewards/vip-2h.png" },
+        { name: "−10% на сеанс", type: "t-discount", image: "/site/case/rewards/discount-10.png" },
+        { name: "−20% на сеанс", type: "t-discount", image: "/site/case/rewards/discount-20.png" },
+        { name: "−30% на сеанс", type: "t-discount", image: "/site/case/rewards/discount-20.png" },
+        { name: "−50% на сеанс", type: "t-discount", image: "/site/case/rewards/discount-20.png" },
+        { name: "+1000 ₸ на баланс", type: "t-balance", image: "/site/case/rewards/balance-500.png" },
+        { name: "+2000 ₸ на баланс", type: "t-balance", image: "/site/case/rewards/balance-500.png" },
+        { name: "+3000 ₸ на баланс", type: "t-balance", image: "/site/case/rewards/balance-500.png" },
+        { name: "CocaCola 1л", type: "t-bar", image: "/site/case/rewards/bar-cola.png" },
+        { name: "Gorilla Energy", type: "t-bar", image: "/site/case/rewards/bar-energy.png" },
+        { name: "FuseTea / MaxiЧай 1л", type: "t-bar", image: "/site/case/rewards/bar-tea.png" },
+      ];
+
+      const track = document.getElementById("reelTrack");
+      const grid = document.getElementById("prizeGrid");
+      const toast = document.getElementById("toast");
+      const btn = document.getElementById("openBtn");
+
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function chipHtml(p) {
+        return `<div class="chip ${p.type}"><img src="${esc(p.image)}" alt="" width="58" height="58" /><span>${esc(p.name)}</span></div>`;
+      }
+
+      // Double the strip so CSS infinite scroll loops seamlessly
+      const strip = PRIZES.concat(PRIZES).map(chipHtml).join("");
+      track.innerHTML = strip + strip;
+
+      grid.innerHTML = PRIZES.map((p) => `
+        <article class="prize-card ${p.type}">
+          <img src="${esc(p.image)}" alt="" width="52" height="52" loading="lazy" />
+          <strong>${esc(p.name)}</strong>
+        </article>
+      `).join("");
+
+      let toastTimer = 0;
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("is-on");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("is-on"), 3200);
+      }
+
+      btn.addEventListener("click", () => {
+        showToast("Открыть можно только у кассы клуба");
+      });
+    })();
+  </script>
+</body>
+</html>

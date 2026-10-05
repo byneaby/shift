@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>ShiftClub.Client.Setup</AssemblyName>
+    <RootNamespace>ShiftClub.Client.Installer</RootNamespace>
+    <Version>0.6.35</Version>
+    <InformationalVersion>0.6.35</InformationalVersion>
+    <Product>SHIFT Club Client</Product>
+    <Company>SHIFT Club</Company>
+    <Description>Р Р€РЎРѓРЎвЂљР В°Р Р…Р С•Р Р†РЎвЂ°Р С‘Р С” Р С”Р В»Р С‘Р ВµР Р…РЎвЂљР В° SHIFT Club</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="payload\client.zip" Condition="Exists('payload\client.zip')" />
+  </ItemGroup>
+
+</Project>
+
+
+
+
+
+
+
+
+
+

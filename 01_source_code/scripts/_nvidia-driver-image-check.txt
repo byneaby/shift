@@ -1,0 +1,215 @@
+﻿================================================================================
+NVIDIA GPU DRIVER / CCBoot InfGPU READ-ONLY AUDIT
+Host: WIN-KOMOLOPI2T3 (192.168.1.250)
+Date: 2026-07-19 23:47:31
+Scope: InfGPU + CCBoot logs + E:\ VHD inventory (NO VHD mount)
+================================================================================
+
+VERDICT (YES/NO)
+----------------
+YES — RTX 3050 and RTX 3060 Device IDs are present in InfGPU and are injectable
+      via CCBoot auto GPU PnP (proven in logs outside SuperClient).
+
+NO  — SuperClient path does NOT run auto GPU PnP. While SuperClient is enabled,
+      CCBoot logs: "image is in super mode. auto pnp failed". That is the primary
+      reason "SuperClient NVIDIA install doesn't work" for InfGPU/auto-PnP.
+      Manual GeForce install during SuperClient is a different path (writes to
+      *.Super.vhd); logs show no explicit "save failed", but also no clear merge
+      success text — if Super writeback is discarded on disable, manual installs
+      vanish on next normal boot.
+
+--------------------------------------------------------------------------------
+1) C:\CCBoot\InfGPU\ — NVIDIA packages
+--------------------------------------------------------------------------------
+Packages present:
+  ati.mfg.31.0.21923.11000
+  ati.mfg.32.0.22029.1019
+  intelgfx.31.0.101.2121
+  intelgfx.32.0.101.8247
+  nvidia_devices.32.0.15.8180     <--- ONLY NVIDIA package
+
+NVIDIA package:
+  Path:    C:\CCBoot\InfGPU\nvidia_devices.32.0.15.8180
+  Version: 32.0.15.8180 (DriverVer 10/29/2025 in nv_dispi.inf)
+  Size:    ~2855 MB, ~370 files
+  Layout:  flat Display.Driver-style extract (not Windows DriverStore hash tree)
+
+Main INF: nv_dispi.inf + nv_disp.cat
+OEM INFs: inf\nv*.inf (Acer/Alienware/Dell/Lenovo/etc. laptop/OEM variants)
+
+Device IDs relevant to club RTX 3050 / 3060 (from nv_dispi.inf Strings):
+  DEV_2503 = "NVIDIA GeForce RTX 3060"          YES in nv_dispi.inf
+  DEV_2504 = "NVIDIA GeForce RTX 3060"          YES in nv_dispi.inf  *** seen in club logs
+  DEV_2507 = "NVIDIA GeForce RTX 3050"          YES in nv_dispi.inf  *** seen in club logs
+  DEV_2508 = "NVIDIA GeForce RTX 3050 OEM"      YES in nv_dispi.inf
+  DEV_2544 = "NVIDIA GeForce RTX 3060"          YES in nv_dispi.inf
+  DEV_2582 = "NVIDIA GeForce RTX 3050"          YES in nv_dispi.inf
+  DEV_2584 = "NVIDIA GeForce RTX 3050"          YES in nv_dispi.inf
+  DEV_2583                                     NO  (not in package)
+
+NOTE on naming: NVIDIA INF labels DEV_2507 as RTX 3050 (not 3060). Club hardware
+that previously reported DEV_2504 / DEV_2507 matches this package:
+  VEN_10DE&DEV_2507&SUBSYS_19DAD630  (ZOTAC 19DA) — matched Jul 17
+  VEN_10DE&DEV_2504&SUBSYS_19DA2630  (ZOTAC 19DA) — matched + PnP SUCCESS Jul 17
+
+Laptop Ampere IDs (25A0/25A2/25A5/25A9/25E0/25E2):
+  Present in OEM INFs under inf\ (nvaci, nvami, nvdmi, …) but NOT required for
+  the desktop 2504/2507 cards logged on this club.
+
+Union across all package INFs: 2503,2504,2507,2508,2544,2582,2584,25A0,25A2,
+25A5,25A9,25B0,25B2,25E0,25E2 = YES; 2583 = NO.
+
+--------------------------------------------------------------------------------
+2) C:\CCBoot\Log\ — GPU PnP / SuperClient
+--------------------------------------------------------------------------------
+Log files reviewed:
+  Log-2026-07-19.txt, Log-2026-07-18.txt, Log-2026-07-17.txt
+  Fatal-2026-07-19.txt, Fatal-2026-07-17.txt
+
+SUCCESS (normal / non-Super boot) — Log-2026-07-17.txt:
+  18:47:17 GPU PnP matched nv_dispi.inf for DEV_2507 (already staged, skip DISM)
+  21:40:02 GPU PnP matched nv_dispi.inf for DEV_2504
+  21:40:02 ### start gpu pnp ... with 32.0.15.8180
+  21:40:05 driver already staged as oem4.inf
+  21:40:05 DISM hash dir: DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db
+  21:40:06 Section062 / nvlddmkm processed; write mode on
+             E:\WINDOWS 11 25H2RU-24.02.2026.vhd
+  21:40:07 ### auto gpu pnp success VEN_10DE&DEV_2504 ... with 32.0.15.8180
+
+SUPERCLIENT FAILURE (auto PnP blocked) — repeated Jul 18–19:
+  enable_super_client -> create *.vhd.Super.vhd ->
+  "image is in super mode. auto pnp failed" (always doubled)
+
+  Examples:
+    2026-07-19 PC58 / 192.168.1.158
+      create E:\WINDOWS 11 25H2RU-24.02.2026.vhd.Super.vhd
+      auto pnp failed (10:40:50 and 11:28:05)
+    2026-07-18 PC17 / 192.168.1.117
+      create E:\WINDOWS 11 25H2RU-STANDART.vhd.Super.vhd
+      auto pnp failed (00:38:53 and 00:48:40)
+
+On disable_super_client:
+  Parent image opened write mode, e.g.
+    "change to write mode open disk E:\WINDOWS 11 25H2RU-24.02.2026.vhd return"
+  No log line saying merge/save FAILED.
+  No log line clearly saying "save image success" either.
+  Super.vhd closed before disable; no leftover *.Super.vhd on E:\ at audit time.
+
+Fatal logs: only "file_read ... handle is invalid" (0x6) — also appears mid
+successful PnP; treat as noisy, not a clear driver-install failure.
+
+--------------------------------------------------------------------------------
+3) Image VHDs on E:\ (listed only; NOT mounted)
+--------------------------------------------------------------------------------
+Active / present system images on E:\:
+  WINDOWS 11 25H2RU-24.02.2026.vhd       ~23.2 GB  (touched 2026-07-19 23:36)
+  WINDOWS 11 25H2RU-24.02.2026.009.vhd   ~11.8 GB  (diff/snapshot-like)
+  WINDOWS 11 25H2RU-24.02.2026.010.vhd    ~7.3 GB
+  WINDOWS 11 25H2RU-STANDART.vhd         ~21.6 GB
+
+Also E:\NYZ\: STANDART.VHD, VIP.VHD, VIP2.VHD (legacy/other)
+
+From logs (image usage):
+  Target 1101 clients often use: WINDOWS 11 25H2RU-STANDART.vhd (G:\PC##-E....vhd children)
+  Target 1103 / SuperClient PC58 used: WINDOWS 11 25H2RU-24.02.2026.vhd (+ .Super.vhd)
+  Auto PnP success wrote into: E:\WINDOWS 11 25H2RU-24.02.2026.vhd
+
+Mount decision: SKIPPED. Online club images with live iSCSI clients — mounting
+risks locks/corruption. Inference from InfGPU + logs is sufficient:
+  driver package complete; PnP already injected into 24.02.2026 image for 2504;
+  2507 already staged earlier.
+
+Safe read-only mount (if needed later, offline only):
+  Prefer copy VHD offline, or Mount-VHD -Path ... -ReadOnly when NO clients use
+  that image. Do not mount live parent while SuperClient or clients are booted.
+
+--------------------------------------------------------------------------------
+4) Full driver vs AppX CPL / DriverStore hash folders
+--------------------------------------------------------------------------------
+FULL DRIVER: YES
+  nvlddmkm.sys present (~105 MB)
+  nvapi64.dll, nvd3dumx.dll, nvwgf2umx.dll, nv_dispi.inf, nv_disp.cat present
+  Display.NvContainer, NVWMI, NvCamera present
+
+AppX Control Panel: ALSO present (supplemental, not the whole package)
+  Panel\Program Files\WindowsApps\NVIDIACorp.NVIDIAControlPanel_8.1.968.0_...
+  NVCPL\ folder
+
+DriverStore hash folders INSIDE InfGPU: NO
+  Package is a flat NVIDIA extract (correct for InfGPU source).
+  Hash folder appears AFTER staging into the image, as seen in log:
+    DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db
+    staged as oem4.inf inside the client image (not under InfGPU).
+
+--------------------------------------------------------------------------------
+5) SuperClient save failed / writeback wiping driver installs?
+--------------------------------------------------------------------------------
+Evidence:
+  A) Auto PnP is intentionally refused in Super mode (hard fail message).
+     Expectation that "enable SuperClient then let CCBoot inject NVIDIA" will
+     FAIL every time by design.
+
+  B) Manual installer during SuperClient would land on *.Super.vhd writeback.
+     On disable_super_client, parent is opened write-mode (implies merge attempt).
+     No explicit "save failed" in Jul 17–19 logs.
+     No *.Super.vhd left on E:\ now (cleanup after disable).
+
+  C) Normal diskless writeback (G:\PC##-E....vhd / I:\PC##-E....vhd) is discarded
+     on reboot — that ALWAYS wipes unsaved driver installs. Only InfGPU auto PnP
+     into the shared image (or a successful SuperClient save into parent) persists.
+
+  D) Therefore: most likely user failure mode =
+       SuperClient enabled -> auto PnP fails -> user installs NVIDIA manually OR
+       expects PnP -> disable Super without verifying Device Manager / nvidia-smi
+       on a FRESH normal boot from parent image.
+
+--------------------------------------------------------------------------------
+ANSWER SUMMARY
+--------------------------------------------------------------------------------
+Are RTX 3050/3060 drivers present and injectable?
+  YES for the Device IDs this club actually logs (2504=3060, 2507=3050 per INF).
+  Package 32.0.15.8180 is a full driver, injectable; proven auto PnP success
+  for DEV_2504 into E:\WINDOWS 11 25H2RU-24.02.2026.vhd on 2026-07-17.
+
+Why SuperClient install may fail:
+  1. PRIMARY: "image is in super mode. auto pnp failed" — InfGPU auto injection
+     does not run under SuperClient (PC58/PC17 sessions Jul 18–19).
+  2. SECONDARY: Manual install only persists if Super writeback is saved into the
+     parent image; normal client writebacks are wiped each boot.
+  3. NOT missing Device IDs for club 2504/2507 — package covers them.
+  4. NOT "AppX only" — full nvlddmkm.sys stack is in InfGPU.
+
+--------------------------------------------------------------------------------
+CONCRETE NEXT STEPS (no CCBoot config changes)
+--------------------------------------------------------------------------------
+1. Do NOT rely on SuperClient for InfGPU auto PnP. Use a normal boot (or keep
+   clients off Super) and let auto GPU PnP run — already works for 2504/2507.
+
+2. On one PC with each GPU (2504 and 2507), after normal boot:
+   - Device Manager: display adapter should be NVIDIA GeForce (not Basic)
+   - Run: nvidia-smi
+   If OK on both, InfGPU path is healthy; SuperClient "failure" is expected.
+
+3. If a PC still shows Basic Display after normal boot:
+   - Confirm PCI ID (DEV_xxxx) matches package (2504/2507/2582/2544 etc.)
+   - Check latest C:\CCBoot\Log for that MAC/IP for GPU PnP match/success
+   - Confirm that PC's image is the same parent that received PnP
+     (24.02.2026 vs STANDART) — STANDART may need its own successful PnP pass
+     if driver was only written into 24.02.2026.vhd
+
+4. If you must use SuperClient for a manual GeForce install:
+   - Install under SuperClient
+   - Disable SuperClient and explicitly SAVE/keep changes to parent
+   - Reboot WITHOUT SuperClient and verify nvidia-smi
+   - Do not expect auto PnP lines during the Super session
+
+5. Optional offline verification (later, clients off that image):
+   - Read-only mount a COPY of E:\WINDOWS 11 25H2RU-24.02.2026.vhd
+   - Confirm FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db and oem4.inf
+   - Repeat for STANDART.vhd if VIP/standard halls use it exclusively
+
+6. Do not mount live VHDs while clients are online.
+
+================================================================================
+END OF AUDIT
+================================================================================

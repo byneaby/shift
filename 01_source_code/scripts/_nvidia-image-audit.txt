@@ -1,0 +1,180 @@
+﻿SHIFT Club — NVIDIA / CCBoot diskless audit (READ-ONLY)
+Generated: 2026-07-19 22:03:47
+Host: WIN-KOMOLOPI2T3 (192.168.1.250) — club CCBoot server
+Scope: No CCBoot config/image changes; VHD mount skipped (would alter attach state).
+
+================================================================================
+1) WHERE CCBOOT IMAGES LIVE AND HOW MANY
+================================================================================
+CCBoot install: C:\CCBoot (service CCBoot Running)
+Image volume:   E:\  label=Image  (~233 GB NTFS)
+
+Windows system VHDs found (5 total):
+  E:\WINDOWS 11 25H2RU-24.02.2026.vhd     ~21.62 GB  LastWrite 2026-07-18 09:40
+  E:\WINDOWS 11 25H2RU-STANDART.vhd       ~21.63 GB  LastWrite 2026-07-18 13:04
+  E:\NYZ\STANDART.VHD                     ~29.50 GB  LastWrite 2026-07-18 00:48
+  E:\NYZ\VIP.VHD                          ~34.03 GB  LastWrite 2025-09-14
+  E:\NYZ\VIP2.VHD                         ~29.50 GB  LastWrite 2026-07-18 00:48
+
+Active clients (from writeback filenames + Log-2026-07-19):
+  Most PCs use:  WINDOWS 11 25H2RU-24.02.2026.vhd
+  Some (e.g. PC17/PC18): WINDOWS 11 25H2RU-STANDART.vhd
+  NYZ\*.VHD appear legacy / not referenced by current writebacks sampled.
+
+Images are LOCAL disks on the CCBoot server (E:), not SMB game shares.
+Admin$/C$/D$/E$/… exist; game content on D: (Games) and F: (Online Game).
+iCafeCloudShare = C:\iCafeCloudShare (unrelated to OS images).
+
+Also present under E:\: CCU SP22, Drivers (Net/Riot only — no NVIDIA tree),
+Epic, Riot Games, Wargaming.net, NYZ.
+
+================================================================================
+2) WHETHER NVIDIA SOFTWARE EXISTS IN VISIBLE / PACKAGE PATHS
+================================================================================
+SERVER (this machine):
+  nvidia-smi: NOT FOUND
+  C:\Program Files\NVIDIA Corporation: MISSING
+  C:\Program Files (x86)\NVIDIA Corporation: MISSING
+  Expected: club server typically has no GPU.
+
+CCBOOT InfGPU package (driver injection source for diskless clients):
+  C:\CCBoot\InfGPU\nvidia_devices.32.0.15.8180\
+  Driver package identity: DCH display driver 581.80 / INF version 32.0.15.8180
+  Contains:
+    - Kernel/UMD driver files (nvlddmkm.sys, nv_dispi.inf, DriverStore-style layout)
+    - Display.NvContainer\ (NVDisplay.Container.exe — CPL backend service)
+    - NVCPL\*.appx  — Microsoft Store / AppX "NVIDIA Control Panel" ONLY
+    - Panel\ overlay:
+        Panel\Program Files\WindowsApps\NVIDIACorp.NVIDIAControlPanel_8.1.968.0_x64__56jybvy8sckqj\
+          (nvcplui.exe lives HERE — UWP package, not classic Win32 under Program Files\NVIDIA)
+        Panel\ProgramData\NVIDIA* (logs, Drs, NGX models)
+        Panel\panel.reg (~1277 lines) — CLSID/services pointing at DriverStore + WindowsApps paths
+        Panel\config.ini — driverspath=DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db
+    - NVWMI, NvCamera
+  Does NOT contain:
+    - Classic C:\Program Files\NVIDIA Corporation\Control Panel Client\nvcplui.exe tree
+    - GeForce Experience
+    - NVIDIA App
+  Panel\Program Files\NVIDIA Corporation: FALSE (missing)
+
+Other InfGPU packages present (not NVIDIA):
+  ati.mfg.31.0.21923.11000, ati.mfg.32.0.22029.1019
+  intelgfx.31.0.101.2121, intelgfx.32.0.101.8247
+
+ShiftClub Shell paths (D:\Apps\ShiftClub\Shell, D:\01 SHIFT\Shell):
+  No NVIDIA binaries (only unrelated *nv* DLL name false-positive).
+
+Project scripts: no dedicated NVIDIA install/fix scripts; CCBoot/VHD scripts
+exist (Inject-LauncherRegistryIntoVhd.ps1, Publish-ClientUpdate.ps1, etc.) but
+do not manage NVIDIA Control Panel.
+
+NOTE: Client VHDs were NOT mounted offline in this audit. Inference about
+in-image Program Files is from InfGPU + CCBoot GPU PnP logs (below).
+
+================================================================================
+3) DISK ROLES G / H / I (and related)
+================================================================================
+Drive  Label        Role (observed)
+-----  -----------  ----------------------------------------------------------
+C:     (system)     Server OS + C:\CCBoot + C:\ShiftClub\Server
+D:     Games        Game disk (~931 GB)
+E:     Image        CCBoot Windows VHDs (~233 GB)
+F:     Online Game  Battle.net, Epic, Steam, Riot, etc. (~954 GB)
+G:     WriteBack1   Per-client differencing VHDs (PC*-D/E/F.vhd)
+H:     WriteBack2   Nearly empty (one .bin); secondary writeback pool
+I:     Cache        Also holds per-client writeback VHDs (same PC*-D/E/F pattern)
+
+Writeback pattern per client:
+  PC##-D.vhd                                      (~1.8 MB)  — likely D: overlay
+  PC##-E.<ImageName>.vhd.vhd                      (~0.2 MB)  — system image overlay (TINY)
+  PC##-F.vhd                                      (~1.9 MB)  — likely F: overlay
+
+Sampled online clients (G:/I:): PC17, PC37, PC38, PC39, PC43, PC56, PC57, PC58
+System writebacks ~0.2 MB imply almost no persistent OS-layer changes survive;
+anything not baked into the base VHD is effectively ephemeral.
+
+================================================================================
+4) ERROR / EVENT LOGS RELATED TO NVIDIA (ON SERVER)
+================================================================================
+CCBoot logs: C:\CCBoot\Log\
+  Log-2026-07-17.txt — GPU PnP activity (only day with NVIDIA lines in Jul 17–19):
+    18:47:17 GPU PnP matched nv_dispi.inf for VEN_10DE&DEV_2507&SUBSYS_19DAD630
+             "same INF+VEN/DEV/REV already staged, skip DISM+registry"
+    21:40:02 GPU PnP matched nv_dispi.inf for VEN_10DE&DEV_2504&SUBSYS_19DA2630
+             "same INF already staged, skip DISM but write registry"
+    21:40:05 driver already staged as oem4.inf
+             DISM hash dir: DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db
+    21:40:07 ### auto gpu pnp success ... with 32.0.15.8180
+  Log-2026-07-18.txt / Log-2026-07-19.txt — NO nvidia/GPU PnP lines found
+  Fatal-2026-07-17.txt — "file_read ... The handle is invalid" (generic; coincides
+    with GPU PnP success timestamp; not clearly an NVIDIA app failure)
+
+No client-side NVIDIA crash dumps found under C:\CCBoot\dump (empty/absent).
+No separate client Event Log collection for nvcplui on the server.
+
+InfGPU Panel\ProgramData\NVIDIA\*.log files exist inside the PACKAGE tree
+(DisplaySessionContainer, NvcDispCorePlugin, NVDisplay.ContainerLocalSystem,
+NVDisplayContainerWatchdog) — these are packaged samples from the machine that
+built the InfGPU bundle, NOT live club-client logs.
+
+CCBoot UI strings confirm GPU PnP feature: "enable gpu pnp", "download infgpu.zip…"
+
+================================================================================
+5) LIKELY ROOT CAUSES — "NVIDIA apps broken on ALL diskless clients"
+================================================================================
+ROOT-CAUSE HYPOTHESIS (primary):
+
+  Clients get a DCH NVIDIA display driver via CCBoot GPU PnP / InfGPU, so the
+  GPU itself can work for games, but NVIDIA Control Panel is ONLY shipped as a
+  Windows Store AppX (NVIDIACorp.NVIDIAControlPanel). CCBoot GPU PnP logs show
+  driver staging (DISM DriverStore + registry) and never mention AppX provisioning
+  (/Add-ProvisionedAppxPackage) or successful NVCPL registration.
+
+  On diskless boots with ~0.2 MB system writebacks, a Store/AppX Control Panel
+  that is not correctly provisioned into the base VHD will fail for every client
+  the same way: missing/broken Start menu tile, nvcplui.exe fails, or CPL cannot
+  talk to NVDisplay.Container / driver store.
+
+  Official DisplayDriver.nvi itself installs CPL via DISM AppX provision AND
+  expects Program Files\NVIDIA-style container layout; InfGPU’s Panel overlay
+  copies WindowsApps + panel.reg but CCBoot’s automated GPU PnP path appears
+  driver-centric ("already staged / skip DISM") — insufficient for AppX CPL.
+
+SECONDARY / CONTRIBUTING:
+
+  A) "NVIDIA App" / GeForce Experience are NOT present in InfGPU at all — if
+     staff mean those products, they were never part of the club image pipeline.
+  B) No classic Win32 Control Panel under Program Files\NVIDIA Corporation in
+     the InfGPU Panel overlay — modern DCH stack requires the Store CPL.
+  C) Affects ALL clients because all share the same base VHDs + same InfGPU
+     package (VEN_10DE RTX 30xx-class DEV_2504/2507 seen in logs).
+  D) Server has no NVIDIA stack (cannot validate CPL locally on 192.168.1.250).
+
+WHAT THIS IS PROBABLY NOT:
+  - Not a ShiftClub Shell bug (no NVIDIA code there).
+  - Not missing InfGPU entirely (package exists; GPU PnP reports success).
+  - Not per-PC hardware uniqueness (club-wide identical failure pattern fits
+    shared image + AppX/CPL gap).
+
+RECOMMENDED FIX DIRECTION (not performed — audit only):
+  1. SuperClient on one PC: full NVIDIA installer (driver + Control Panel),
+     verify nvcplui / AppX provisioned for all users, save image to both active
+     VHDs (24.02.2026 and STANDART).
+  2. Or offline: DISM /Add-ProvisionedAppxPackage of NVCPL appx into mounted
+     VHDs + ensure NVDisplay.ContainerLocalSystem + panel.reg + DriverStore
+     hash folder match; keep writeback disabled until validated.
+  3. Or switch to a "Standard" (non-DCH) driver package with classic CPL if
+     still available for these GPUs (often preferred in cafés/diskless).
+  4. Do NOT expect GeForce Experience / NVIDIA App unless separately installed
+     into the image (and they are writeback-hostile).
+
+================================================================================
+EVIDENCE SUMMARY
+================================================================================
+- 5 VHDs on E:\Image; 2 actively used by current writebacks.
+- InfGPU has NVIDIA 32.0.15.8180 with AppX CPL only; no GeForce/NVIDIA App.
+- GPU PnP succeeds for driver; no log evidence of AppX CPL install.
+- System writebacks ~0.2 MB → AppX must be in base image or it never sticks.
+- No NVIDIA on server OS; Shell paths clean of NVIDIA apps.
+
+END OF AUDIT
