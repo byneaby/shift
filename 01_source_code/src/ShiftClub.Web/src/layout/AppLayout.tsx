@@ -59,6 +59,7 @@ const NAV = [
       { to: '/branding', label: 'Оформление', icon: 'brush', hint: 'Название и логотип', perm: 'settings.manage' },
       { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
       { to: '/backups', label: 'Копии базы', icon: 'save', hint: 'Бэкапы и восстановление', perm: 'settings.manage' },
+      { to: '/system', label: 'Состояние', icon: 'monitor', hint: 'Проверки и ошибки сервера', perm: 'settings.manage' },
     ],
   },
 ] as const

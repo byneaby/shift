@@ -110,6 +110,45 @@ export type SetupStatusDto = {
   summary: string
 }
 
+export type ErrorGroupDto = {
+  fingerprint: string
+  level: string
+  source: string
+  kind: string
+  message: string
+  where?: string | null
+  count: number
+  firstAt: string
+  lastAt: string
+  reported: boolean
+}
+
+export type SystemCheckDto = {
+  code: string
+  title: string
+  ok: boolean
+  value: string
+  problem?: string | null
+}
+
+export type SystemStatusDto = {
+  version: string
+  startedAt: string
+  uptime: string
+  clubName: string
+  licenseClub?: string | null
+  licenseState: string
+  environment: string
+  machineName: string
+  serverTimeUtc: string
+  clubTimeZone: string
+  clubTimeLocal: string
+  ok: boolean
+  checks: SystemCheckDto[]
+  errorsLastDay: number
+  recentErrors: ErrorGroupDto[]
+}
+
 export type ApplySetupResultDto = {
   status: SetupStatusDto
   applied: string[]

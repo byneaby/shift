@@ -2559,6 +2559,22 @@ select {
   color: #ff6b6b;
 }
 
+.kv-list {
+  display: grid;
+  grid-template-columns: minmax(140px, auto) 1fr;
+  gap: 6px 14px;
+  margin: 12px 0 0;
+}
+
+.kv-list dt {
+  color: var(--muted, #8a8f98);
+}
+
+.kv-list dd {
+  margin: 0;
+  font-weight: 600;
+}
+
 .checkbox-row {
   display: flex;
   flex-direction: row;

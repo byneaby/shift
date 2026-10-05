@@ -112,8 +112,10 @@ public sealed class DatabaseBackupService : IDatabaseBackupService
             dir,
             _options.KeepDays,
             _options.DailyHourLocal,
-            _state.LastSuccessAt,
-            _state.LastAttemptAt,
+            // Состояние в памяти теряется при перезапуске, а файлы — нет.
+            // Иначе после каждого рестарта панель показывала бы «копий ещё нет».
+            _state.LastSuccessAt ?? files.FirstOrDefault()?.CreatedAt,
+            _state.LastAttemptAt ?? files.FirstOrDefault()?.CreatedAt,
             _state.LastError,
             total,
             files,

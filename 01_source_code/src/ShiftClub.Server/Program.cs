@@ -1,6 +1,8 @@
 using Serilog;
 using ShiftClub.Application;
+using ShiftClub.Application.Diagnostics;
 using ShiftClub.Infrastructure;
+using ShiftClub.Server.Diagnostics;
 using ShiftClub.Infrastructure.Persistence;
 using ShiftClub.Infrastructure.SignalR;
 using ShiftClub.Server.Hiring;
@@ -15,7 +17,10 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.File("logs/shiftclub-.log", rollingInterval: RollingInterval.Day));
+    .WriteTo.File("logs/shiftclub-.log", rollingInterval: RollingInterval.Day)
+    // Ошибки дополнительно складываем в память, чтобы панель показывала их
+    // клубу и поддержке без разбора файлов логов.
+    .WriteTo.Sink(new ErrorCaptureSink(services.GetRequiredService<ErrorLogStore>())));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

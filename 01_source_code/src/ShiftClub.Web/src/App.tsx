@@ -26,6 +26,7 @@ import { LicensePage } from './pages/LicensePage'
 import { BackupsPage } from './pages/BackupsPage'
 import { BrandingPage } from './pages/BrandingPage'
 import { SetupPage } from './pages/SetupPage'
+import { SystemPage } from './pages/SystemPage'
 import { CustomerImportPage } from './pages/CustomerImportPage'
 import { CasesPage } from './pages/CasesPage'
 import { WikiPage } from './pages/WikiPage'
@@ -239,6 +240,14 @@ export default function App() {
               element={
                 <RequirePerm anyOf={[Perm.SettingsManage]}>
                   <SetupPage />
+                </RequirePerm>
+              }
+            />
+            <Route
+              path="system"
+              element={
+                <RequirePerm anyOf={[Perm.SettingsManage]}>
+                  <SystemPage />
                 </RequirePerm>
               }
             />
