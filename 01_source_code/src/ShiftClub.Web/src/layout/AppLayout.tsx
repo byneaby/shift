@@ -4,6 +4,7 @@ import { setToken } from '../api/client'
 import type { EmployeeDto } from '../api/client'
 import { ChangePasswordDialog } from '../components/ChangePasswordDialog'
 import { LicenseBanner } from '../components/LicenseBanner'
+import { SetupBanner } from '../components/SetupBanner'
 import { StaffNotifications } from '../components/StaffNotifications'
 import { rolesLabel } from '../format'
 import { can } from '../permissions'
@@ -53,6 +54,7 @@ const NAV = [
   {
     title: 'Система',
     items: [
+      { to: '/setup', label: 'Настройка клуба', icon: 'checklist', hint: 'Чек-лист первого запуска', perm: 'settings.manage' },
       { to: '/customers/import', label: 'Импорт клиентов', icon: 'import', hint: 'Перенос из старой системы', perm: 'customers.manage' },
       { to: '/branding', label: 'Оформление', icon: 'brush', hint: 'Название и логотип', perm: 'settings.manage' },
       { to: '/license', label: 'Лицензия', icon: 'key', hint: 'Срок и лимит ПК', perm: 'settings.manage' },
@@ -234,6 +236,15 @@ function NavIcon({ name }: { name: string }) {
         <svg {...common}>
           <path d="M3 21c2.5 0 4-1.5 4-4l-2-2c-1.5 0-3 1.5-3 3 0 1.5.5 3 1 3z" />
           <path d="M7 15 18 4l2 2L9 17" />
+        </svg>
+      )
+    case 'checklist':
+      return (
+        <svg {...common}>
+          <polyline points="3 7 5 9 9 5" />
+          <polyline points="3 17 5 19 9 15" />
+          <line x1="13" y1="7" x2="21" y2="7" />
+          <line x1="13" y1="17" x2="21" y2="17" />
         </svg>
       )
     case 'save':
@@ -427,6 +438,7 @@ export function AppLayout() {
         <div className="app-content">
           <main className={wide ? 'app-main app-main--wide' : 'app-main'}>
             <LicenseBanner />
+            <SetupBanner />
             <Outlet />
           </main>
         </div>

@@ -53,6 +53,9 @@ public sealed class BrandingService : IBrandingService
 
     public const string DefaultAccentColor = "#ff6a00";
 
+    /// <summary>Название, под которым клуб работает, если своё ещё не задали.</summary>
+    public const string FallbackClubName = "Компьютерный клуб";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -164,7 +167,7 @@ public sealed class BrandingService : IBrandingService
 
     private static BrandingDto Build(Stored? stored, string? fallbackName, string? loginBackground)
     {
-        var clubName = Clean(stored?.ClubName) ?? Clean(fallbackName) ?? "Компьютерный клуб";
+        var clubName = Clean(stored?.ClubName) ?? Clean(fallbackName) ?? FallbackClubName;
         var shortName = Clean(stored?.ShortName) ?? ShortenName(clubName);
 
         return new BrandingDto(

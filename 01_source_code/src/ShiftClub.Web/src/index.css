@@ -2526,6 +2526,50 @@ select {
   font-weight: 600;
 }
 
+.setup-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.setup-step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  opacity: 0.95;
+}
+
+.setup-step.done {
+  opacity: 0.6;
+}
+
+.setup-mark {
+  flex: 0 0 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.setup-required {
+  margin-left: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ff6b6b;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
 .staff-toast-stack {
   position: fixed;
   top: 16px;

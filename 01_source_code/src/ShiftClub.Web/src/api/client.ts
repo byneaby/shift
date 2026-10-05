@@ -93,6 +93,29 @@ export type RunBackupResultDto = {
   message: string
 }
 
+export type SetupStepDto = {
+  code: string
+  title: string
+  hint: string
+  done: boolean
+  required: boolean
+}
+
+export type SetupStatusDto = {
+  completed: boolean
+  required: boolean
+  doneCount: number
+  totalCount: number
+  steps: SetupStepDto[]
+  summary: string
+}
+
+export type ApplySetupResultDto = {
+  status: SetupStatusDto
+  applied: string[]
+  problems: string[]
+}
+
 const TOKEN_KEY = 'shiftclub.token'
 
 export function getToken() {

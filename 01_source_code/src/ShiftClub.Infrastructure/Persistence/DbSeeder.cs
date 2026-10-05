@@ -17,6 +17,60 @@ namespace ShiftClub.Infrastructure.Persistence;
 
 public static class DbSeeder
 {
+	private static string GenerateOwnerPassword()
+	{
+		const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+		char[] chars = new char[14];
+		for (int i = 0; i < chars.Length; i++)
+		{
+			chars[i] = alphabet[System.Security.Cryptography.RandomNumberGenerator.GetInt32(alphabet.Length)];
+		}
+		return new string(chars);
+	}
+
+	/// <summary>
+	/// Ставит ключ лицензии, заданный в конфигурации клуба (License:Key), чтобы
+	/// установщик не требовал заходить в панель. Делается ровно один раз: если
+	/// клуб потом снял ключ вручную, перезапуск сервера его не вернёт.
+	/// </summary>
+	private static async Task EnsureLicenseFromConfigAsync(
+		IServiceProvider provider,
+		ShiftClubDbContext db,
+		IConfiguration config,
+		ILogger logger,
+		CancellationToken cancellationToken)
+	{
+		const string appliedKey = "license.key_from_config_applied";
+
+		string? key = config["License:Key"];
+		if (string.IsNullOrWhiteSpace(key))
+		{
+			return;
+		}
+		if (await db.AppSettings.AnyAsync((AppSetting s) => s.Key == appliedKey, cancellationToken))
+		{
+			return;
+		}
+
+		db.AppSettings.Add(new AppSetting
+		{
+			Key = appliedKey,
+			Value = "true",
+			Description = "Ключ лицензии из конфигурации уже применялся"
+		});
+		await db.SaveChangesAsync(cancellationToken);
+
+		try
+		{
+			await provider.GetRequiredService<ILicenseService>().SetKeyAsync(key.Trim(), null, cancellationToken);
+			logger.LogInformation("License key installed from configuration");
+		}
+		catch (Exception exception)
+		{
+			logger.LogWarning(exception, "License key from configuration rejected");
+		}
+	}
+
 	public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default(CancellationToken))
 	{
 		using IServiceScope scope = services.CreateScope();
@@ -32,7 +86,7 @@ public static class DbSeeder
 		}
 		catch (Exception exception)
 		{
-			logger.LogWarning(exception, "SHIFT CASE seed skipped");
+			logger.LogWarning(exception, "Case module seed skipped");
 		}
 		try
 		{
@@ -60,13 +114,15 @@ public static class DbSeeder
 		await EnsureCashierRoleAsync(db, logger, cancellationToken);
 		if (!(await db.Branches.AnyAsync(cancellationToken)))
 		{
+			// Название, пояс и валюта приходят из конфигурации клуба (Seed:*),
+			// чтобы при установке в другом клубе не оставался чужой бренд и чужой адрес.
 			Branch branch = new Branch
 			{
-				Name = "SHIFT Club",
-				Code = "MAIN",
-				TimeZoneId = "Asia/Almaty",
-				CurrencyCode = "KZT",
-				Address = "г. Алматы, ул. Масанчи 86а"
+				Name = config["Seed:ClubName"] ?? "Компьютерный клуб",
+				Code = config["Seed:BranchCode"] ?? "MAIN",
+				TimeZoneId = config["Seed:TimeZone"] ?? "Asia/Almaty",
+				CurrencyCode = config["Seed:Currency"] ?? "KZT",
+				Address = config["Seed:Address"] ?? ""
 			};
 			db.Branches.Add(branch);
 			await db.SaveChangesAsync(cancellationToken);
@@ -168,7 +224,11 @@ public static class DbSeeder
 		if (!(await db.Employees.AnyAsync((Employee e) => e.Login == ownerLogin, cancellationToken)))
 		{
 			Guid value2 = await db.Branches.Select((Branch b) => b.Id).FirstAsync(cancellationToken);
-			string password = config["Seed:OwnerPassword"] ?? "Owner123!";
+			// Единого пароля «по умолчанию» быть не должно: он одинаков у всех клубов.
+			// Если пароль не задан, генерируем случайный и пишем его в лог один раз.
+			string? configuredPassword = config["Seed:OwnerPassword"];
+			bool generated = string.IsNullOrWhiteSpace(configuredPassword);
+			string password = (generated ? GenerateOwnerPassword() : configuredPassword)!;
 			Employee employee = new Employee
 			{
 				BranchId = value2,
@@ -191,7 +251,18 @@ public static class DbSeeder
 				RoleId = ownerRole.Id
 			});
 			await db.SaveChangesAsync(cancellationToken);
-			logger.LogInformation("Seeded owner employee '{Login}'", ownerLogin);
+			if (generated)
+			{
+				logger.LogWarning(
+					"Создан владелец '{Login}' с одноразовым паролем: {Password}. "
+					+ "Войдите и смените его сразу (панель → Настройка клуба).",
+					ownerLogin,
+					password);
+			}
+			else
+			{
+				logger.LogInformation("Seeded owner employee '{Login}'", ownerLogin);
+			}
 		}
 		if (!(await db.Tariffs.AnyAsync(cancellationToken)))
 		{
@@ -381,7 +452,11 @@ public static class DbSeeder
 		await EnsureClubNewsAsync(db, logger, cancellationToken);
 		if (!(await db.AppSettings.AnyAsync((AppSetting s) => s.Key == "shell.admin_password_hash", cancellationToken)))
 		{
-			string password2 = config["Seed:OwnerPassword"] ?? "Owner123!";
+			// Пароль админ-режима Shell тоже не должен быть общим для всех клубов.
+			string? configuredShellPassword = config["Seed:ShellAdminPassword"]
+				?? config["Seed:OwnerPassword"];
+			bool shellGenerated = string.IsNullOrWhiteSpace(configuredShellPassword);
+			string password2 = (shellGenerated ? GenerateOwnerPassword() : configuredShellPassword)!;
 			db.AppSettings.Add(new AppSetting
 			{
 				Key = "shell.admin_password_hash",
@@ -389,8 +464,19 @@ public static class DbSeeder
 				Description = "Пароль админ-режима Shell (настройка образа / superclient)"
 			});
 			await db.SaveChangesAsync(cancellationToken);
-			logger.LogInformation("Seeded Shell admin password from Seed:OwnerPassword");
+			if (shellGenerated)
+			{
+				logger.LogWarning(
+					"Пароль админ-режима Shell сгенерирован: {Password}. "
+					+ "Смените его в панели (Настройки → Shell).",
+					password2);
+			}
+			else
+			{
+				logger.LogInformation("Seeded Shell admin password from configuration");
+			}
 		}
+		await EnsureLicenseFromConfigAsync(scope.ServiceProvider, db, config, logger, cancellationToken);
 		async Task EnsureZone(string text, string name, string color, int order, string? kind = null)
 		{
 			Zone zone2 = await db.Zones.FirstOrDefaultAsync((Zone x) => x.BranchId == branchId && x.Code == text, cancellationToken);
@@ -783,7 +869,7 @@ public static class DbSeeder
 				db.ClubNewsPosts.AddRange(new ClubNewsPost
 				{
 					BranchId = guid,
-					Title = "Добро пожаловать в SHIFT Club",
+					Title = "Добро пожаловать",
 					Body = "Запускайте игры из каталога, заказывайте напитки из магазина — принесём к вашему ПК. Нужна помощь? Нажмите «Помощь».",
 					Category = "Info",
 					IsPublished = true,

@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IBarService, BarService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<ICustomerImportService, CustomerImportService>();
+        services.AddScoped<ISetupService, SetupService>();
         services.AddScoped<ILoyaltyService, LoyaltyService>();
         services.AddScoped<ICustomerEngagementService, CustomerEngagementService>();
         services.AddScoped<ITelegramAuthService, TelegramAuthService>();
