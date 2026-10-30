@@ -16,8 +16,28 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$env:PATH = "D:\Dev\dotnet;D:\Dev\Git\cmd;$env:PATH"
-$env:DOTNET_ROOT = "D:\Dev\dotnet"
+
+# Клубный ПК держит SDK в D:\Dev. На любой другой машине это прячет обычную установку:
+# хост пишет "No .NET SDKs were found", хотя SDK лежит в Program Files.
+$devDotnet = "D:\Dev\dotnet"
+$devGit = "D:\Dev\Git\cmd"
+if (Test-Path $devDotnet) {
+  $env:PATH = "$devDotnet;$env:PATH"
+  $env:DOTNET_ROOT = $devDotnet
+} else {
+  Remove-Item Env:\DOTNET_ROOT -ErrorAction SilentlyContinue
+}
+if (Test-Path $devGit) {
+  $env:PATH = "$devGit;$env:PATH"
+}
+
+if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+  throw "dotnet не найден. Установите .NET SDK 8 x64: https://dotnet.microsoft.com/download/dotnet/8.0"
+}
+$sdks = & dotnet --list-sdks
+if (-not $sdks) {
+  throw "Найден runtime, но не SDK. Установите .NET SDK 8 x64 и откройте PowerShell заново: https://dotnet.microsoft.com/download/dotnet/8.0"
+}
 
 if (-not $RepoRoot) {
   $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
