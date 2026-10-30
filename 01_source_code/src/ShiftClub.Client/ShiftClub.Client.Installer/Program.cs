@@ -39,7 +39,7 @@ internal sealed class InstallForm : Form
     public InstallForm()
     {
         Text = "SHIFT Club — установка клиента";
-        ClientSize = new Size(560, 460);
+        ClientSize = new Size(560, 500);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -107,10 +107,17 @@ internal sealed class InstallForm : Form
         Place(FieldLabel("Папка установки"), 18, 4);
         Place(PathRow(), 32, 12);
 
-        Place(FieldLabel("Адрес сервера (API)"), 18, 4);
-        _urlBox.Text = "http://192.168.1.250:5080";
+        Place(FieldLabel("Домен или IP сервера"), 18, 4);
+        _urlBox.Text = "shift-club.kz";
         StyleInput(_urlBox);
-        Place(_urlBox, 30, 14);
+        Place(_urlBox, 30, 4);
+        var urlHint = new Label
+        {
+            Text = "Домен, IP или полный адрес. Например: shift-club.kz, 195.49.210.17, https://клуб",
+            ForeColor = Color.FromArgb(120, 120, 128),
+            AutoSize = false
+        };
+        Place(urlHint, 36, 10);
 
         StyleCheck(_desktopShortcut);
         StyleCheck(_startup);
@@ -208,18 +215,15 @@ internal sealed class InstallForm : Form
     private async Task InstallAsync()
     {
         var target = _pathBox.Text.Trim();
-        var url = _urlBox.Text.Trim().TrimEnd('/');
         if (string.IsNullOrWhiteSpace(target))
         {
             MessageBox.Show(this, "Укажите папку установки.", "SHIFT", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        if (!ServerAddress.TryNormalize(_urlBox.Text, out var url, out var addressError))
         {
-            MessageBox.Show(this, "Укажите корректный URL сервера, например http://192.168.1.200:5080", "SHIFT",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, addressError, "SHIFT", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 

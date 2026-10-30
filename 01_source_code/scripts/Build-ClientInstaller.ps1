@@ -6,11 +6,11 @@
   .\scripts\Build-ClientInstaller.ps1
 
 .EXAMPLE
-  .\scripts\Build-ClientInstaller.ps1 -Version 0.6.27 -ServerUrl http://192.168.1.200:5080
+  .\scripts\Build-ClientInstaller.ps1 -Version 0.8.4 -ServerUrl http://shift-club.kz
 #>
 param(
   [string]$Version = "",
-  [string]$ServerUrl = "http://192.168.1.250:5080",
+  [string]$ServerUrl = "http://shift-club.kz",
   [string]$RepoRoot = "",
   [switch]$FrameworkDependent
 )
