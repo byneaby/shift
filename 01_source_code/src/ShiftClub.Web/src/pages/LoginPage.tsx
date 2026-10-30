@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch, setToken } from '../api/client'
+import { apiFetch, newIdempotencyKey, setToken } from '../api/client'
 import type { LoginResponse } from '../api/client'
 
 type StaffTicket = {
@@ -23,7 +23,7 @@ const NONCE_KEY = 'shiftclub.staffQrNonce'
 function getOrCreateNonce(): string {
   let n = sessionStorage.getItem(NONCE_KEY)
   if (!n || n.length < 16) {
-    n = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '').slice(0, 8)
+    n = (newIdempotencyKey() + newIdempotencyKey()).replace(/-/g, '')
     sessionStorage.setItem(NONCE_KEY, n)
   }
   return n
