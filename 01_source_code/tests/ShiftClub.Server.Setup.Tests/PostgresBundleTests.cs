@@ -186,6 +186,15 @@ public class PostgresBundleTests
     }
 
     [Fact]
+    public void Init_failure_text_hides_the_password()
+    {
+        var text = PostgresBundle.BriefFailure("creating directory\npassword SUPERSECRET99 rejected\n", "SUPERSECRET99");
+        Assert.Contains("creating directory", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("SUPERSECRET99", text, StringComparison.Ordinal);
+        Assert.Contains("***", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Service_check_recognizes_only_our_data_directory()
     {
         var ours = "BINARY_PATH_NAME : \"C:\\ShiftClub\\PostgreSQL\\bin\\pg_ctl.exe\" runservice -D \"C:\\ShiftClub\\PostgreSQL\\data\"";

@@ -219,6 +219,19 @@ public static class PostgresBundle
         return "PostgreSQL superuser for SHIFT Club\r\nuser=postgres\r\npassword=" + password + "\r\n";
     }
 
+    public static string BriefFailure(string? output, string secret)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+            return "";
+
+        var text = string.IsNullOrEmpty(secret) ? output : output.Replace(secret, "***", StringComparison.Ordinal);
+        var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var tail = string.Join(" ", lines.TakeLast(6)).Trim();
+        if (tail.Length > 360)
+            tail = tail[^360..];
+        return tail.Length == 0 ? "" : "\n" + tail;
+    }
+
     public static string? ReadSuperuserPassword(string fileText)
     {
         var lines = fileText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);

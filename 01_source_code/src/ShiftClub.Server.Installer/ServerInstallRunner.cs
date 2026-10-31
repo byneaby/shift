@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using ShiftClub.Server.Setup;
@@ -56,7 +57,7 @@ internal static class ServerInstallRunner
         if (answers.OpenFirewall)
         {
             report("Открываю порт в брандмауэре…");
-            if (RunCode("netsh", WindowsInstallPlan.FirewallArguments(answers.ListenPort), 120_000) != 0)
+            if (await RunCodeAsync("netsh", WindowsInstallPlan.FirewallArguments(answers.ListenPort), 120_000) != 0)
                 notes.Add($"Порт {answers.ListenPort} не удалось открыть автоматически. Разрешите его в брандмауэре Windows для частной сети.");
         }
 
@@ -65,7 +66,7 @@ internal static class ServerInstallRunner
             report("Включаю автозапуск…");
             var scriptPath = Path.Combine(dir, "register-tasks.ps1");
             await File.WriteAllTextAsync(scriptPath, WindowsInstallPlan.RegisterTasksScript(dir), new UTF8Encoding(true), cancellationToken);
-            if (RunCode("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"", 120_000) != 0)
+            if (await RunCodeAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"", 120_000) != 0)
                 notes.Add("Автозапуск не включился. Сервер можно запустить файлом Start-ShiftClubApi.ps1 из папки установки.");
             else
                 TryDelete(scriptPath);
@@ -122,7 +123,7 @@ internal static class ServerInstallRunner
                 return PostgresBundle.RebuildMessage;
         }
 
-        var (serviceExit, serviceConfig) = RunCapture("sc.exe", PostgresBundle.QueryServiceArguments(), 30_000);
+        var (serviceExit, serviceConfig) = await RunCaptureAsync("sc.exe", PostgresBundle.QueryServiceArguments(), 30_000);
         if (serviceExit == 0 && !PostgresBundle.ServicePointsAt(serviceConfig, dataDir))
             return PostgresBundle.ForeignServiceMessage;
 
@@ -130,10 +131,10 @@ internal static class ServerInstallRunner
         {
             report("Останавливаю PostgreSQL перед обновлением файлов…");
             var stopped = File.Exists(PostgresBundle.PgCtlPath)
-                ? RunCode(PostgresBundle.PgCtlPath, PostgresBundle.StopArguments(dataDir), 90_000, PostgresBundle.BinDirectory)
+                ? await RunCodeAsync(PostgresBundle.PgCtlPath, PostgresBundle.StopArguments(dataDir), 90_000, PostgresBundle.BinDirectory)
                 : -1;
             if (stopped != 0)
-                RunCode("sc.exe", "stop " + PostgresBundle.ServiceName, 60_000);
+                await RunCodeAsync("sc.exe", "stop " + PostgresBundle.ServiceName, 60_000);
             portOpen = false;
         }
 
@@ -155,7 +156,7 @@ internal static class ServerInstallRunner
         report("Ставлю Visual C++…");
         var redistPath = Path.Combine(Path.GetTempPath(), "ShiftClub-vc_redist.x64.exe");
         await WriteStreamAsync(redistStream, redistPath, cancellationToken);
-        var vc = RunCode(redistPath, PostgresBundle.VcRedistArguments, 300_000);
+        var vc = await RunCodeAsync(redistPath, PostgresBundle.VcRedistArguments, 300_000);
         TryDelete(redistPath);
         if (!PostgresBundle.IsVcRedistSuccess(vc))
             return PostgresBundle.VcFailedMessage;
@@ -185,16 +186,16 @@ internal static class ServerInstallRunner
             try
             {
                 await File.WriteAllBytesAsync(pwFile, Encoding.ASCII.GetBytes(superuserPassword + "\n"), cancellationToken);
-                report("Создаю кластер PostgreSQL…");
-                var code = RunCode(
+                report("Создаю кластер PostgreSQL. Это занимает несколько минут: антивирус проверяет новые файлы.");
+                var (code, output) = await RunCaptureAsync(
                     PostgresBundle.InitDbPath,
                     PostgresBundle.InitDbArguments(dataDir, pwFile),
-                    300_000,
+                    20 * 60 * 1000,
                     PostgresBundle.BinDirectory);
                 if (code != 0 || !PostgresBundle.IsInitialized(dataDir))
                 {
                     TryDelete(PostgresBundle.SuperuserFile);
-                    return PostgresBundle.InitFailedMessage;
+                    return PostgresBundle.InitFailedMessage + PostgresBundle.BriefFailure(output, superuserPassword);
                 }
             }
             finally
@@ -216,14 +217,14 @@ internal static class ServerInstallRunner
                 return PostgresBundle.SuperuserUnknownMessage;
         }
 
-        if (RunCode("icacls.exe", PostgresBundle.GrantServiceAccessArguments(PostgresBundle.InstallRoot, "RX"), 120_000) != 0
-            || RunCode("icacls.exe", PostgresBundle.GrantServiceAccessArguments(dataDir, "F"), 120_000) != 0)
+        if (await RunCodeAsync("icacls.exe", PostgresBundle.GrantServiceAccessArguments(PostgresBundle.InstallRoot, "RX"), 120_000) != 0
+            || await RunCodeAsync("icacls.exe", PostgresBundle.GrantServiceAccessArguments(dataDir, "F"), 120_000) != 0)
             return PostgresBundle.DataAclMessage;
-        RunCode("icacls.exe", PostgresBundle.LockdownFileArguments(PostgresBundle.SuperuserFile), 30_000);
+        await RunCodeAsync("icacls.exe", PostgresBundle.LockdownFileArguments(PostgresBundle.SuperuserFile), 30_000);
 
         if (serviceExit != 0)
         {
-            var registered = RunCode(
+            var registered = await RunCodeAsync(
                 PostgresBundle.PgCtlPath,
                 PostgresBundle.RegisterServiceArguments(dataDir, ServiceAccount()),
                 60_000,
@@ -235,8 +236,8 @@ internal static class ServerInstallRunner
         if (!portOpen)
         {
             report("Запускаю PostgreSQL…");
-            var started = RunCode(PostgresBundle.PgCtlPath, PostgresBundle.StartArguments(dataDir), 120_000, PostgresBundle.BinDirectory);
-            if (started != 0 && RunCode("sc.exe", "start " + PostgresBundle.ServiceName, 60_000) != 0)
+            var started = await RunCodeAsync(PostgresBundle.PgCtlPath, PostgresBundle.StartArguments(dataDir), 120_000, PostgresBundle.BinDirectory);
+            if (started != 0 && await RunCodeAsync("sc.exe", "start " + PostgresBundle.ServiceName, 60_000) != 0)
                 return PostgresBundle.StartFailedMessage;
         }
 
@@ -335,20 +336,32 @@ internal static class ServerInstallRunner
         stream.CopyTo(output);
     }
 
+    private static Task<int> RunCodeAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
+        Task.Run(() => RunCode(file, arguments, timeoutMs, workingDirectory));
+
+    private static Task<(int ExitCode, string Output)> RunCaptureAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
+        Task.Run(() => RunCapture(file, arguments, timeoutMs, workingDirectory));
+
     private static int RunCode(string file, string arguments, int timeoutMs, string? workingDirectory = null)
     {
         var (code, _) = RunCapture(file, arguments, timeoutMs, workingDirectory);
         return code;
     }
 
+    [DllImport("kernel32.dll")]
+    private static extern uint SetErrorMode(uint uMode);
+
     private static (int ExitCode, string Output) RunCapture(string file, string arguments, int timeoutMs, string? workingDirectory = null)
     {
         try
         {
+            // A missing Visual C++ DLL must fail the process. A hidden dialog would freeze the wizard.
+            SetErrorMode(0x0001 | 0x0002 | 0x8000);
             var info = new ProcessStartInfo(file, arguments)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             };
@@ -362,24 +375,31 @@ internal static class ServerInstallRunner
             if (process is null)
                 return (-1, "");
 
-            var output = new StringBuilder();
-            process.OutputDataReceived += (_, e) => { if (e.Data is not null) output.AppendLine(e.Data); };
-            process.ErrorDataReceived += (_, e) => { if (e.Data is not null) output.AppendLine(e.Data); };
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            process.StandardInput.Close();
+            var stdout = Task.Run(() => process.StandardOutput.ReadToEnd());
+            var stderr = Task.Run(() => process.StandardError.ReadToEnd());
             if (!process.WaitForExit(timeoutMs))
             {
                 try { process.Kill(entireProcessTree: true); } catch { /* already gone */ }
-                return (-1, "");
+                try { Task.WaitAll(new[] { stdout, stderr }, 2000); } catch { /* pipes closed with the process */ }
+                return (-1, ReadFinished(stdout) + ReadFinished(stderr));
             }
 
             process.WaitForExit();
-            return (process.ExitCode, output.ToString());
+            Task.WaitAll(stdout, stderr);
+            return (process.ExitCode, stdout.Result + stderr.Result);
         }
         catch
         {
             return (-1, "");
         }
+    }
+
+    private static string ReadFinished(Task<string> read)
+    {
+        if (!read.IsCompletedSuccessfully)
+            return "";
+        return read.Result ?? "";
     }
 
     private static void TryDelete(string path)
