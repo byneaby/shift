@@ -69,6 +69,7 @@ src/ShiftClub.Server/data/license-key.txt
 src/ShiftClub.Server/data/license-lease.txt
 src/ShiftClub.Server/data/license-machine.id
 
-# Archives
+# Archives and installer payloads (downloaded by Build-ServerInstaller.ps1, not committed)
 *.zip
 *.7z
+src/ShiftClub.Server.Installer/payload/*.exe

@@ -1,4 +1,4 @@
-# Start SHIFT Club API (Production) with Postgres wait + crash restart.
+﻿# Start SHIFT Club API (Production) with Postgres wait + crash restart.
 # Canonical install: C:\ShiftClub\Server
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -27,14 +27,19 @@ function Test-TcpPort([string]$hostName, [int]$port, [int]$timeoutMs = 1500) {
   }
 }
 
-function Wait-PostgresReady([int]$maxSeconds = 180) {
+function Wait-PostgresReady([string]$dbHost, [int]$dbPort, [int]$maxSeconds = 180) {
   $deadline = (Get-Date).AddSeconds($maxSeconds)
-  $pgIsReady = 'C:\Program Files\PostgreSQL\18\bin\pg_isready.exe'
+  $pgIsReady = @(
+    'C:\ShiftClub\PostgreSQL\bin\pg_isready.exe',
+    'C:\Program Files\PostgreSQL\18\bin\pg_isready.exe',
+    'C:\Program Files\PostgreSQL\17\bin\pg_isready.exe',
+    'C:\Program Files\PostgreSQL\16\bin\pg_isready.exe'
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
   while ((Get-Date) -lt $deadline) {
-    if (Test-Path $pgIsReady) {
-      & $pgIsReady -h 127.0.0.1 -p 5432 2>$null | Out-Null
+    if ($pgIsReady) {
+      & $pgIsReady -h $dbHost -p $dbPort 2>$null | Out-Null
       if ($LASTEXITCODE -eq 0) { return $true }
-    } elseif (Test-TcpPort '127.0.0.1' 5432) {
+    } elseif (Test-TcpPort $dbHost $dbPort) {
       return $true
     }
     Start-Sleep -Seconds 2
@@ -43,9 +48,9 @@ function Wait-PostgresReady([int]$maxSeconds = 180) {
 }
 
 $env:ASPNETCORE_ENVIRONMENT = 'Production'
-$env:ASPNETCORE_URLS = 'http://0.0.0.0:5080'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_NOLOGO = '1'
+$listen = 'http://0.0.0.0:5080'
 
 $dotnetRootCandidates = @(
   'C:\ShiftClub\dotnet',
@@ -86,9 +91,19 @@ if (-not $env:Jwt__SigningKey) {
   throw 'Jwt__SigningKey is not set. Create secrets.env from secrets.env.example'
 }
 
-Write-BootLog 'Waiting for PostgreSQL on 127.0.0.1:5432...'
-if (-not (Wait-PostgresReady 180)) {
-  throw 'PostgreSQL not ready after 180s'
+if ($env:Kestrel__Endpoints__Http__Url) {
+  $listen = $env:Kestrel__Endpoints__Http__Url.Trim()
+}
+$env:ASPNETCORE_URLS = $listen
+$env:Kestrel__Endpoints__Http__Url = $listen
+
+$dbHost = if ($env:Database__Host) { $env:Database__Host.Trim() } else { '127.0.0.1' }
+$dbPort = 5432
+if ($env:Database__Port -match '^\d+$') { $dbPort = [int]$env:Database__Port }
+
+Write-BootLog "Waiting for PostgreSQL on ${dbHost}:${dbPort}..."
+if (-not (Wait-PostgresReady $dbHost $dbPort 180)) {
+  throw "PostgreSQL not ready after 180s (${dbHost}:${dbPort})"
 }
 Write-BootLog 'PostgreSQL is ready'
 
@@ -102,11 +117,11 @@ while ($true) {
   try {
     if ($dotnetExe -and (Test-Path $dll)) {
       Write-BootLog "Starting API attempt=$attempt via $dotnetExe"
-      & $dotnetExe $dll --urls http://0.0.0.0:5080
+      & $dotnetExe $dll --urls $listen
       $code = $LASTEXITCODE
     } elseif (Test-Path $exe) {
       Write-BootLog "Starting API attempt=$attempt via $exe"
-      & $exe --urls http://0.0.0.0:5080
+      & $exe --urls $listen
       $code = $LASTEXITCODE
     } else {
       throw "Neither dotnet+dll nor ShiftClub.Server.exe found under $PSScriptRoot"
@@ -118,8 +133,8 @@ while ($true) {
   Start-Sleep -Seconds $restartDelaySec
   if ($restartDelaySec -lt 60) { $restartDelaySec = [Math]::Min(60, $restartDelaySec * 2) }
 
-  if (-not (Wait-PostgresReady 60)) {
+  if (-not (Wait-PostgresReady $dbHost $dbPort 60)) {
     Write-BootLog 'PostgreSQL not ready during restart wait - keep waiting'
-    [void](Wait-PostgresReady 300)
+    [void](Wait-PostgresReady $dbHost $dbPort 300)
   }
 }

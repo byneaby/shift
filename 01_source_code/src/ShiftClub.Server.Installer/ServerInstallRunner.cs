@@ -1,0 +1,479 @@
+using System.Diagnostics;
+using System.IO.Compression;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
+using System.Text;
+using ShiftClub.Server.Setup;
+
+namespace ShiftClub.Server.Installer;
+
+internal sealed record InstallOutcome(bool Ok, string Message);
+
+internal static class ServerInstallRunner
+{
+    public static PreflightPlan Inspect(ServerSetupAnswers answers) =>
+        InstallPreflight.Evaluate(MachineProbe.Collect(answers).Snapshot);
+
+    internal static (int ExitCode, string Output) RunVisible(string file, string arguments, int timeoutMs) =>
+        RunCapture(file, arguments, timeoutMs);
+
+    public static async Task<InstallOutcome> RunAsync(ServerSetupAnswers answers, Action<string> report, CancellationToken cancellationToken)
+    {
+        var dir = answers.InstallDirectory.Trim().TrimEnd('\\');
+        var secretsPath = Path.Combine(dir, "secrets.env");
+        var secretsExist = File.Exists(secretsPath);
+        var errors = ServerSetupValidator.Validate(answers, secretsExist);
+        if (errors.Count > 0)
+            return new InstallOutcome(false, string.Join(Environment.NewLine, errors));
+
+        report("Проверяю, что уже установлено и что запущено…");
+        var probe = MachineProbe.Collect(answers);
+        var plan = InstallPreflight.Evaluate(probe.Snapshot);
+        report(plan.Text);
+        if (!plan.CanInstall)
+            return new InstallOutcome(false, plan.Text);
+
+        if (probe.ProcessIdsToClose.Count > 0 || probe.Snapshot.ShiftTasksExist || probe.Snapshot.OurPostgresServiceRunning)
+        {
+            report("Закрываю программы SHIFT, которые мешают копированию…");
+            var closed = await StopBlockersAsync(probe, cancellationToken);
+            if (closed is not null)
+                return new InstallOutcome(false, closed);
+        }
+
+        report("Создаю папку сервера…");
+        Directory.CreateDirectory(dir);
+
+        report("Копирую файлы сервера…");
+        var copied = ExtractPayload(dir);
+        WriteScript(dir, "script.Start-ShiftClubApi.ps1", "Start-ShiftClubApi.ps1");
+        WriteScript(dir, "script.Watch-ShiftClubApi.ps1", "Watch-ShiftClubApi.ps1");
+        if (!copied && !File.Exists(Path.Combine(dir, "ShiftClub.Server.dll")) && !File.Exists(Path.Combine(dir, "ShiftClub.Server.exe")))
+        {
+            return new InstallOutcome(false,
+                "В этом установщике нет файлов сервера. Соберите его скриптом Build-ServerInstaller.ps1 — получится ShiftClub.Server.Setup.exe с сервером внутри.");
+        }
+
+        var notes = new List<string>();
+        if (answers.InstallBundledPostgres)
+        {
+            var postgresError = await InstallPostgresAsync(answers, report, notes, cancellationToken);
+            if (postgresError is not null)
+                return new InstallOutcome(false, postgresError);
+        }
+
+        report(answers.CreateDatabase ? "Создаю базу…" : "Проверяю базу…");
+        var dbError = answers.CreateDatabase
+            ? await DatabaseSetup.EnsureDatabaseAsync(answers, cancellationToken)
+            : await DatabaseSetup.TryConnectAsync(ServerSecrets.AppConnectionString(answers), cancellationToken);
+        if (dbError is not null)
+            return new InstallOutcome(false, dbError);
+
+        report("Записываю настройки…");
+        var secrets = ServerSecrets.Render(answers, ServerSecrets.CreateJwtKey(), ServerSecrets.CreateHiringPin());
+        await File.WriteAllTextAsync(secretsPath, secrets, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), cancellationToken);
+
+        if (answers.OpenFirewall)
+        {
+            report("Открываю порт в брандмауэре…");
+            if (await RunCodeAsync("netsh", WindowsInstallPlan.FirewallArguments(answers.ListenPort), 120_000) != 0)
+                notes.Add($"Порт {answers.ListenPort} не удалось открыть автоматически. Разрешите его в брандмауэре Windows для частной сети.");
+        }
+
+        if (answers.StartWithWindows)
+        {
+            report("Включаю автозапуск…");
+            var scriptPath = Path.Combine(dir, "register-tasks.ps1");
+            await File.WriteAllTextAsync(scriptPath, WindowsInstallPlan.RegisterTasksScript(dir), new UTF8Encoding(true), cancellationToken);
+            if (await RunCodeAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"", 120_000) != 0)
+                notes.Add("Автозапуск не включился. Сервер можно запустить файлом Start-ShiftClubApi.ps1 из папки установки.");
+            else
+                TryDelete(scriptPath);
+        }
+        else
+        {
+            await RunCodeAsync("schtasks.exe", "/Delete /TN ShiftClubApi /F", 15_000);
+            await RunCodeAsync("schtasks.exe", "/Delete /TN ShiftClubApiWatchdog /F", 15_000);
+        }
+
+        var done = new StringBuilder();
+        done.AppendLine("Сервер установлен.");
+        done.AppendLine(WindowsInstallPlan.PanelHint(answers.ListenPort));
+        done.AppendLine($"Логин владельца: {answers.OwnerLogin.Trim()}");
+        done.Append(answers.LicenseLater
+            ? "Ключ лицензии не записан. При открытии панели сервер попросит его."
+            : "Ключ лицензии записан. Если центр лицензий доступен, зал включится сам.");
+        if (answers.InstallBundledPostgres)
+        {
+            done.AppendLine();
+            done.Append(PostgresBundle.SuperuserSavedMessage);
+        }
+        if (notes.Count > 0)
+        {
+            done.AppendLine();
+            done.AppendLine();
+            done.Append(string.Join(Environment.NewLine, notes));
+        }
+        return new InstallOutcome(true, done.ToString());
+    }
+
+    private static async Task<string?> StopBlockersAsync(MachineProbe probe, CancellationToken cancellationToken)
+    {
+        foreach (var name in new[] { "ShiftClubApi", "ShiftClubApiWatchdog" })
+        {
+            await RunCodeAsync("schtasks.exe", $"/End /TN {name}", 15_000);
+            await RunCodeAsync("schtasks.exe", $"/Change /TN {name} /DISABLE", 15_000);
+        }
+
+        foreach (var pid in probe.ProcessIdsToClose)
+            await RunCodeAsync("taskkill.exe", $"/F /T /PID {pid}", 20_000);
+
+        if (probe.Snapshot.OurPostgresServiceRunning || (probe.Snapshot.PostgresServiceInstalled && probe.Snapshot.PostgresServiceIsOurs))
+            await RunCodeAsync("sc.exe", "stop " + PostgresBundle.ServiceName, 30_000);
+
+        if (probe.Snapshot.DatabasePortOpen && probe.Snapshot.PostgresDataInitialized)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(25);
+            while (DateTime.UtcNow < deadline && await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken))
+                await Task.Delay(500, cancellationToken);
+            if (await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken))
+                return "Служба PostgreSQL SHIFT не остановилась. Закройте postgres.exe в диспетчере задач и запустите установщик снова.";
+        }
+
+        await Task.Delay(1000, cancellationToken);
+        return null;
+    }
+
+    private static async Task<string?> InstallPostgresAsync(
+        ServerSetupAnswers answers,
+        Action<string> report,
+        List<string> notes,
+        CancellationToken cancellationToken)
+    {
+        report("Ставлю PostgreSQL 16…");
+        await using var zipStream = OpenPayload(PostgresBundle.ZipResourceName);
+        await using var redistStream = OpenPayload(PostgresBundle.VcRedistResourceName);
+        if (zipStream is null || redistStream is null)
+            return PostgresBundle.RebuildMessage;
+
+        var dataDir = PostgresBundle.DataDirectory;
+        var initialized = PostgresBundle.IsInitialized(dataDir);
+        var portOpen = await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken);
+        var decision = PostgresBundle.Decide(
+            payloadPresent: true,
+            portOpen,
+            initialized,
+            superuserFileExists: File.Exists(PostgresBundle.SuperuserFile));
+        switch (decision)
+        {
+            case PostgresBundle.Decision.PortTaken:
+                return PostgresBundle.PortTakenMessage;
+            case PostgresBundle.Decision.SuperuserUnknown:
+                return PostgresBundle.SuperuserUnknownMessage;
+            case PostgresBundle.Decision.PayloadMissing:
+                return PostgresBundle.RebuildMessage;
+        }
+
+        var (serviceExit, serviceConfig) = await RunCaptureAsync("sc.exe", PostgresBundle.QueryServiceArguments(), 30_000);
+        if (serviceExit == 0 && !PostgresBundle.ServicePointsAt(serviceConfig, dataDir))
+            return PostgresBundle.ForeignServiceMessage;
+
+        if (decision == PostgresBundle.Decision.Reuse && portOpen)
+        {
+            report("Останавливаю PostgreSQL перед обновлением файлов…");
+            var stopped = File.Exists(PostgresBundle.PgCtlPath)
+                ? await RunCodeAsync(PostgresBundle.PgCtlPath, PostgresBundle.StopArguments(dataDir), 90_000, PostgresBundle.BinDirectory)
+                : -1;
+            if (stopped != 0)
+                await RunCodeAsync("sc.exe", "stop " + PostgresBundle.ServiceName, 60_000);
+        }
+
+        Directory.CreateDirectory(PostgresBundle.InstallRoot);
+        var zipPath = Path.Combine(PostgresBundle.InstallRoot, "_binaries.zip");
+        try
+        {
+            report("Копирую файлы PostgreSQL…");
+            await WriteStreamAsync(zipStream, zipPath, cancellationToken);
+            using var zip = ZipFile.OpenRead(zipPath);
+            if (PostgresBundle.ExtractBinaries(zip, PostgresBundle.InstallRoot) == 0)
+                return PostgresBundle.InitFailedMessage;
+        }
+        finally
+        {
+            TryDelete(zipPath);
+        }
+
+        report("Ставлю Visual C++…");
+        var redistPath = Path.Combine(Path.GetTempPath(), "ShiftClub-vc_redist.x64.exe");
+        await WriteStreamAsync(redistStream, redistPath, cancellationToken);
+        var vc = await RunCodeAsync(redistPath, PostgresBundle.VcRedistArguments, 300_000);
+        TryDelete(redistPath);
+        if (!PostgresBundle.IsVcRedistSuccess(vc))
+            return PostgresBundle.VcFailedMessage;
+        if (PostgresBundle.NeedsReboot(vc))
+            notes.Add(PostgresBundle.RebootMessage);
+
+        if (!File.Exists(PostgresBundle.InitDbPath) || !File.Exists(PostgresBundle.PgCtlPath))
+            return PostgresBundle.InitFailedMessage;
+
+        string superuserPassword;
+        if (decision == PostgresBundle.Decision.Initialize)
+        {
+            if (Directory.Exists(dataDir))
+                Directory.Delete(dataDir, recursive: true);
+
+            superuserPassword = PostgresBundle.CreatePassword();
+            while (superuserPassword == answers.OwnerPassword)
+                superuserPassword = PostgresBundle.CreatePassword();
+
+            await File.WriteAllTextAsync(
+                PostgresBundle.SuperuserFile,
+                PostgresBundle.FormatSuperuserFile(superuserPassword),
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                cancellationToken);
+
+            var pwFile = Path.Combine(PostgresBundle.InstallRoot, "_pwfile.tmp");
+            try
+            {
+                await File.WriteAllBytesAsync(pwFile, Encoding.ASCII.GetBytes(superuserPassword + "\n"), cancellationToken);
+                report("Создаю кластер PostgreSQL. Это занимает несколько минут: антивирус проверяет новые файлы.");
+                var (code, output) = await RunCaptureAsync(
+                    PostgresBundle.InitDbPath,
+                    PostgresBundle.InitDbArguments(dataDir, pwFile),
+                    20 * 60 * 1000,
+                    PostgresBundle.BinDirectory);
+                if (code != 0 || !PostgresBundle.IsInitialized(dataDir))
+                {
+                    TryDelete(PostgresBundle.SuperuserFile);
+                    return PostgresBundle.InitFailedMessage + PostgresBundle.BriefFailure(output, superuserPassword);
+                }
+            }
+            finally
+            {
+                TryDelete(pwFile);
+            }
+
+            var confPath = Path.Combine(dataDir, "postgresql.conf");
+            var conf = await File.ReadAllTextAsync(confPath, cancellationToken);
+            var updated = PostgresBundle.EnsureListenLocal(conf);
+            if (!string.Equals(conf, updated, StringComparison.Ordinal))
+                await File.WriteAllTextAsync(confPath, updated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), cancellationToken);
+        }
+        else
+        {
+            superuserPassword = PostgresBundle.ReadSuperuserPassword(
+                await File.ReadAllTextAsync(PostgresBundle.SuperuserFile, cancellationToken)) ?? "";
+            if (superuserPassword.Length < 8)
+                return PostgresBundle.SuperuserUnknownMessage;
+        }
+
+        if (await RunCodeAsync("icacls.exe", PostgresBundle.GrantServiceAccessArguments(PostgresBundle.InstallRoot, "RX"), 120_000) != 0
+            || await RunCodeAsync("icacls.exe", PostgresBundle.GrantServiceAccessArguments(dataDir, "F"), 120_000) != 0)
+            return PostgresBundle.DataAclMessage;
+        await RunCodeAsync("icacls.exe", PostgresBundle.LockdownFileArguments(PostgresBundle.SuperuserFile), 30_000);
+
+        if (serviceExit != 0)
+        {
+            var registered = await RunCodeAsync(
+                PostgresBundle.PgCtlPath,
+                PostgresBundle.RegisterServiceArguments(dataDir, ServiceAccount()),
+                60_000,
+                PostgresBundle.BinDirectory);
+            if (registered != 0)
+                return PostgresBundle.StartFailedMessage;
+        }
+
+        // The port flag from the start of this method is stale: the service may already
+        // be running. Ask the port again, then the service. Do not wait inside pg_ctl.
+        if (!await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken))
+        {
+            report("Запускаю PostgreSQL…");
+            var started = await RunCodeAsync("sc.exe", PostgresBundle.StartServiceArguments(), 60_000);
+            if (!PostgresBundle.IsServiceStartSuccess(started))
+            {
+                await RunCodeAsync(
+                    PostgresBundle.PgCtlPath,
+                    PostgresBundle.StartArguments(dataDir),
+                    30_000,
+                    PostgresBundle.BinDirectory);
+            }
+
+            report("Жду, пока PostgreSQL откроет порт 5432…");
+            if (!await WaitForPortAsync("127.0.0.1", PostgresBundle.Port, TimeSpan.FromSeconds(90), cancellationToken))
+                return PostgresBundle.StartFailedMessage;
+        }
+
+        PostgresBundle.AssignRuntimeSecrets(answers, superuserPassword);
+        return null;
+    }
+
+    private static string ServiceAccount()
+    {
+        try
+        {
+            return new SecurityIdentifier("S-1-5-20").Translate(typeof(NTAccount)).Value;
+        }
+        catch
+        {
+            return @"NT AUTHORITY\NETWORK SERVICE";
+        }
+    }
+
+    private static async Task<bool> WaitForPortAsync(string host, int port, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (await IsPortOpenAsync(host, port, cancellationToken))
+                return true;
+            await Task.Delay(500, cancellationToken);
+        }
+        return false;
+    }
+
+    private static async Task<bool> IsPortOpenAsync(string host, int port, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var client = new TcpClient();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(2));
+            await client.ConnectAsync(host, port, timeout.Token);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool ExtractPayload(string dir)
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        using var stream = asm.GetManifestResourceStream("payload.server.zip");
+        if (stream is null)
+            return false;
+
+        using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+        foreach (var entry in zip.Entries)
+        {
+            if (string.IsNullOrEmpty(entry.Name))
+                continue;
+            if (WindowsInstallPlan.ShouldSkipExtract(entry.FullName))
+                continue;
+
+            var relative = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+            var dest = Path.GetFullPath(Path.Combine(dir, relative));
+            var root = Path.GetFullPath(dir + Path.DirectorySeparatorChar);
+            if (!dest.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            entry.ExtractToFile(dest, overwrite: true);
+        }
+        return true;
+    }
+
+    private static Stream? OpenPayload(string name) =>
+        Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
+
+    private static async Task WriteStreamAsync(Stream source, string path, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using var output = File.Create(path);
+        await source.CopyToAsync(output, cancellationToken);
+    }
+
+    private static void WriteScript(string dir, string resourceName, string fileName)
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        using var stream = asm.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"В установщике нет файла {fileName}.");
+        var dest = Path.Combine(dir, fileName);
+        using var output = File.Create(dest);
+        stream.CopyTo(output);
+    }
+
+    private static Task<int> RunCodeAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
+        Task.Run(() => RunCode(file, arguments, timeoutMs, workingDirectory));
+
+    private static Task<(int ExitCode, string Output)> RunCaptureAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
+        Task.Run(() => RunCapture(file, arguments, timeoutMs, workingDirectory));
+
+    private static int RunCode(string file, string arguments, int timeoutMs, string? workingDirectory = null)
+    {
+        var (code, _) = RunCapture(file, arguments, timeoutMs, workingDirectory);
+        return code;
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern uint SetErrorMode(uint uMode);
+
+    private static (int ExitCode, string Output) RunCapture(string file, string arguments, int timeoutMs, string? workingDirectory = null)
+    {
+        try
+        {
+            // A missing Visual C++ DLL must fail the process. A hidden dialog would freeze the wizard.
+            SetErrorMode(0x0001 | 0x0002 | 0x8000);
+            var info = new ProcessStartInfo(file, arguments)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            if (!string.IsNullOrEmpty(workingDirectory))
+            {
+                info.WorkingDirectory = workingDirectory;
+                info.Environment["PATH"] = workingDirectory + Path.PathSeparator + (Environment.GetEnvironmentVariable("PATH") ?? "");
+            }
+
+            using var process = Process.Start(info);
+            if (process is null)
+                return (-1, "");
+
+            process.StandardInput.Close();
+            var stdout = Task.Run(() => ReadPipe(process.StandardOutput));
+            var stderr = Task.Run(() => ReadPipe(process.StandardError));
+            if (!process.WaitForExit(timeoutMs))
+            {
+                try { process.Kill(entireProcessTree: true); } catch { /* already gone */ }
+                try { Task.WaitAll(new[] { stdout, stderr }, 2000); } catch { /* pipes closed with the process */ }
+                return (-1, ReadFinished(stdout) + ReadFinished(stderr));
+            }
+
+            process.WaitForExit();
+            // pg_ctl start leaves postgres running. Those processes keep the pipes
+            // open, and ReadToEnd would then wait forever after the server is up.
+            if (!Task.WaitAll(new[] { stdout, stderr }, 5000))
+                return (process.ExitCode, ReadFinished(stdout) + ReadFinished(stderr));
+            return (process.ExitCode, stdout.Result + stderr.Result);
+        }
+        catch
+        {
+            return (-1, "");
+        }
+    }
+
+    private static string ReadPipe(StreamReader reader)
+    {
+        try { return reader.ReadToEnd(); }
+        catch { return ""; }
+    }
+
+    private static string ReadFinished(Task<string> read)
+    {
+        if (!read.IsCompletedSuccessfully)
+            return "";
+        return read.Result ?? "";
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { File.Delete(path); } catch { /* retry on the next run */ }
+    }
+}
