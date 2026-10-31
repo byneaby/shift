@@ -169,8 +169,18 @@ public static class PostgresBundle
         return $"register -N {ServiceName} -D \"{dataDirectory}\" -S auto -U \"{serviceAccount}\" -o \"-c listen_addresses=localhost -c port={Port}\"";
     }
 
+    /// <summary>
+    /// -W does not wait. pg_ctl -w stays inside the process after the server is up,
+    /// and the postmaster inherits the redirected output pipes, so the wizard never moves on.
+    /// The installer starts the Windows service and polls port 5432 itself.
+    /// </summary>
     public static string StartArguments(string dataDirectory) =>
-        $"start -D \"{dataDirectory}\" -w -t 60";
+        $"start -D \"{dataDirectory}\" -W";
+
+    public static string StartServiceArguments() => $"start {ServiceName}";
+
+    /// <summary>0 is started. 1056 is ERROR_SERVICE_ALREADY_RUNNING.</summary>
+    public static bool IsServiceStartSuccess(int exitCode) => exitCode is 0 or 1056;
 
     public static string StopArguments(string dataDirectory) =>
         $"stop -D \"{dataDirectory}\" -m fast -t 60";

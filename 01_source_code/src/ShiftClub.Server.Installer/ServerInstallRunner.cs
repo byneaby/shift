@@ -188,7 +188,6 @@ internal static class ServerInstallRunner
                 : -1;
             if (stopped != 0)
                 await RunCodeAsync("sc.exe", "stop " + PostgresBundle.ServiceName, 60_000);
-            portOpen = false;
         }
 
         Directory.CreateDirectory(PostgresBundle.InstallRoot);
@@ -286,16 +285,25 @@ internal static class ServerInstallRunner
                 return PostgresBundle.StartFailedMessage;
         }
 
-        if (!portOpen)
+        // The port flag from the start of this method is stale: the service may already
+        // be running. Ask the port again, then the service. Do not wait inside pg_ctl.
+        if (!await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken))
         {
             report("Запускаю PostgreSQL…");
-            var started = await RunCodeAsync(PostgresBundle.PgCtlPath, PostgresBundle.StartArguments(dataDir), 120_000, PostgresBundle.BinDirectory);
-            if (started != 0 && await RunCodeAsync("sc.exe", "start " + PostgresBundle.ServiceName, 60_000) != 0)
+            var started = await RunCodeAsync("sc.exe", PostgresBundle.StartServiceArguments(), 60_000);
+            if (!PostgresBundle.IsServiceStartSuccess(started))
+            {
+                await RunCodeAsync(
+                    PostgresBundle.PgCtlPath,
+                    PostgresBundle.StartArguments(dataDir),
+                    30_000,
+                    PostgresBundle.BinDirectory);
+            }
+
+            report("Жду, пока PostgreSQL откроет порт 5432…");
+            if (!await WaitForPortAsync("127.0.0.1", PostgresBundle.Port, TimeSpan.FromSeconds(90), cancellationToken))
                 return PostgresBundle.StartFailedMessage;
         }
-
-        if (!await WaitForPortAsync("127.0.0.1", PostgresBundle.Port, TimeSpan.FromSeconds(90), cancellationToken))
-            return PostgresBundle.StartFailedMessage;
 
         PostgresBundle.AssignRuntimeSecrets(answers, superuserPassword);
         return null;
@@ -429,8 +437,8 @@ internal static class ServerInstallRunner
                 return (-1, "");
 
             process.StandardInput.Close();
-            var stdout = Task.Run(() => process.StandardOutput.ReadToEnd());
-            var stderr = Task.Run(() => process.StandardError.ReadToEnd());
+            var stdout = Task.Run(() => ReadPipe(process.StandardOutput));
+            var stderr = Task.Run(() => ReadPipe(process.StandardError));
             if (!process.WaitForExit(timeoutMs))
             {
                 try { process.Kill(entireProcessTree: true); } catch { /* already gone */ }
@@ -439,13 +447,22 @@ internal static class ServerInstallRunner
             }
 
             process.WaitForExit();
-            Task.WaitAll(stdout, stderr);
+            // pg_ctl start leaves postgres running. Those processes keep the pipes
+            // open, and ReadToEnd would then wait forever after the server is up.
+            if (!Task.WaitAll(new[] { stdout, stderr }, 5000))
+                return (process.ExitCode, ReadFinished(stdout) + ReadFinished(stderr));
             return (process.ExitCode, stdout.Result + stderr.Result);
         }
         catch
         {
             return (-1, "");
         }
+    }
+
+    private static string ReadPipe(StreamReader reader)
+    {
+        try { return reader.ReadToEnd(); }
+        catch { return ""; }
     }
 
     private static string ReadFinished(Task<string> read)

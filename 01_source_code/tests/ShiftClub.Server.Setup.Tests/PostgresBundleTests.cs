@@ -96,7 +96,12 @@ public class PostgresBundleTests
         Assert.Contains(pwFile, init, StringComparison.Ordinal);
         Assert.Contains("listen_addresses=localhost", register, StringComparison.Ordinal);
         Assert.Contains(PostgresBundle.ServiceName, register, StringComparison.Ordinal);
-        Assert.Contains("-w -t 60", start, StringComparison.Ordinal);
+        Assert.Contains("-W", start, StringComparison.Ordinal);
+        Assert.DoesNotContain("-w", start, StringComparison.Ordinal);
+        Assert.Equal("start " + PostgresBundle.ServiceName, PostgresBundle.StartServiceArguments());
+        Assert.True(PostgresBundle.IsServiceStartSuccess(0));
+        Assert.True(PostgresBundle.IsServiceStartSuccess(1056));
+        Assert.False(PostgresBundle.IsServiceStartSuccess(1060));
         Assert.Contains("-m fast", PostgresBundle.StopArguments(data), StringComparison.Ordinal);
         Assert.Contains("*S-1-5-20:(OI)(CI)F", acl, StringComparison.Ordinal);
         Assert.Contains("*S-1-5-32-544:F", PostgresBundle.LockdownFileArguments(PostgresBundle.SuperuserFile), StringComparison.Ordinal);
