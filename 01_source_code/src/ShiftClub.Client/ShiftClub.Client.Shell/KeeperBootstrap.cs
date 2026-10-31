@@ -66,7 +66,9 @@ internal static class KeeperBootstrap
             if (string.IsNullOrWhiteSpace(startup))
                 return;
 
-            var lnk = Path.Combine(startup, "SHIFT Club Keeper.lnk");
+            var legacy = Path.Combine(startup, "SHIFT Club Keeper.lnk");
+            try { if (File.Exists(legacy)) File.Delete(legacy); } catch { /* old shortcut */ }
+            var lnk = Path.Combine(startup, "Club Keeper.lnk");
             if (File.Exists(lnk))
                 return;
 

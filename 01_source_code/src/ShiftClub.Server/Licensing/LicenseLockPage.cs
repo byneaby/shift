@@ -4,16 +4,17 @@ namespace ShiftClub.Server.Licensing;
 
 public static class LicenseLockPage
 {
-    public static string Html(string message)
+    public static string Html(string message, string? clubName = null)
     {
         var safe = WebUtility.HtmlEncode(message);
+        var title = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(clubName) ? "Сервер" : clubName.Trim());
         return $$"""
             <!DOCTYPE html>
             <html lang="ru">
             <head>
               <meta charset="utf-8" />
               <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>SHIFT — лицензия</title>
+              <title>{{title}} — лицензия</title>
               <style>
                 body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #121612; color: #e7f0e2; font: 17px/1.45 "Segoe UI", sans-serif; }
                 main { width: min(520px, calc(100% - 32px)); }
@@ -29,7 +30,7 @@ public static class LicenseLockPage
             </head>
             <body>
               <main>
-                <h1>SHIFT <span>остановлен</span></h1>
+                <h1>{{title}} <span>остановлен</span></h1>
                 <p>{{safe}}</p>
                 <p>Касса, новые сессии и клиентские ПК не работают. База клуба на месте. Вставьте новый ключ — зал включится без переустановки.</p>
                 <form id="form">

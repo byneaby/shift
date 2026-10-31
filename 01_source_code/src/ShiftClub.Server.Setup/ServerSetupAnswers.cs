@@ -8,6 +8,11 @@ public sealed class ServerSetupAnswers
 {
     public string InstallDirectory { get; set; } = @"C:\ShiftClub\Server";
 
+    public string ClubName { get; set; } = "";
+
+    /// <summary>Absolute path of a png/jpg/webp/gif chosen in the wizard. Empty means no logo.</summary>
+    public string LogoPath { get; set; } = "";
+
     public int ListenPort { get; set; } = 5080;
 
     public bool OpenFirewall { get; set; } = true;

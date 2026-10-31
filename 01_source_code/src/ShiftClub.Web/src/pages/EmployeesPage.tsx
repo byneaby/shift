@@ -590,7 +590,7 @@ export function EmployeesPage() {
           <h1>Сотрудники</h1>
           <p className="muted" style={{ margin: '6px 0 0' }}>
             Команда клуба, доступы и журнал действий. Портал смен сотрудников:{' '}
-            <a href="/work" target="_blank" rel="noreferrer">shift-club.kz/work</a>
+            <a href="/work" target="_blank" rel="noreferrer">портал смен</a>
           </p>
         </div>
         <div className="page-head-meta">

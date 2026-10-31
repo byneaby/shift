@@ -89,13 +89,14 @@ public class ServerSetupTests
     public void Install_plan_does_not_include_passwords_and_skips_live_data()
     {
         var answers = Sample();
-        var script = WindowsInstallPlan.RegisterTasksScript(answers.InstallDirectory);
+        var script = WindowsInstallPlan.RegisterTasksScript(answers.InstallDirectory, answers.ClubName);
         Assert.Contains(@"C:\ShiftClub\Server\Start-ShiftClubApi.ps1", script, StringComparison.Ordinal);
         Assert.DoesNotContain(answers.OwnerPassword, script, StringComparison.Ordinal);
         Assert.DoesNotContain(answers.DatabasePassword, script, StringComparison.Ordinal);
         Assert.DoesNotContain(answers.PostgresAdminPassword, script, StringComparison.Ordinal);
 
-        Assert.Contains("localport=5080", WindowsInstallPlan.FirewallArguments(5080), StringComparison.Ordinal);
+        Assert.Contains("localport=5080", WindowsInstallPlan.FirewallArguments(answers.ClubName, 5080), StringComparison.Ordinal);
+        Assert.Contains(answers.ClubName, WindowsInstallPlan.FirewallArguments(answers.ClubName, 5080), StringComparison.Ordinal);
         Assert.True(WindowsInstallPlan.ShouldSkipExtract("secrets.env"));
         Assert.True(WindowsInstallPlan.ShouldSkipExtract("data/license-key.txt"));
         Assert.True(WindowsInstallPlan.ShouldSkipExtract(@"logs\startup.log"));
@@ -104,6 +105,8 @@ public class ServerSetupTests
 
         var summary = string.Join("\n", WindowsInstallPlan.Summary(answers).Select(row => row.Label + "=" + row.Value));
         Assert.Contains("owner", summary, StringComparison.Ordinal);
+        Assert.Contains(answers.ClubName, summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("shift-club.kz", summary, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(answers.OwnerPassword, summary, StringComparison.Ordinal);
         Assert.DoesNotContain(answers.PostgresAdminPassword, summary, StringComparison.Ordinal);
     }
@@ -125,6 +128,7 @@ public class ServerSetupTests
         OwnerPassword = "owner-pass-1",
         OwnerPasswordConfirm = "owner-pass-1",
         LicenseKey = "SHIFT-PKVW-RFKP-VBYM",
-        LicenseServerUrl = "https://licence.shift-club.kz"
+        LicenseServerUrl = "https://licence.shift-club.kz",
+        ClubName = "Тестовый клуб"
     };
 }

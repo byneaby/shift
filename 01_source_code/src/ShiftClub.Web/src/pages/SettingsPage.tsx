@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { apiFetch } from '../api/client'
+import { apiFetch, apiUpload } from '../api/client'
+import { useClubBrand } from '../clubBrand'
 import { ActionDialog, ConfirmDialog } from '../components/ActionDialog'
 import { money } from '../format'
 
@@ -779,9 +780,87 @@ function RewardsSection() {
 function SystemSection() {
   return (
     <div className="settings-section">
+      <ClubBrandSection />
       <KaspiPosSection />
       <SystemDangerSection />
     </div>
+  )
+}
+
+function ClubBrandSection() {
+  const qc = useQueryClient()
+  const brand = useClubBrand()
+  const me = JSON.parse(localStorage.getItem('shiftclub.employee') ?? 'null') as { roles?: string[] } | null
+  const isOwner = (me?.roles ?? []).some((r) => String(r).toLowerCase() === 'owner')
+  const [name, setName] = useState(brand.name)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (brand.name) setName(brand.name)
+  }, [brand.name])
+
+  const saveName = useMutation({
+    mutationFn: async () =>
+      apiFetch('/api/settings/branding', { method: 'PUT', body: JSON.stringify({ name: name.trim() }) }),
+    onSuccess: async () => {
+      setMessage('Название сохранено. Панель и компьютеры подхватят его.')
+      setError(null)
+      await qc.invalidateQueries({ queryKey: ['club-brand'] })
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'Ошибка'),
+  })
+
+  const saveLogo = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return apiUpload('/api/settings/branding/logo', form)
+    },
+    onSuccess: async () => {
+      setMessage('Логотип сохранён.')
+      setError(null)
+      await qc.invalidateQueries({ queryKey: ['club-brand'] })
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'Ошибка'),
+  })
+
+  return (
+    <section className="panel" style={{ marginBottom: 16 }}>
+      <h2 className="section-title">Клуб</h2>
+      <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
+        Название и логотип на панели, экране зала и компьютерах. Картинка кэшируется, лишних запросов нет.
+      </p>
+      <label>
+        Название
+        <input value={name} onChange={(e) => setName(e.target.value)} disabled={!isOwner} maxLength={48} />
+      </label>
+      {isOwner && (
+        <div className="row-actions" style={{ marginTop: 12 }}>
+          <button type="button" disabled={saveName.isPending || name.trim().length < 2} onClick={() => saveName.mutate()}>
+            Сохранить название
+          </button>
+          <label className="ghost" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
+            {saveLogo.isPending ? 'Загрузка…' : 'Сменить логотип'}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) saveLogo.mutate(file)
+              }}
+            />
+          </label>
+        </div>
+      )}
+      {brand.logoUrl && (
+        <img src={brand.logoUrl} alt="" style={{ height: 48, marginTop: 12, objectFit: 'contain' }} />
+      )}
+      {message && <p className="muted">{message}</p>}
+      {error && <p className="error">{error}</p>}
+    </section>
   )
 }
 

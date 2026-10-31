@@ -245,7 +245,8 @@ Directory.CreateDirectory(brandingPath);
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(brandingPath),
-    RequestPath = "/media/branding"
+    RequestPath = "/media/branding",
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "public, max-age=86400"
 });
 
 var wikiImagesPath = Path.Combine(app.Environment.ContentRootPath, "data", "wiki");

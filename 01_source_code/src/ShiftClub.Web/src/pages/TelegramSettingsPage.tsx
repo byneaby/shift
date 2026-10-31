@@ -503,7 +503,7 @@ export function TelegramSettingsPage() {
               <span>HTTPS адрес Mini App</span>
               <input
                 type="url"
-                placeholder="https://tg.shift-club.kz"
+                placeholder="https://адрес-бота"
                 value={form.publicWebAppBaseUrl ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, publicWebAppBaseUrl: e.target.value }))}
               />
@@ -922,7 +922,7 @@ export function TelegramSettingsPage() {
             </label>
           </div>
 
-          <h3 style={{ marginTop: 22 }}>Ключ SHIFT CASE</h3>
+          <h3 style={{ marginTop: 22 }}>Ключ кейса</h3>
           <label className="tg-check-card" style={{ marginBottom: 10 }}>
             <input
               type="checkbox"

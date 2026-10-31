@@ -58,7 +58,7 @@ public static class ServerSecrets
         var key = answers.LicenseLater ? "" : ShiftClub.Shared.Licensing.LicenseKeyFormat.Normalize(answers.LicenseKey);
         var lines = new[]
         {
-            "# Настройки сервера SHIFT Club. Файл создан мастером установки.",
+            "# Настройки сервера клуба. Файл создан мастером установки.",
             "# Пароль администратора PostgreSQL сюда не записывается.",
             "",
             "ConnectionStrings__Default=" + AppConnectionString(answers),

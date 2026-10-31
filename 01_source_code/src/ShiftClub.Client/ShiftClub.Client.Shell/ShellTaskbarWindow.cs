@@ -127,6 +127,12 @@ public sealed class ShellTaskbarWindow : Window
             HorizontalOffset = -100,
             Child = BuildStartMenu()
         };
+        ShellBrand.Changed += () => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            _startPopup.Child = BuildStartMenu();
+            _lastFingerprint = "";
+            RefreshApps(force: true);
+        }));
 
         Content = new Grid { Children = { _dock } };
 
@@ -334,7 +340,7 @@ public sealed class ShellTaskbarWindow : Window
         // Shell always first among icons
         _iconsHost.Children.Add(MakeDockIcon(new DockEntry(
             Key: "shell",
-            Title: "SHIFT",
+            Title: ShellBrand.Display,
             Subtitle: "Оболочка",
             Pid: null,
             ProcessName: null,
@@ -752,7 +758,7 @@ public sealed class ShellTaskbarWindow : Window
             {
                 new TextBlock
                 {
-                    Text = "SHIFT",
+                    Text = ShellBrand.Display,
                     FontSize = 18,
                     FontWeight = FontWeights.Bold,
                     FontStyle = FontStyles.Italic,
@@ -767,7 +773,7 @@ public sealed class ShellTaskbarWindow : Window
                 }
             }
         });
-        stack.Children.Add(MakeMenuItem("Показать SHIFT", "Вернуться в оболочку", () =>
+        stack.Children.Add(MakeMenuItem("Показать " + ShellBrand.Display, "Вернуться в оболочку", () =>
         {
             _startPopup.IsOpen = false;
             ShowShellRequested?.Invoke();

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, newIdempotencyKey, setToken } from '../api/client'
 import type { LoginResponse } from '../api/client'
+import { ClubBrandMark, useClubBrand } from '../clubBrand'
 
 type StaffTicket = {
   ticketId: string
@@ -33,6 +34,7 @@ function getOrCreateNonce(): string {
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const brand = useClubBrand()
   const [login, setLogin] = useState('owner')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -149,7 +151,7 @@ export function LoginPage() {
     <div className="login-shell">
       <div className="login-layout">
         <form className="login-card" onSubmit={onSubmit} data-allow-autocomplete>
-          <p className="brand">SHIFT Club</p>
+          <ClubBrandMark />
           <h1>Вход в панель</h1>
           <p className="muted" style={{ margin: '-6px 0 4px' }}>
             Касса, зал и управление клубом
@@ -186,7 +188,7 @@ export function LoginPage() {
           <p className="brand">Telegram</p>
           <h2 style={{ margin: 0, fontSize: '1.15rem' }}>Вход по QR</h2>
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            Откройте бота SHIFT и подтвердите вход. Telegram должен быть привязан к сотруднику.
+            Откройте бота {brand.name ? brand.name : 'клуба'} в Telegram и подтвердите вход. Telegram должен быть привязан к сотруднику.
           </p>
           <div className="login-qr-box">
             {ticket?.qrPngBase64 && !expired ? (

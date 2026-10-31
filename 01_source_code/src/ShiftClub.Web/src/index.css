@@ -157,7 +157,23 @@ select {
   color: var(--accent);
   font-weight: 700;
   font-size: 0.95rem;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.brand span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 label {

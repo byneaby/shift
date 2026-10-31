@@ -27,6 +27,7 @@ public sealed class ClientLauncherController : ControllerBase
     private readonly IHubContext<StaffHub> _staffHub;
     private readonly IClubSettingsService _settings;
     private readonly ITelegramAlertSink _telegramAlerts;
+    private readonly IWebHostEnvironment _env;
 
     public ClientLauncherController(
         IClientLauncherService launcher,
@@ -34,7 +35,8 @@ public sealed class ClientLauncherController : ControllerBase
         ShiftClubDbContext db,
         IHubContext<StaffHub> staffHub,
         IClubSettingsService settings,
-        ITelegramAlertSink telegramAlerts)
+        ITelegramAlertSink telegramAlerts,
+        IWebHostEnvironment env)
     {
         _launcher = launcher;
         _sessions = sessions;
@@ -42,6 +44,7 @@ public sealed class ClientLauncherController : ControllerBase
         _staffHub = staffHub;
         _settings = settings;
         _telegramAlerts = telegramAlerts;
+        _env = env;
     }
 
     /// <summary>Public branding for login wallpaper (available before customer login).</summary>
@@ -49,8 +52,9 @@ public sealed class ClientLauncherController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<ClientBrandingDto>>> Branding(CancellationToken cancellationToken)
     {
-        var bg = await _settings.GetLoginBackgroundAsync(cancellationToken);
-        return Ok(ApiResponse<ClientBrandingDto>.Ok(new ClientBrandingDto(bg.Url)));
+        var brand = await ShiftClub.Server.Branding.ClubBrandingReader.GetAsync(_env.ContentRootPath, _settings, cancellationToken);
+        Response.Headers.CacheControl = "public, max-age=60";
+        return Ok(ApiResponse<ClientBrandingDto>.Ok(brand));
     }
 
     [HttpPost("auth/login")]

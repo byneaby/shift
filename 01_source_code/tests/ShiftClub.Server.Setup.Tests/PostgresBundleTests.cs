@@ -59,7 +59,8 @@ public class PostgresBundleTests
         var network = WindowsInstallPlan.Summary(answers).Single(row => row.Label == "Сеть").Value;
         Assert.Contains("5080", network, StringComparison.Ordinal);
         Assert.DoesNotContain("5432", network, StringComparison.Ordinal);
-        Assert.DoesNotContain("5432", WindowsInstallPlan.FirewallArguments(5080), StringComparison.Ordinal);
+        Assert.DoesNotContain("5432", WindowsInstallPlan.FirewallArguments(answers.ClubName, 5080), StringComparison.Ordinal);
+        Assert.DoesNotContain("shift-club.kz", WindowsInstallPlan.FirewallArguments(answers.ClubName, 5080), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -242,6 +243,7 @@ public class PostgresBundleTests
         OwnerPassword = "owner-pass-1",
         OwnerPasswordConfirm = "owner-pass-1",
         LicenseKey = "SHIFT-PKVW-RFKP-VBYM",
-        LicenseServerUrl = "https://licence.shift-club.kz"
+        LicenseServerUrl = "https://licence.shift-club.kz",
+        ClubName = "Тестовый клуб"
     };
 }

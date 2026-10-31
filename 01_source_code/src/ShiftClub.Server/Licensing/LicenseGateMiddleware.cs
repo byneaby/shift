@@ -12,7 +12,7 @@ public sealed class LicenseGateMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, LicenseState state)
+    public async Task InvokeAsync(HttpContext context, LicenseState state, IWebHostEnvironment env)
     {
         var snap = state.Current;
         if (!snap.Enforce || snap.Operational)
@@ -33,7 +33,8 @@ public sealed class LicenseGateMiddleware
         {
             context.Response.ContentType = "text/html; charset=utf-8";
             context.Response.Headers.CacheControl = "no-store";
-            await context.Response.WriteAsync(LicenseLockPage.Html(snap.Message));
+            var club = ShiftClub.Shared.Branding.ClubBrandingFiles.Read(env.ContentRootPath).Name;
+            await context.Response.WriteAsync(LicenseLockPage.Html(snap.Message, club));
             return;
         }
 
@@ -50,6 +51,10 @@ public sealed class LicenseGateMiddleware
         if (path.Equals("/api/license/status", StringComparison.OrdinalIgnoreCase) && HttpMethods.IsGet(method))
             return true;
         if (path.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase) && HttpMethods.IsPost(method))
+            return true;
+        if (path.Equals("/api/client/branding", StringComparison.OrdinalIgnoreCase) && HttpMethods.IsGet(method))
+            return true;
+        if (path.StartsWith("/media/branding/", StringComparison.OrdinalIgnoreCase) && HttpMethods.IsGet(method))
             return true;
         return false;
     }

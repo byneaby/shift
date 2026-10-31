@@ -13,6 +13,7 @@ public static class ServerSetupValidator
         var errors = new List<string>();
         errors.AddRange(ValidateFolder(answers, secretsAlreadyExist));
         errors.AddRange(ValidateDatabase(answers));
+        errors.AddRange(ValidateClub(answers));
         errors.AddRange(ValidateOwner(answers));
         errors.AddRange(ValidateLicense(answers));
         return errors;
@@ -70,6 +71,24 @@ public static class ServerSetupValidator
         return errors;
     }
 
+    public static IReadOnlyList<string> ValidateClub(ServerSetupAnswers answers)
+    {
+        var errors = new List<string>();
+        if (!ShiftClub.Shared.Branding.ClubBrandingFiles.TryNormalizeName(answers.ClubName, out _, out var nameError))
+            errors.Add(nameError!);
+
+        var logo = (answers.LogoPath ?? "").Trim();
+        if (logo.Length == 0)
+            return errors;
+        if (!File.Exists(logo))
+            errors.Add("Файл логотипа не найден.");
+        else if (ShiftClub.Shared.Branding.ClubBrandingFiles.LogoExtension(logo) is null)
+            errors.Add("Логотип — файл png, jpg, webp или gif.");
+        else if (new FileInfo(logo).Length > ShiftClub.Shared.Branding.ClubBrandingFiles.MaxLogoBytes)
+            errors.Add("Логотип больше 2 МБ.");
+        return errors;
+    }
+
     public static IReadOnlyList<string> ValidateOwner(ServerSetupAnswers answers)
     {
         var errors = new List<string>();
@@ -93,7 +112,7 @@ public static class ServerSetupValidator
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)
             || !string.IsNullOrEmpty(uri.UserInfo))
-            errors.Add("Адрес центра лицензий должен начинаться с https://. Обычно https://licence.shift-club.kz.");
+            errors.Add("Адрес центра лицензий должен начинаться с https://.");
 
         return errors;
     }

@@ -11,9 +11,9 @@
     <RootNamespace>ShiftClub.Server.Installer</RootNamespace>
     <Version>1.0.0</Version>
     <InformationalVersion>1.0.0</InformationalVersion>
-    <Product>SHIFT Club Server</Product>
-    <Company>SHIFT Club</Company>
-    <Description>Установщик сервера SHIFT Club</Description>
+    <Product>Сервер клуба</Product>
+    <Company>Клуб</Company>
+    <Description>Установщик сервера клуба</Description>
   </PropertyGroup>
 
   <ItemGroup>

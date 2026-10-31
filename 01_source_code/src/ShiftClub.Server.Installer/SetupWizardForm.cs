@@ -31,6 +31,10 @@ internal sealed class SetupWizardForm : Form
     private readonly Button _testDb = new() { Text = "Проверить подключение", Width = 210, Height = 34 };
     private Panel _databasePage = null!;
 
+    private readonly TextBox _clubName = new();
+    private readonly TextBox _logo = new() { ReadOnly = true };
+    private readonly Button _uninstall = new() { Text = "Удалить установленный сервер", Width = 280, Height = 36 };
+
     private readonly TextBox _owner = new() { Text = "owner" };
     private readonly TextBox _ownerPassword = new() { UseSystemPasswordChar = true };
     private readonly TextBox _ownerPassword2 = new() { UseSystemPasswordChar = true };
@@ -53,7 +57,7 @@ internal sealed class SetupWizardForm : Form
 
     public SetupWizardForm()
     {
-        Text = "SHIFT Club — установка сервера";
+        Text = "Установка сервера";
         ClientSize = new Size(640, 560);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -65,10 +69,12 @@ internal sealed class SetupWizardForm : Form
 
         _pages = new[]
         {
-            Page("Сервер клуба", "Мастер поставит сервер кассы и PostgreSQL 16, затем спросит пароль владельца и ключ лицензии. После установки панель кассы откроется в браузере.",
-                Note("PostgreSQL 16, Visual C++ и .NET уже внутри установщика. База слушает только этот компьютер. Ключ берут в центре лицензий licence.shift-club.kz — пробный бывает на 3 или 7 дней.")),
+            Page("Сервер клуба", "Мастер поставит сервер кассы и PostgreSQL 16, затем спросит название клуба, пароль владельца и ключ лицензии. После установки панель откроется в браузере.",
+                Note("PostgreSQL 16, Visual C++ и .NET уже внутри установщика. База слушает только этот компьютер. Название и логотип увидят панель, экран зала и компьютеры."),
+                _uninstall),
             FolderPage(),
             DatabasePage(),
+            ClubPage(),
             Page("Владелец панели", "Этим логином открывают кассу и настройки. Потом пароль можно сменить в панели.",
                 LabelOf("Логин"), _owner,
                 LabelOf("Пароль, минимум 8 символов"), _ownerPassword,
@@ -101,6 +107,17 @@ internal sealed class SetupWizardForm : Form
         _bundle.CheckedChanged += (_, _) => ToggleDatabaseMode();
         _createDb.CheckedChanged += (_, _) => ToggleDatabaseMode();
         _licenseLater.CheckedChanged += (_, _) => _license.Enabled = !_licenseLater.Checked;
+        _clubName.TextChanged += (_, _) =>
+        {
+            var name = _clubName.Text.Trim();
+            Text = name.Length == 0 ? "Установка сервера" : name + " — установка сервера";
+        };
+        StyleButton(_uninstall, false);
+        _uninstall.Click += (_, _) =>
+        {
+            using var form = new UninstallForm();
+            form.ShowDialog(this);
+        };
         StyleButton(_testDb, false);
         _testDb.Click += async (_, _) => await TestDatabaseAsync();
         ShowStep();
@@ -112,7 +129,7 @@ internal sealed class SetupWizardForm : Form
         StyleButton(browse, false);
         browse.Click += (_, _) =>
         {
-            using var dlg = new FolderBrowserDialog { Description = "Папка сервера SHIFT Club", UseDescriptionForTitle = true };
+            using var dlg = new FolderBrowserDialog { Description = "Папка сервера клуба", UseDescriptionForTitle = true };
             if (dlg.ShowDialog(this) == DialogResult.OK)
             {
                 _dir.Text = dlg.SelectedPath;
@@ -151,12 +168,45 @@ internal sealed class SetupWizardForm : Form
         return _databasePage;
     }
 
+    private Panel ClubPage()
+    {
+        var browse = new Button { Text = "Обзор", Width = 88, Height = 30 };
+        StyleButton(browse, false);
+        browse.Click += (_, _) =>
+        {
+            using var dlg = new OpenFileDialog
+            {
+                Title = "Логотип клуба",
+                Filter = "Картинки|*.png;*.jpg;*.jpeg;*.webp;*.gif"
+            };
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+                _logo.Text = dlg.FileName;
+        };
+        var clear = new Button { Text = "Убрать", Width = 88, Height = 30 };
+        StyleButton(clear, false);
+        clear.Click += (_, _) => _logo.Text = "";
+        var row = new Panel { Height = 32 };
+        row.Controls.Add(_logo);
+        row.Controls.Add(browse);
+        row.Controls.Add(clear);
+        row.Resize += (_, _) =>
+        {
+            clear.Location = new Point(row.ClientSize.Width - clear.Width, 1);
+            browse.Location = new Point(clear.Left - browse.Width - 8, 1);
+            _logo.Width = Math.Max(80, browse.Left - 8);
+            _logo.Height = 30;
+        };
+        return Page("Название клуба", "Это имя и логотип будут на панели, на экране зала и на компьютерах. Их потом можно сменить в настройках панели.",
+            LabelOf("Название"), _clubName,
+            LabelOf("Логотип, можно пропустить"), row,
+            Note("Картинка png, jpg, webp или gif, до 2 МБ. Панель и компьютеры скачивают её один раз и держат в кэше."));
+    }
+
     private Panel LicensePage()
     {
         _license.Font = new Font("Consolas", 12f);
         return Page("Лицензия", "Без действующего ключа сервер запускается, но касса и компьютеры не открываются, пока ключ не введут.",
             LabelOf("Ключ вида SHIFT-XXXX-XXXX-XXXX"), _license, _licenseLater,
-            LabelOf("Адрес центра лицензий"), _licenseUrl,
             Note("Продление того же ключа сервер увидит сам. Новый ключ можно вставить потом в панели, в разделе «Лицензия»."));
     }
 
@@ -209,9 +259,10 @@ internal sealed class SetupWizardForm : Form
         {
             1 => ServerSetupValidator.ValidateFolder(answers, secretsExist),
             2 => ServerSetupValidator.ValidateDatabase(answers),
-            3 => ServerSetupValidator.ValidateOwner(answers),
-            4 => ServerSetupValidator.ValidateLicense(answers),
-            5 => ServerSetupValidator.Validate(answers, secretsExist),
+            3 => ServerSetupValidator.ValidateClub(answers),
+            4 => ServerSetupValidator.ValidateOwner(answers),
+            5 => ServerSetupValidator.ValidateLicense(answers),
+            6 => ServerSetupValidator.Validate(answers, secretsExist),
             _ => Array.Empty<string>()
         };
         if (errors.Count == 0)
@@ -340,6 +391,8 @@ internal sealed class SetupWizardForm : Form
         DatabasePassword = _bundle.Checked ? "" : _dbPassword.Text,
         PostgresAdminUser = _bundle.Checked ? "postgres" : _adminUser.Text,
         PostgresAdminPassword = _bundle.Checked ? "" : _adminPassword.Text,
+        ClubName = _clubName.Text,
+        LogoPath = _logo.Text,
         OwnerLogin = _owner.Text,
         OwnerPassword = _ownerPassword.Text,
         OwnerPasswordConfirm = _ownerPassword2.Text,

@@ -6,6 +6,7 @@ using ShiftClub.Application.Abstractions;
 using ShiftClub.Server.Auth;
 using ShiftClub.Shared.Contracts;
 using ShiftClub.Shared.Contracts.Public;
+using ShiftClub.Shared.Branding;
 using ShiftClub.Shared.Contracts.Settings;
 using ShiftClub.Shared.ErrorCodes;
 using ShiftClub.Shared.Permissions;
@@ -25,6 +26,58 @@ public sealed class SettingsController : ControllerBase
     {
         _settings = settings;
         _env = env;
+    }
+
+    [HttpPut("branding")]
+    [Authorize(Roles = "owner")]
+    public ActionResult<ApiResponse<ClientBrandingDto>> PutBranding(
+        [FromBody] UpdateClubBrandingRequest request)
+    {
+        try
+        {
+            ClubBrandingFiles.Write(_env.ContentRootPath, request.Name ?? "", null);
+            Branding.ClubBrandingReader.Clear();
+            return Ok(ApiResponse<ClientBrandingDto>.Ok(ClubBrandingFiles.ToDto(_env.ContentRootPath, null)));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<ClientBrandingDto>.Fail(CommonErrorCodes.ValidationFailed, ex.Message));
+        }
+    }
+
+    [HttpPost("branding/logo")]
+    [Authorize(Roles = "owner")]
+    [RequestSizeLimit(ClubBrandingFiles.MaxLogoBytes)]
+    public ActionResult<ApiResponse<ClientBrandingDto>> UploadLogo(IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(ApiResponse<ClientBrandingDto>.Fail(CommonErrorCodes.ValidationFailed, "Файл пустой"));
+        if (ClubBrandingFiles.LogoExtension(file.FileName) is null)
+            return BadRequest(ApiResponse<ClientBrandingDto>.Fail(CommonErrorCodes.ValidationFailed, "Нужен png, jpg, webp или gif"));
+        if (file.Length > ClubBrandingFiles.MaxLogoBytes)
+            return BadRequest(ApiResponse<ClientBrandingDto>.Fail(CommonErrorCodes.ValidationFailed, "Логотип больше 2 МБ"));
+
+        var current = ClubBrandingFiles.Read(_env.ContentRootPath);
+        if (string.IsNullOrWhiteSpace(current.Name))
+            return BadRequest(ApiResponse<ClientBrandingDto>.Fail(CommonErrorCodes.ValidationFailed, "Сначала запишите название клуба."));
+
+        var temp = Path.Combine(Path.GetTempPath(), "club-logo-" + Guid.NewGuid().ToString("N") + Path.GetExtension(file.FileName));
+        try
+        {
+            using (var stream = System.IO.File.Create(temp))
+                file.CopyTo(stream);
+            ClubBrandingFiles.Write(_env.ContentRootPath, current.Name, temp);
+            Branding.ClubBrandingReader.Clear();
+            return Ok(ApiResponse<ClientBrandingDto>.Ok(ClubBrandingFiles.ToDto(_env.ContentRootPath, null)));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<ClientBrandingDto>.Fail(CommonErrorCodes.ValidationFailed, ex.Message));
+        }
+        finally
+        {
+            try { System.IO.File.Delete(temp); } catch { /* temp file */ }
+        }
     }
 
     [HttpGet("shell-admin")]

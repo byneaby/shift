@@ -8,4 +8,6 @@ public sealed record VerifyShellAdminPasswordRequest(string Password);
 
 public sealed record LoginBackgroundDto(string? Url);
 
-public sealed record ClientBrandingDto(string? LoginBackgroundUrl);
+public sealed record ClientBrandingDto(string? LoginBackgroundUrl, string Name, string? LogoUrl);
+
+public sealed record UpdateClubBrandingRequest(string? Name);

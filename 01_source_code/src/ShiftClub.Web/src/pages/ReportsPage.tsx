@@ -409,7 +409,7 @@ export function ReportsPage() {
             ]}
           />
 
-          <h2 className="reports-h2">SHIFT CASE</h2>
+          <h2 className="reports-h2">Кейсы</h2>
           <div className="reports-kpi">
             <Kpi title="Открытий кейса" value={String(overviewQuery.data.caseOpenings ?? 0)} />
             <Kpi

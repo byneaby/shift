@@ -3057,6 +3057,15 @@ public partial class MainWindow : Window
                         if (data.TryGetProperty("loginBackgroundUrl", out var u) ||
                             data.TryGetProperty("LoginBackgroundUrl", out u))
                             url = u.ValueKind == JsonValueKind.String ? u.GetString() : null;
+                        data.TryGetProperty("name", out var nameEl);
+                        if (nameEl.ValueKind != JsonValueKind.String)
+                            data.TryGetProperty("Name", out nameEl);
+                        data.TryGetProperty("logoUrl", out var logoEl);
+                        if (logoEl.ValueKind != JsonValueKind.String)
+                            data.TryGetProperty("LogoUrl", out logoEl);
+                        var clubName = nameEl.ValueKind == JsonValueKind.String ? nameEl.GetString() : null;
+                        var logo = logoEl.ValueKind == JsonValueKind.String ? logoEl.GetString() : null;
+                        await Dispatcher.InvokeAsync(() => ApplyClubBrand(clubName, logo));
                     }
                 }
             }
@@ -3066,6 +3075,41 @@ public partial class MainWindow : Window
         catch
         {
             await Dispatcher.InvokeAsync(() => ApplyLoginBackgroundResult(null));
+        }
+    }
+
+    private void ApplyClubBrand(string? name, string? logoUrl)
+    {
+        var title = string.IsNullOrWhiteSpace(name) ? "" : name.Trim();
+        ShellBrand.Set(title);
+        if (title.Length > 0)
+            Title = title;
+        BrandWaiting.Text = title;
+        BrandLogin.Text = title;
+        BrandPostSession.Text = title;
+        if (title.Length > 0)
+        {
+            TgColumnSub.Text = $"Сканируйте QR в Telegram клуба {title}. Если аккаунта нет — создадите его на телефоне или здесь, вход на этот ПК будет сразу.";
+            TgHowTo.Text = $"1) Откройте бота клуба {title} в Telegram.\n2) Сканируйте QR.\n3) Нет аккаунта? Создайте в телефоне или на этом ПК.";
+        }
+
+        var uri = ResolveProductImageUri(logoUrl);
+        if (uri is null)
+        {
+            BrandLogo.Source = null;
+            BrandLogo.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        try
+        {
+            BrandLogo.Source = ShellImageCache.Get(uri);
+            BrandLogo.Visibility = Visibility.Visible;
+        }
+        catch
+        {
+            BrandLogo.Source = null;
+            BrandLogo.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -4592,7 +4636,7 @@ public partial class MainWindow : Window
         _kiosk.AllowStaffExit = false;
         AdminModeError.Text = "";
         PanelAdminMode.Visibility = Visibility.Collapsed;
-        Title = "SHIFT";
+        Title = ShellBrand.Display;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;

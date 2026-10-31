@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using ShiftClub.Server.Setup;
+using ShiftClub.Shared.Branding;
 
 namespace ShiftClub.Server.Installer;
 
@@ -71,6 +72,26 @@ internal static class ServerInstallRunner
         if (dbError is not null)
             return new InstallOutcome(false, dbError);
 
+        report("Записываю название клуба…");
+        try
+        {
+            ClubBrandingFiles.Write(dir, answers.ClubName, string.IsNullOrWhiteSpace(answers.LogoPath) ? null : answers.LogoPath.Trim());
+        }
+        catch (ArgumentException ex)
+        {
+            return new InstallOutcome(false, ex.Message);
+        }
+
+        var ruleName = WindowsInstallPlan.FirewallRuleName(answers.ClubName, answers.ListenPort);
+        ServerInstallMarker.Write(dir, new ServerInstallMarker
+        {
+            InstallDirectory = dir,
+            ListenPort = answers.ListenPort,
+            BundledPostgres = answers.InstallBundledPostgres,
+            ClubName = answers.ClubName.Trim(),
+            FirewallRuleName = ruleName
+        });
+
         report("Записываю настройки…");
         var secrets = ServerSecrets.Render(answers, ServerSecrets.CreateJwtKey(), ServerSecrets.CreateHiringPin());
         await File.WriteAllTextAsync(secretsPath, secrets, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), cancellationToken);
@@ -78,7 +99,8 @@ internal static class ServerInstallRunner
         if (answers.OpenFirewall)
         {
             report("Открываю порт в брандмауэре…");
-            if (await RunCodeAsync("netsh", WindowsInstallPlan.FirewallArguments(answers.ListenPort), 120_000) != 0)
+            await RunCodeAsync("netsh", ServerUninstallPlan.FirewallDeleteArguments(WindowsInstallPlan.LegacyFirewallRuleName(answers.ListenPort)), 20_000);
+            if (await RunCodeAsync("netsh", WindowsInstallPlan.FirewallArguments(answers.ClubName, answers.ListenPort), 120_000) != 0)
                 notes.Add($"Порт {answers.ListenPort} не удалось открыть автоматически. Разрешите его в брандмауэре Windows для частной сети.");
         }
 
@@ -86,7 +108,7 @@ internal static class ServerInstallRunner
         {
             report("Включаю автозапуск…");
             var scriptPath = Path.Combine(dir, "register-tasks.ps1");
-            await File.WriteAllTextAsync(scriptPath, WindowsInstallPlan.RegisterTasksScript(dir), new UTF8Encoding(true), cancellationToken);
+            await File.WriteAllTextAsync(scriptPath, WindowsInstallPlan.RegisterTasksScript(dir, answers.ClubName), new UTF8Encoding(true), cancellationToken);
             if (await RunCodeAsync("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"", 120_000) != 0)
                 notes.Add("Автозапуск не включился. Сервер можно запустить файлом Start-ShiftClubApi.ps1 из папки установки.");
             else
@@ -98,13 +120,27 @@ internal static class ServerInstallRunner
             await RunCodeAsync("schtasks.exe", "/Delete /TN ShiftClubApiWatchdog /F", 15_000);
         }
 
+        report("Добавляю удаление сервера…");
+        var uninstallExe = InstallUninstaller(dir);
+        if (uninstallExe is not null)
+        {
+            await RunCodeAsync("reg.exe", ServerUninstallPlan.AddRegistryArguments("DisplayName", answers.ClubName.Trim()), 15_000);
+            await RunCodeAsync("reg.exe", ServerUninstallPlan.AddRegistryArguments("UninstallString", ServerUninstallPlan.UninstallString(uninstallExe)), 15_000);
+            await RunCodeAsync("reg.exe", ServerUninstallPlan.AddRegistryArguments("InstallLocation", dir), 15_000);
+            await RunCodeAsync("reg.exe", "add \"" + ServerUninstallPlan.RegistryKey + "\" /v NoModify /t REG_DWORD /d 1 /f", 15_000);
+            await RunCodeAsync("reg.exe", "add \"" + ServerUninstallPlan.RegistryKey + "\" /v NoRepair /t REG_DWORD /d 1 /f", 15_000);
+        }
+
         var done = new StringBuilder();
         done.AppendLine("Сервер установлен.");
+        done.AppendLine(answers.ClubName.Trim());
         done.AppendLine(WindowsInstallPlan.PanelHint(answers.ListenPort));
         done.AppendLine($"Логин владельца: {answers.OwnerLogin.Trim()}");
         done.Append(answers.LicenseLater
             ? "Ключ лицензии не записан. При открытии панели сервер попросит его."
             : "Ключ лицензии записан. Если центр лицензий доступен, зал включится сам.");
+        done.AppendLine();
+        done.Append("Удалить сервер можно в параметрах Windows, раздел «Приложения», или кнопкой «Удалить установленный сервер» в этом окне.");
         if (answers.InstallBundledPostgres)
         {
             done.AppendLine();
@@ -397,7 +433,7 @@ internal static class ServerInstallRunner
         stream.CopyTo(output);
     }
 
-    private static Task<int> RunCodeAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
+    internal static Task<int> RunCodeAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
         Task.Run(() => RunCode(file, arguments, timeoutMs, workingDirectory));
 
     private static Task<(int ExitCode, string Output)> RunCaptureAsync(string file, string arguments, int timeoutMs, string? workingDirectory = null) =>
@@ -470,6 +506,25 @@ internal static class ServerInstallRunner
         if (!read.IsCompletedSuccessfully)
             return "";
         return read.Result ?? "";
+    }
+
+    private static string? InstallUninstaller(string installDirectory)
+    {
+        var self = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(self) || !File.Exists(self))
+            return null;
+
+        var dest = Path.Combine(installDirectory, ServerUninstallPlan.UninstallExeName);
+        try
+        {
+            if (!string.Equals(Path.GetFullPath(self), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+                File.Copy(self, dest, overwrite: true);
+            return File.Exists(dest) ? dest : self;
+        }
+        catch
+        {
+            return File.Exists(self) ? self : null;
+        }
     }
 
     private static void TryDelete(string path)

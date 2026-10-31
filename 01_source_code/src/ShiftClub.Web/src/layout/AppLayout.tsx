@@ -13,6 +13,7 @@ import {
 } from '../licenseStatus'
 import { can } from '../permissions'
 import { useDisableBrowserAutofill } from '../disableBrowserAutofill'
+import { ClubBrandMark } from '../clubBrand'
 
 const NAV = [
   {
@@ -23,7 +24,7 @@ const NAV = [
       { to: '/bookings', label: 'Брони', icon: 'book', hint: 'Бронирование', perm: 'bookings.view' },
       { to: '/cash', label: 'Касса', icon: 'cash', hint: 'Смена и чеки', perm: 'cash.view' },
       { to: '/customers', label: 'Клиенты', icon: 'user', hint: 'Баланс и банк', perm: 'customers.view' },
-      { to: '/cases', label: 'SHIFT CASE', icon: 'case', hint: 'Кейсы и выдача', perm: 'customers.view' },
+      { to: '/cases', label: 'Кейсы', icon: 'case', hint: 'Кейсы и выдача', perm: 'customers.view' },
       { to: '/wiki', label: 'Инструкция', icon: 'wiki', hint: 'Как работать на кассе' },
       { to: '/software', label: 'Программы', icon: 'apps', hint: 'Каталог игр на ПК', perm: 'computers.view' },
       { to: '/computers', label: 'Компьютеры', icon: 'pc', hint: 'ПК и коды', perm: 'computers.manage' },
@@ -245,7 +246,7 @@ function pageTitle(pathname: string): string {
       if (pathname === item.to || pathname.startsWith(`${item.to}/`)) return item.label
     }
   }
-  return 'SHIFT Club'
+  return 'Панель'
 }
 
 export function AppLayout() {
@@ -305,7 +306,7 @@ export function AppLayout() {
 
       <aside id="app-sidebar" className={`app-sidebar${navOpen ? ' is-open' : ''}`}>
         <div className="app-sidebar-brand">
-          <p className="brand">SHIFT Club</p>
+          <ClubBrandMark />
           <p className="sidebar-sub muted">Панель смены</p>
         </div>
 
@@ -390,7 +391,7 @@ export function AppLayout() {
             <span className="app-menu-btn__bars" aria-hidden />
           </button>
           <div className="app-mobile-bar__title">
-            <p className="brand app-mobile-brand">SHIFT</p>
+            <ClubBrandMark className="app-mobile-brand" />
             <strong>{title}</strong>
           </div>
           <span className="app-mobile-bar__user muted" title={employee?.displayName ?? employee?.login ?? ''}>

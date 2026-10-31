@@ -28,6 +28,8 @@ internal sealed class InstallForm : Form
     private readonly Button _installBtn = new() { Text = "Установить", Width = 150, Height = 40 };
     private readonly Button _cancelBtn = new() { Text = "Отмена", Width = 110, Height = 40 };
     private readonly Label _status = new();
+    private readonly Label _title = new();
+    private string _clubName = "Клиент";
     private readonly ProgressBar _progress = new()
     {
         Style = ProgressBarStyle.Marquee,
@@ -38,7 +40,7 @@ internal sealed class InstallForm : Form
 
     public InstallForm()
     {
-        Text = "SHIFT Club — установка клиента";
+        Text = "Установка клиента";
         ClientSize = new Size(560, 460);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -87,14 +89,11 @@ internal sealed class InstallForm : Form
             y += height + gap;
         }
 
-        var title = new Label
-        {
-            Text = "SHIFT Club Client",
-            Font = new Font("Segoe UI", 18f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(255, 106, 0),
-            AutoSize = false
-        };
-        Place(title, 34, 2);
+        _title.Text = "Клиент клуба";
+        _title.Font = new Font("Segoe UI", 18f, FontStyle.Bold);
+        _title.ForeColor = Color.FromArgb(255, 106, 0);
+        _title.AutoSize = false;
+        Place(_title, 34, 2);
 
         var sub = new Label
         {
@@ -198,7 +197,7 @@ internal sealed class InstallForm : Form
     {
         using var dlg = new FolderBrowserDialog
         {
-            Description = "Папка установки SHIFT Club Client",
+            Description = "Папка установки клиента",
             SelectedPath = Directory.Exists(_pathBox.Text) ? _pathBox.Text : @"D:\Apps\ShiftClub"
         };
         if (dlg.ShowDialog(this) == DialogResult.OK)
@@ -211,14 +210,14 @@ internal sealed class InstallForm : Form
         var url = _urlBox.Text.Trim().TrimEnd('/');
         if (string.IsNullOrWhiteSpace(target))
         {
-            MessageBox.Show(this, "Укажите папку установки.", "SHIFT", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Укажите папку установки.", "Клиент", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            MessageBox.Show(this, "Укажите корректный URL сервера, например http://192.168.1.200:5080", "SHIFT",
+            MessageBox.Show(this, "Укажите корректный URL сервера, например http://192.168.1.200:5080", "Клиент",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -226,19 +225,24 @@ internal sealed class InstallForm : Form
         _installBtn.Enabled = false;
         _browseBtn.Enabled = false;
         _progress.Visible = true;
+        _status.Text = "Читаю название клуба…";
+        _clubName = await Task.Run(() => TryReadClubName(url)) ?? "Клиент";
+        Text = _clubName + " — установка клиента";
+        _title.Text = _clubName;
         _status.Text = "Распаковка…";
 
         try
         {
+            var clubName = _clubName;
             await Task.Run(() =>
             {
                 Directory.CreateDirectory(target);
                 ExtractPayload(target);
                 WriteAppSettings(target, url);
                 WriteServiceAppSettings(target, url);
-                WriteUninstallHelper(target);
-                CreateShortcuts(target);
-                InstallWatchdogService(target);
+                WriteUninstallHelper(target, clubName);
+                CreateShortcuts(target, clubName);
+                InstallWatchdogService(target, clubName);
             });
 
             _status.Text = "Установка завершена.";
@@ -250,7 +254,7 @@ internal sealed class InstallForm : Form
 
             MessageBox.Show(this,
                 $"Клиент установлен в:\n{target}\n\nСервер: {url}",
-                "SHIFT Club",
+                _clubName,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             Close();
@@ -258,7 +262,7 @@ internal sealed class InstallForm : Form
         catch (Exception ex)
         {
             _status.Text = "Ошибка установки.";
-            MessageBox.Show(this, ex.Message, "SHIFT Club", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, _clubName, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {
@@ -328,7 +332,27 @@ internal sealed class InstallForm : Form
         File.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
     }
 
-    private static void InstallWatchdogService(string targetDir)
+    private static string? TryReadClubName(string baseUrl)
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+            var json = http.GetStringAsync(baseUrl.TrimEnd('/') + "/api/client/branding").GetAwaiter().GetResult();
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("data", out var data) && !doc.RootElement.TryGetProperty("Data", out data))
+                return null;
+            if (!data.TryGetProperty("name", out var name) && !data.TryGetProperty("Name", out name))
+                return null;
+            var text = name.GetString()?.Trim();
+            return string.IsNullOrWhiteSpace(text) ? null : text;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void InstallWatchdogService(string targetDir, string clubName)
     {
         var serviceExe = Path.Combine(targetDir, "service", "ShiftClub.Client.Service.exe");
         if (!File.Exists(serviceExe))
@@ -338,8 +362,9 @@ internal sealed class InstallForm : Form
 
         RunSc($"stop ShiftClubClient");
         RunSc($"delete ShiftClubClient");
-        RunSc($"create ShiftClubClient binPath= \"\\\"{serviceExe}\\\"\" start= auto DisplayName= \"SHIFT Club Client Watchdog\"");
-        RunSc($"description ShiftClubClient \"Keeps SHIFT Club Shell running; restarts Shell/service if terminated\"");
+        var display = clubName.Replace("\"", "", StringComparison.Ordinal);
+        RunSc($"create ShiftClubClient binPath= \"\\\"{serviceExe}\\\"\" start= auto DisplayName= \"{display}\"");
+        RunSc($"description ShiftClubClient \"Следит, чтобы клиент клуба был запущен\"");
         RunSc($"failure ShiftClubClient reset= 86400 actions= restart/3000/restart/3000/restart/5000");
         RunSc($"failureflag ShiftClubClient 1");
         RunSc($"start ShiftClubClient");
@@ -362,15 +387,16 @@ internal sealed class InstallForm : Form
         }
     }
 
-    private void CreateShortcuts(string targetDir)
+    private void CreateShortcuts(string targetDir, string clubName)
     {
         var exe = Path.Combine(targetDir, "ShiftClub.Client.Shell.exe");
+        var file = ShortcutFileName(clubName);
         if (_desktopShortcut.Checked)
         {
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
             if (string.IsNullOrWhiteSpace(desktop) || !Directory.Exists(desktop))
                 desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            WriteShortcut(Path.Combine(desktop, "SHIFT Club Client.lnk"), exe, targetDir);
+            WriteShortcut(Path.Combine(desktop, file), exe, targetDir, clubName);
         }
 
         if (_startup.Checked)
@@ -378,19 +404,38 @@ internal sealed class InstallForm : Form
             var startup = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup);
             if (string.IsNullOrWhiteSpace(startup) || !Directory.Exists(startup))
                 startup = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-            WriteShortcut(Path.Combine(startup, "SHIFT Club Client.lnk"), exe, targetDir);
+            WriteShortcut(Path.Combine(startup, file), exe, targetDir, clubName);
         }
 
         var programs = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
         if (!string.IsNullOrWhiteSpace(programs))
         {
-            var folder = Path.Combine(programs, "SHIFT Club");
+            var folder = Path.Combine(programs, ShortcutFolderName(clubName));
             Directory.CreateDirectory(folder);
-            WriteShortcut(Path.Combine(folder, "SHIFT Club Client.lnk"), exe, targetDir);
+            WriteShortcut(Path.Combine(folder, file), exe, targetDir, clubName);
         }
     }
 
-    private static void WriteShortcut(string lnkPath, string targetExe, string workDir)
+    private static string ShortcutFileName(string clubName)
+    {
+        var name = ShortcutFolderName(clubName);
+        return name + ".lnk";
+    }
+
+    private static string ShortcutFolderName(string clubName)
+    {
+        var name = clubName.Trim();
+        foreach (var c in Path.GetInvalidFileNameChars())
+            name = name.Replace(c, ' ');
+        name = name.Trim();
+        if (name.Length == 0)
+            name = "Клиент";
+        if (name.Length > 40)
+            name = name[..40].Trim();
+        return name;
+    }
+
+    private static void WriteShortcut(string lnkPath, string targetExe, string workDir, string clubName)
     {
         var shellType = Type.GetTypeFromProgID("WScript.Shell")
                         ?? throw new InvalidOperationException("WScript.Shell недоступен.");
@@ -398,29 +443,36 @@ internal sealed class InstallForm : Form
         var shortcut = shell.CreateShortcut(lnkPath);
         shortcut.TargetPath = targetExe;
         shortcut.WorkingDirectory = workDir;
-        shortcut.Description = "SHIFT Club Client";
+        shortcut.Description = clubName;
         shortcut.Save();
     }
 
-    private static void WriteUninstallHelper(string targetDir)
+    private static void WriteUninstallHelper(string targetDir, string clubName)
     {
         var bat = Path.Combine(targetDir, "Uninstall.bat");
+        var file = ShortcutFileName(clubName);
+        var folder = ShortcutFolderName(clubName);
         var content = """
             @echo off
-            echo Uninstall SHIFT Club Client
+            chcp 65001 >nul
+            echo Удаление клиента
             taskkill /IM ShiftClub.Client.Shell.exe /F >nul 2>&1
+            taskkill /IM ShiftClub.Client.Keeper.exe /F >nul 2>&1
+            sc stop ShiftClubClient >nul 2>&1
+            sc delete ShiftClubClient >nul 2>&1
             timeout /t 1 /nobreak >nul
             set "DIR=%~dp0"
             cd /d "%TEMP%"
             rmdir /s /q "%DIR%"
-            del "%USERPROFILE%\Desktop\SHIFT Club Client.lnk" >nul 2>&1
-            del "%PUBLIC%\Desktop\SHIFT Club Client.lnk" >nul 2>&1
-            del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\SHIFT Club Client.lnk" >nul 2>&1
-            del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\SHIFT Club Client.lnk" >nul 2>&1
-            rmdir /s /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\SHIFT Club" >nul 2>&1
-            echo Done.
+            del "%USERPROFILE%\Desktop\__FILE__" >nul 2>&1
+            del "%PUBLIC%\Desktop\__FILE__" >nul 2>&1
+            del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\__FILE__" >nul 2>&1
+            del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\__FILE__" >nul 2>&1
+            rmdir /s /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\__FOLDER__" >nul 2>&1
+            echo Готово.
             pause
             """;
-        File.WriteAllText(bat, content, Encoding.ASCII);
+        content = content.Replace("__FILE__", file, StringComparison.Ordinal).Replace("__FOLDER__", folder, StringComparison.Ordinal);
+        File.WriteAllText(bat, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
     }
 }

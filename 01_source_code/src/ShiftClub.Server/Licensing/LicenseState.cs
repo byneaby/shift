@@ -149,7 +149,7 @@ public sealed class LicenseState
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             _logger.LogWarning(ex, "Активация лицензии не дошла до центра");
-            return (false, "Центр лицензий сейчас недоступен. Проверьте адрес licence.shift-club.kz.");
+            return (false, "Центр лицензий сейчас недоступен. Повторите попытку позже.");
         }
 
         LicenseDocument? doc = null;
