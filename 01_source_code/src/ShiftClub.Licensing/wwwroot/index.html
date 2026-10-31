@@ -71,6 +71,7 @@
   </style>
 </head>
 <body>
+  <div id="gate">
   <div id="login" class="hidden">
     <h1>SHIFT <span>лицензии</span></h1>
     <p class="muted">Клубы, ключи, сроки и места. Время на экране — Кызылорда, UTC+5.</p>
@@ -80,6 +81,12 @@
       <p id="login-msg" class="muted"></p>
       <button class="primary" type="submit">Войти</button>
     </form>
+  </div>
+  <section id="public-files" class="card" style="max-width:420px;margin:16px auto 40px">
+    <h2>Скачать</h2>
+    <p class="muted">Установщик сервера клуба и установщик на игровые компьютеры.</p>
+    <div id="public-downloads"></div>
+  </section>
   </div>
 
   <div id="app" class="hidden">
@@ -91,6 +98,11 @@
         </div>
         <button id="logout" type="button">Выйти</button>
       </header>
+      <section class="card" id="installer-card" style="margin-bottom:14px">
+        <h2>Установщики</h2>
+        <p class="muted">Файл .exe, .zip или .msi, до 2 ГБ. После загрузки ссылка на этой странице отдаёт новый файл. Вход для скачивания не нужен.</p>
+        <div id="admin-downloads"></div>
+      </section>
       <div class="stats" id="stats"></div>
       <div class="toolbar">
         <input id="search" placeholder="Клуб, город, телефон, ключ" />
@@ -665,18 +677,130 @@
       } catch (err) { $("create-msg").textContent = err.message; }
     });
 
+    const installerNames = { server: "Сервер клуба", client: "Клиент на компьютеры" };
+
+    function formatSize(bytes) {
+      if (!Number.isFinite(bytes) || bytes < 0) return "";
+      if (bytes < 1024) return bytes + " Б";
+      if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " КБ";
+      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " МБ";
+      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " ГБ";
+    }
+
+    function renderInstallerList(box, catalog, withUpload) {
+      if (!box) return;
+      box.replaceChildren();
+      for (const slot of ["server", "client"]) {
+        const item = catalog[slot] || { ready: false };
+        const row = document.createElement("div");
+        row.style.margin = "0 0 14px";
+        const title = document.createElement("strong");
+        title.textContent = installerNames[slot];
+        row.append(title);
+        if (item.ready) {
+          const link = document.createElement("a");
+          link.href = item.url;
+          link.textContent = "Скачать " + item.fileName;
+          link.style.display = "block";
+          link.style.marginTop = "4px";
+          const meta = document.createElement("div");
+          meta.className = "muted";
+          meta.textContent = [formatSize(item.size), fmt(item.updatedAt)].filter(Boolean).join(" · ");
+          row.append(link, meta);
+        } else {
+          const missing = document.createElement("div");
+          missing.className = "muted";
+          missing.textContent = "Файл ещё не загружен.";
+          row.append(missing);
+        }
+        if (withUpload) {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = ".exe,.zip,.msi,application/octet-stream";
+          input.style.display = "block";
+          input.style.width = "100%";
+          input.style.marginTop = "8px";
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          actions.style.marginTop = "8px";
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "primary";
+          button.textContent = item.ready ? "Заменить файл" : "Загрузить";
+          const progress = document.createElement("span");
+          progress.className = "muted";
+          button.addEventListener("click", () => uploadInstaller(slot, input, button, progress));
+          actions.append(button, progress);
+          row.append(input, actions);
+        }
+        box.append(row);
+      }
+    }
+
+    async function loadDownloads() {
+      try {
+        const catalog = await api("/api/downloads");
+        renderInstallerList($("public-downloads"), catalog, false);
+        renderInstallerList($("admin-downloads"), catalog, true);
+      } catch (err) {
+        const box = $("public-downloads");
+        if (box) box.textContent = err.message;
+      }
+    }
+
+    function uploadInstaller(slot, input, button, progress) {
+      const file = input.files && input.files[0];
+      if (!file) {
+        toast("Выберите файл");
+        return;
+      }
+      const body = new FormData();
+      body.append("file", file);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/admin/downloads/" + slot);
+      xhr.withCredentials = true;
+      button.disabled = true;
+      progress.textContent = "0%";
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable)
+          progress.textContent = Math.round(event.loaded * 100 / event.total) + "%";
+      };
+      xhr.onload = () => {
+        button.disabled = false;
+        progress.textContent = "";
+        let data = null;
+        try { data = JSON.parse(xhr.responseText); } catch { data = null; }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          toast("Файл сохранён. Ссылка на скачивание обновлена.");
+          input.value = "";
+          loadDownloads();
+          return;
+        }
+        toast((data && data.message) || "Не удалось загрузить");
+      };
+      xhr.onerror = () => {
+        button.disabled = false;
+        progress.textContent = "";
+        toast("Сеть оборвалась во время загрузки");
+      };
+      xhr.send(body);
+    }
+
     async function showApp() {
-      $("login").classList.add("hidden");
+      $("gate").classList.add("hidden");
       $("app").classList.remove("hidden");
+      await loadDownloads();
       await refresh(selected);
     }
 
     async function boot() {
+      await loadDownloads();
       try {
         await api("/api/admin/session");
         await showApp();
       } catch {
         $("app").classList.add("hidden");
+        $("gate").classList.remove("hidden");
         $("login").classList.remove("hidden");
       }
     }

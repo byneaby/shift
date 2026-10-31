@@ -88,6 +88,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
+// Product and wiki hosts are static and stay up even when the club license lock is on.
+app.UseMiddleware<ShiftClub.Server.Hosting.PublicSiteMiddleware>();
 app.UseMiddleware<ShiftClub.Server.Middleware.ApiExceptionMiddleware>();
 app.UseMiddleware<ShiftClub.Server.Licensing.LicenseGateMiddleware>();
 
@@ -386,6 +388,9 @@ if (Directory.Exists(wwwroot))
     app.MapGet("/promo/case", () => Results.Redirect("/promo/case/index.html"));
     app.MapGet("/promo/upgrade", () => Results.Redirect("/promo/upgrade/index.html"));
 
+    app.MapGet("/guide", () => Results.Redirect("/guide/index.html"));
+    app.MapGet("/guide/", () => Results.Redirect("/guide/index.html"));
+
     var serveStaffOnMarketingHost = app.Configuration.GetValue("Hosting:ServeStaffPanelOnMarketingHost", false);
     bool IsMarketingHost(string host) =>
         !serveStaffOnMarketingHost
@@ -429,6 +434,7 @@ if (Directory.Exists(wwwroot))
             || path.StartsWith("/tg-webapp", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/site", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/product", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/guide", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/work", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/hire", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/free", StringComparison.OrdinalIgnoreCase)

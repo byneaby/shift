@@ -6,6 +6,14 @@ using ShiftClub.Licensing;
 using ShiftClub.Shared.Licensing;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = ShiftClub.Shared.Licensing.InstallerFileStore.MaxBytes;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = ShiftClub.Shared.Licensing.InstallerFileStore.MaxBytes;
+});
 
 var privateKeyPath = builder.Configuration["LicenseSigning:PrivateKeyPath"];
 if (string.IsNullOrWhiteSpace(privateKeyPath) || !File.Exists(privateKeyPath))
@@ -59,11 +67,38 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 
 var store = new LicenseStore(dbPath);
+var installers = ShiftClub.Shared.Licensing.InstallerFileStore.BesideDatabase(dbPath);
 builder.Services.AddSingleton(store);
+builder.Services.AddSingleton(installers);
 builder.Services.AddSingleton(new LicenseIssuer(store, privateKey));
 
 var app = builder.Build();
 app.UseForwardedHeaders();
+app.Use(async (ctx, next) =>
+{
+    var kind = ShiftClub.Shared.Sites.PublicSiteFiles.KindForHost(ctx.Request.Host.Host);
+    if (kind == ShiftClub.Shared.Sites.PublicSiteKind.None)
+    {
+        await next();
+        return;
+    }
+
+    var root = Path.Combine(app.Environment.ContentRootPath, "wwwroot", ShiftClub.Shared.Sites.PublicSiteFiles.FolderName(kind));
+    if (!ShiftClub.Shared.Sites.PublicSiteFiles.TryResolve(root, ctx.Request.Path.Value, out var file, out var contentType, out var cache))
+    {
+        ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+        ctx.Response.ContentType = "text/html; charset=utf-8";
+        ctx.Response.Headers.CacheControl = "no-store";
+        var missing = Path.Combine(root, "404.html");
+        if (File.Exists(missing))
+            await ctx.Response.SendFileAsync(missing);
+        return;
+    }
+
+    ctx.Response.ContentType = contentType;
+    ctx.Response.Headers.CacheControl = cache;
+    await ctx.Response.SendFileAsync(file);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -255,6 +290,40 @@ clubs.MapPut("/{id}", async (string id, UpdateClubRequest body, LicenseStore db,
         : Results.Ok(new { ok = true });
 });
 
+app.MapGet("/api/downloads", (ShiftClub.Shared.Licensing.InstallerFileStore files) =>
+    Results.Ok(new
+    {
+        server = DescribeInstaller(files, ShiftClub.Shared.Licensing.InstallerFileStore.ServerSlot),
+        client = DescribeInstaller(files, ShiftClub.Shared.Licensing.InstallerFileStore.ClientSlot),
+    }));
+
+app.MapGet("/downloads/{slot}", (string slot, ShiftClub.Shared.Licensing.InstallerFileStore files) =>
+{
+    var file = files.Read(slot);
+    return file is null
+        ? Results.NotFound(new { ok = false, message = "Файл ещё не загружен." })
+        : Results.File(file.AbsolutePath, "application/octet-stream", file.FileName, enableRangeProcessing: true);
+});
+
+app.MapPost("/api/admin/downloads/{slot}", async (string slot, HttpRequest request, ShiftClub.Shared.Licensing.InstallerFileStore files, CancellationToken ct) =>
+{
+    if (!ShiftClub.Shared.Licensing.InstallerFileStore.IsSlot(slot))
+        return Results.BadRequest(new { ok = false, message = "Неизвестный установщик." });
+    if (!request.HasFormContentType)
+        return Results.BadRequest(new { ok = false, message = "Нужен файл." });
+
+    var form = await request.ReadFormAsync(ct);
+    var upload = form.Files["file"];
+    if (upload is null)
+        return Results.BadRequest(new { ok = false, message = "Выберите файл." });
+
+    await using var stream = upload.OpenReadStream();
+    var error = await files.SaveAsync(slot, upload.FileName, stream, ct);
+    return error is null
+        ? Results.Ok(DescribeInstaller(files, slot))
+        : Results.BadRequest(new { ok = false, message = error });
+}).RequireAuthorization().DisableAntiforgery();
+
 var index = Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "index.html");
 app.MapGet("/", (HttpContext ctx) =>
 {
@@ -275,6 +344,22 @@ app.MapFallback(async context =>
 });
 
 app.Run();
+
+static object DescribeInstaller(ShiftClub.Shared.Licensing.InstallerFileStore files, string slot)
+{
+    var file = files.Read(slot);
+    if (file is null)
+        return new { ready = false, slot };
+    return new
+    {
+        ready = true,
+        slot,
+        fileName = file.FileName,
+        size = file.Size,
+        updatedAt = file.UpdatedAt,
+        url = "/downloads/" + slot,
+    };
+}
 
 static IResult LeaseResult(string? lease, LicenseRow? row, LeaseFailure failure, string message)
 {
