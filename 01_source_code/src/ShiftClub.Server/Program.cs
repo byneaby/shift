@@ -21,6 +21,15 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.Configure<HiringOptions>(builder.Configuration.GetSection(HiringOptions.SectionName));
 builder.Services.Configure<ShiftClub.Infrastructure.Options.KaspiPosOptions>(
     builder.Configuration.GetSection(ShiftClub.Infrastructure.Options.KaspiPosOptions.SectionName));
+builder.Services.Configure<ShiftClub.Server.Licensing.LicenseOptions>(
+    builder.Configuration.GetSection(ShiftClub.Server.Licensing.LicenseOptions.SectionName));
+builder.Services.AddHttpClient(ShiftClub.Server.Licensing.LicenseState.HttpName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(12);
+});
+builder.Services.AddSingleton<ShiftClub.Server.Licensing.LicenseState>();
+builder.Services.AddHostedService<ShiftClub.Server.Licensing.LicenseRefreshService>();
+builder.Services.AddScoped<ShiftClub.Server.Licensing.LicenseSeatGuard>();
 builder.Services.AddSingleton<HiringService>();
 builder.Services.AddSingleton<ShiftClub.Infrastructure.Services.DeskDisplayStore>();
 
@@ -80,6 +89,7 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<ShiftClub.Server.Middleware.ApiExceptionMiddleware>();
+app.UseMiddleware<ShiftClub.Server.Licensing.LicenseGateMiddleware>();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue("EnableSwagger", false))
 {
@@ -375,9 +385,11 @@ if (Directory.Exists(wwwroot))
     app.MapGet("/promo/case", () => Results.Redirect("/promo/case/index.html"));
     app.MapGet("/promo/upgrade", () => Results.Redirect("/promo/upgrade/index.html"));
 
-    static bool IsMarketingHost(string host) =>
-        host.Equals("shift-club.kz", StringComparison.OrdinalIgnoreCase)
-        || host.Equals("www.shift-club.kz", StringComparison.OrdinalIgnoreCase);
+    var serveStaffOnMarketingHost = app.Configuration.GetValue("Hosting:ServeStaffPanelOnMarketingHost", false);
+    bool IsMarketingHost(string host) =>
+        !serveStaffOnMarketingHost
+        && (host.Equals("shift-club.kz", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("www.shift-club.kz", StringComparison.OrdinalIgnoreCase));
     // panel.shift-club.kz and LAN IPs → staff SPA (not landing)
 
     // Public landing on main domain; staff SPA stays on LAN / other hosts.
@@ -458,6 +470,7 @@ else
 }
 
 await DbSeeder.SeedAsync(app.Services);
+await app.Services.GetRequiredService<ShiftClub.Server.Licensing.LicenseState>().RefreshAsync(CancellationToken.None);
 
 app.Run();
 

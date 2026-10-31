@@ -1,0 +1,20 @@
+[Unit]
+Description=SHIFT Club license authority
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/shiftclub/license
+ExecStart=/usr/bin/dotnet /opt/shiftclub/license/ShiftClub.Licensing.dll
+Restart=always
+RestartSec=3
+User=shiftclub
+Group=shiftclub
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+Environment=DOTNET_NOLOGO=1
+Environment=TZ=Asia/Almaty
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5081
+EnvironmentFile=/etc/shiftclub-license/secrets.env
+
+[Install]
+WantedBy=multi-user.target

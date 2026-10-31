@@ -16,10 +16,12 @@ namespace ShiftClub.Server.Controllers;
 public class ComputersController : ControllerBase
 {
     private readonly IComputerService _computers;
+    private readonly Licensing.LicenseSeatGuard _seats;
 
-    public ComputersController(IComputerService computers)
+    public ComputersController(IComputerService computers, Licensing.LicenseSeatGuard seats)
     {
         _computers = computers;
+        _seats = seats;
     }
 
     [HttpGet]
@@ -50,6 +52,7 @@ public class ComputersController : ControllerBase
     {
         try
         {
+            await _seats.EnsureCanAddSeatAsync(cancellationToken);
             var result = await _computers.CreateManualStationAsync(request, GetEmployeeId(), cancellationToken);
             return Ok(ApiResponse<ComputerDto>.Ok(result));
         }
@@ -69,6 +72,7 @@ public class ComputersController : ControllerBase
         try
         {
             var employeeId = GetEmployeeId();
+            await _seats.EnsureCanApproveAsync(id, cancellationToken);
             var result = await _computers.ApproveAsync(id, request, employeeId, cancellationToken);
             return Ok(ApiResponse<ApproveComputerResponse>.Ok(result));
         }

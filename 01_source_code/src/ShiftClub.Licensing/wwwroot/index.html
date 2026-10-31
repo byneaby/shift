@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>SHIFT — лицензии</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10140f;
+      --card: #1a2118;
+      --line: #2c3828;
+      --text: #e7f0e2;
+      --muted: #9aab93;
+      --accent: #c6f54a;
+      --danger: #ff8d7a;
+      --warn: #f0c14a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.45 "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header, main { width: min(1100px, calc(100% - 32px)); margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 22px 0 8px; gap: 12px; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: 0.02em; }
+    h1 span { color: var(--accent); }
+    .muted { color: var(--muted); }
+    button, input, select {
+      font: inherit;
+      color: var(--text);
+      background: #121812;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    button { cursor: pointer; background: #243022; }
+    button.primary { background: var(--accent); color: #15200c; font-weight: 700; border-color: transparent; }
+    button.danger { color: var(--danger); }
+    button:disabled { opacity: 0.55; cursor: default; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 14px 0; }
+    .grid { display: grid; grid-template-columns: 1.4fr 0.7fr 0.7fr 0.8fr; gap: 10px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .presets button[data-on="1"] { outline: 2px solid var(--accent); }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+    .tag { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; background: #243022; }
+    .tag.trial { color: var(--warn); }
+    .tag.bad { color: var(--danger); }
+    .tag.ok { color: var(--accent); }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .row-actions button { padding: 6px 8px; font-size: 13px; }
+    #msg { min-height: 1.2em; }
+    #login { max-width: 420px; margin: 10vh auto; }
+    .hidden { display: none !important; }
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div id="login" class="card hidden">
+    <h1>SHIFT <span>лицензии</span></h1>
+    <p class="muted">Центр ключей для серверов клубов. Триал 3 или 7 дней и обычные сроки выдаются здесь.</p>
+    <form id="login-form">
+      <label for="password">Пароль администратора</label>
+      <input id="password" type="password" autocomplete="current-password" required />
+      <p id="login-msg" class="muted"></p>
+      <button class="primary" type="submit">Войти</button>
+    </form>
+  </div>
+
+  <div id="app" class="hidden">
+    <header>
+      <div>
+        <h1>SHIFT <span>лицензии</span></h1>
+        <p class="muted">licence.shift-club.kz · время Алматы (UTC+5)</p>
+      </div>
+      <button id="logout" type="button">Выйти</button>
+    </header>
+    <main>
+      <section class="card">
+        <h2>Новая лицензия</h2>
+        <form id="create">
+          <div class="grid">
+            <div>
+              <label for="club">Клуб</label>
+              <input id="club" required maxlength="120" placeholder="Название клуба" />
+            </div>
+            <div>
+              <label for="seats">Мест (ПК)</label>
+              <input id="seats" type="number" min="1" max="5000" value="40" required />
+            </div>
+            <div>
+              <label for="days">Дней</label>
+              <input id="days" type="number" min="1" max="3650" value="7" required />
+            </div>
+            <div>
+              <label for="kind">Тип</label>
+              <select id="kind">
+                <option value="trial">Триал</option>
+                <option value="paid">Оплачена</option>
+              </select>
+            </div>
+          </div>
+          <div class="presets" id="presets">
+            <button type="button" data-days="3" data-kind="trial">Триал 3 дня</button>
+            <button type="button" data-days="7" data-kind="trial">Триал 7 дней</button>
+            <button type="button" data-days="14" data-kind="trial">Триал 14 дней</button>
+            <button type="button" data-days="30" data-kind="paid">30 дней</button>
+            <button type="button" data-days="90" data-kind="paid">90 дней</button>
+            <button type="button" data-days="365" data-kind="paid">365 дней</button>
+          </div>
+          <p>
+            <label for="note">Заметка</label>
+            <input id="note" maxlength="500" placeholder="Кто взял, город, оплата" style="width:100%" />
+          </p>
+          <p id="msg" class="muted"></p>
+          <button class="primary" type="submit">Выдать ключ</button>
+        </form>
+      </section>
+      <section class="card">
+        <h2>Выданные</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Клуб</th>
+              <th>Ключ</th>
+              <th>Срок</th>
+              <th>Сервер</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const zone = { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
+    const fmt = (iso) => iso ? new Date(iso).toLocaleString("ru-KZ", zone) : "—";
+
+    async function api(path, options) {
+      const res = await fetch(path, {
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        const error = new Error((data && data.message) || "Ошибка " + res.status);
+        error.status = res.status;
+        throw error;
+      }
+      return data;
+    }
+
+    function markPreset() {
+      const days = $("days").value;
+      const kind = $("kind").value;
+      document.querySelectorAll("#presets button").forEach((btn) => {
+        btn.dataset.on = btn.dataset.days === days && btn.dataset.kind === kind ? "1" : "0";
+      });
+    }
+
+    async function showApp() {
+      $("login").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      markPreset();
+      await load();
+    }
+
+    async function boot() {
+      try {
+        await api("/api/admin/session");
+        await showApp();
+      } catch {
+        $("app").classList.add("hidden");
+        $("login").classList.remove("hidden");
+      }
+    }
+
+    $("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("login-msg").textContent = "Проверяю…";
+      try {
+        await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password: $("password").value }) });
+        $("password").value = "";
+        $("login-msg").textContent = "";
+        await showApp();
+      } catch (err) {
+        $("login-msg").textContent = err.message;
+      }
+    });
+
+    $("logout").addEventListener("click", async () => {
+      await api("/api/admin/logout", { method: "POST", body: "{}" });
+      location.reload();
+    });
+
+    document.querySelectorAll("#presets button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        $("days").value = btn.dataset.days;
+        $("kind").value = btn.dataset.kind;
+        markPreset();
+      });
+    });
+    $("days").addEventListener("input", markPreset);
+    $("kind").addEventListener("change", markPreset);
+
+    $("create").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("msg").textContent = "Выдаю…";
+      try {
+        const row = await api("/api/admin/licenses", {
+          method: "POST",
+          body: JSON.stringify({
+            clubName: $("club").value,
+            maxComputers: Number($("seats").value),
+            days: Number($("days").value),
+            kind: $("kind").value,
+            note: $("note").value,
+          }),
+        });
+        $("msg").textContent = "Ключ " + row.key + " скопирован.";
+        await navigator.clipboard.writeText(row.key).catch(() => {});
+        await load();
+      } catch (err) {
+        $("msg").textContent = err.message;
+      }
+    });
+
+    function tag(row) {
+      if (row.revoked) return '<span class="tag bad">отозвана</span>';
+      if (row.expired) return '<span class="tag bad">истекла</span>';
+      if (row.kind === "trial") return '<span class="tag trial">триал</span>';
+      return '<span class="tag ok">активна</span>';
+    }
+
+    async function load() {
+      const rows = await api("/api/admin/licenses");
+      const body = $("rows");
+      body.replaceChildren();
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong></strong><div class="muted"></div><div></div></td>
+          <td><code></code><div class="muted"></div></td>
+          <td><div></div><div class="muted"></div></td>
+          <td><div></div><div class="muted"></div></td>
+          <td><div class="row-actions"></div></td>`;
+        tr.children[0].children[0].textContent = row.clubName;
+        tr.children[0].children[1].textContent = row.maxComputers + " мест";
+        tr.children[0].children[2].innerHTML = tag(row);
+        tr.children[1].children[0].textContent = row.key;
+        tr.children[1].children[1].textContent = row.note || "";
+        tr.children[2].children[0].textContent = "до " + fmt(row.expiresAt);
+        tr.children[2].children[1].textContent = "выдана " + fmt(row.createdAt);
+        tr.children[3].children[0].textContent = row.machineName || (row.machineId ? "привязан" : "не активирован");
+        tr.children[3].children[1].textContent = row.lastSeenAt ? "был " + fmt(row.lastSeenAt) : "";
+        const actions = tr.children[4].children[0];
+        actions.append(action("Копировать", async () => {
+          await navigator.clipboard.writeText(row.key);
+          $("msg").textContent = "Скопирован " + row.key;
+        }));
+        actions.append(action("+7", () => extend(row, 7)));
+        actions.append(action("+30", () => extend(row, 30)));
+        actions.append(action("Отвязать", () => post(row, "unbind")));
+        const revoke = action("Отозвать", () => post(row, "revoke"));
+        revoke.classList.add("danger");
+        actions.append(revoke);
+        body.append(tr);
+      }
+      if (rows.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 5;
+        td.className = "muted";
+        td.textContent = "Пока пусто. Выдайте триал на 3 или 7 дней.";
+        tr.append(td);
+        body.append(tr);
+      }
+    }
+
+    function action(label, fn) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = label;
+      btn.addEventListener("click", () => fn().catch((err) => { $("msg").textContent = err.message; }));
+      return btn;
+    }
+
+    async function extend(row, days) {
+      await api("/api/admin/licenses/" + row.id + "/extend", { method: "POST", body: JSON.stringify({ days }) });
+      $("msg").textContent = row.clubName + ": +" + days + " дн.";
+      await load();
+    }
+
+    async function post(row, actionName) {
+      if (actionName === "revoke" && !confirm("Отозвать лицензию " + row.clubName + "? Сервер клуба остановит работу при следующей проверке."))
+        return;
+      await api("/api/admin/licenses/" + row.id + "/" + actionName, { method: "POST", body: "{}" });
+      await load();
+    }
+
+    boot();
+  </script>
+</body>
+</html>

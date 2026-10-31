@@ -62,6 +62,13 @@ coverage/
 *.db-shm
 *.db-wal
 
+# License authority private key and runtime leases
+*.pem
+src/ShiftClub.Licensing/data/
+src/ShiftClub.Server/data/license-key.txt
+src/ShiftClub.Server/data/license-lease.txt
+src/ShiftClub.Server/data/license-machine.id
+
 # Archives
 *.zip
 *.7z
