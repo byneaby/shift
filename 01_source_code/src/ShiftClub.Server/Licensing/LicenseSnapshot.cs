@@ -10,3 +10,16 @@ public sealed record LicenseSnapshot(
     DateTimeOffset? ExpiresAt,
     int? DaysRemaining,
     bool Warning);
+
+public sealed record LicenseStatusDto(
+    bool Enforce,
+    bool Operational,
+    string Message,
+    string? Club,
+    string? Kind,
+    int? MaxComputers,
+    int UsedComputers,
+    DateTimeOffset? ExpiresAt,
+    int? DaysRemaining,
+    bool Warning,
+    int RefreshMinutes);

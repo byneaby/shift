@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { apiFetch, getToken } from '../api/client'
 import type { BranchDto } from '../api/client'
+import { LicenseHomeCard } from './LicensePage'
 import { can } from '../permissions'
 
 const MODULES = [
@@ -52,6 +53,8 @@ export function DashboardPage() {
       </header>
 
       {branchesQuery.isError && <p className="error">{(branchesQuery.error as Error).message}</p>}
+
+      <LicenseHomeCard />
 
       <section className="home-grid">
         {modules.map((m) => (

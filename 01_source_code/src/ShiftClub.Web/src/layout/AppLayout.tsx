@@ -5,6 +5,12 @@ import type { EmployeeDto } from '../api/client'
 import { ChangePasswordDialog } from '../components/ChangePasswordDialog'
 import { StaffNotifications } from '../components/StaffNotifications'
 import { rolesLabel } from '../format'
+import {
+  daysPhrase,
+  formatLicenseWhen,
+  licenseTone,
+  useLicenseStatus,
+} from '../licenseStatus'
 import { can } from '../permissions'
 import { useDisableBrowserAutofill } from '../disableBrowserAutofill'
 
@@ -35,6 +41,7 @@ const NAV = [
       { to: '/telegram', label: 'Telegram', icon: 'tg', hint: 'Бот и алерты', perm: 'settings.manage' },
       { to: '/news', label: 'Новости', icon: 'news', hint: 'Лента на Shell', perm: 'settings.manage' },
       { to: '/updates', label: 'Обновления', icon: 'update', hint: 'Клиент Shell', perm: 'settings.manage' },
+      { to: '/license', label: 'Лицензия', icon: 'license', hint: 'Срок и места' },
       { to: '/settings', label: 'Настройки', icon: 'settings', hint: 'Лояльность и система', perm: 'settings.manage' },
     ],
   },
@@ -201,6 +208,15 @@ function NavIcon({ name }: { name: string }) {
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
       )
+    case 'license':
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="14" r="3.2" />
+          <path d="M10.8 14H20" />
+          <path d="M17 14v2.4" />
+          <path d="M14 14v1.8" />
+        </svg>
+      )
     case 'settings':
       return (
         <svg {...common}>
@@ -211,6 +227,14 @@ function NavIcon({ name }: { name: string }) {
     default:
       return <span className="nav-icon-dot" />
   }
+}
+
+function licenseChipValue(license: { enforce: boolean; operational: boolean; daysRemaining: number | null } | undefined): string {
+  if (!license) return '…'
+  if (!license.enforce) return 'выкл.'
+  if (!license.operational) return 'стоп'
+  if (license.daysRemaining == null) return 'ок'
+  return `${license.daysRemaining} дн.`
 }
 
 function pageTitle(pathname: string): string {
@@ -232,6 +256,11 @@ export function AppLayout() {
   const [navOpen, setNavOpen] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
   const title = useMemo(() => pageTitle(location.pathname), [location.pathname])
+  const licenseQuery = useLicenseStatus()
+  const license = licenseQuery.data
+  const onLicensePage = location.pathname === '/license'
+  const showStopped = !!license && license.enforce && !license.operational
+  const showWarning = !!license && license.enforce && license.operational && license.warning && !onLicensePage
 
   useEffect(() => {
     setNavOpen(false)
@@ -324,6 +353,15 @@ export function AppLayout() {
         </nav>
 
         <div className="app-sidebar-foot">
+          <NavLink
+            to="/license"
+            className={({ isActive }) =>
+              `license-chip${license ? ` license-chip--${licenseTone(license)}` : ''}${isActive ? ' is-active' : ''}`
+            }
+          >
+            <span>Лицензия</span>
+            <strong>{licenseChipValue(license)}</strong>
+          </NavLink>
           <div className="user-pill">
             <strong>{employee?.displayName ?? employee?.login ?? 'Сотрудник'}</strong>
             <span className="muted">{rolesLabel(employee?.roles) || 'кассир'}</span>
@@ -361,6 +399,23 @@ export function AppLayout() {
         </header>
 
         <div className="app-content">
+          {showStopped && license && (
+            <div className="license-banner license-banner--bad" role="status">
+              <span>Сервер остановлен: {license.message || 'нет действующей лицензии'}.</span>
+              {!onLicensePage && <NavLink to="/license">Открыть лицензию</NavLink>}
+            </div>
+          )}
+          {showWarning && license && (
+            <div className="license-banner" role="status">
+              <span>
+                Лицензия заканчивается
+                {license.daysRemaining != null ? ` через ${daysPhrase(license.daysRemaining)}` : ''}
+                {license.expiresAt ? ` — до ${formatLicenseWhen(license.expiresAt)}` : ''}. Если срок выйдет, сервер
+                остановится.
+              </span>
+              <NavLink to="/license">Открыть лицензию</NavLink>
+            </div>
+          )}
           <main className={wide ? 'app-main app-main--wide' : 'app-main'}>
             <Outlet />
           </main>

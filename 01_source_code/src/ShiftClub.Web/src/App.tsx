@@ -24,6 +24,7 @@ import { TelegramSettingsPage } from './pages/TelegramSettingsPage'
 import SettingsPage from './pages/SettingsPage'
 import { CasesPage } from './pages/CasesPage'
 import { WikiPage } from './pages/WikiPage'
+import { LicensePage } from './pages/LicensePage'
 import { LoginPage } from './pages/LoginPage'
 import { Perm } from './permissions'
 import './index.css'
@@ -63,6 +64,7 @@ export default function App() {
             }
           >
             <Route path="/" element={<DashboardPage />} />
+            <Route path="license" element={<LicensePage />} />
             <Route path="floor" element={<FloorMapPage />} />
             <Route path="wiki" element={<WikiPage />} />
             <Route path="wiki/:slug" element={<WikiPage />} />

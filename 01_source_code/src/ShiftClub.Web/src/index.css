@@ -7271,3 +7271,207 @@ a.ghost {
   .emp-journal-search { grid-column: span 1; }
 }
 
+.license-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.license-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.license-chip--ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+}
+
+.license-chip--warn {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.license-chip--bad {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.license-chip--off {
+  color: var(--muted);
+}
+
+.license-chip.is-active {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.license-banner {
+  margin: var(--space-5) var(--space-6) 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fde68a;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.license-banner a {
+  color: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.license-banner--bad {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: #ffd0d0;
+}
+
+.license-lead {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.license-state--ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+}
+
+.license-state--warn {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.license-state--bad {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.license-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.license-fact {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(18, 24, 33, 0.92);
+}
+
+.license-fact span,
+.license-fact small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.license-fact strong {
+  font-size: 1.12rem;
+  line-height: 1.3;
+}
+
+.license-callout,
+.license-note,
+.license-replace {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.license-callout h2,
+.license-note h2,
+.license-replace h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.license-callout p,
+.license-note p,
+.license-replace p {
+  margin: 0;
+}
+
+.license-callout--warn {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.license-callout--bad {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.license-key-input {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.license-replace button {
+  justify-self: start;
+}
+
+.license-done {
+  margin: 0;
+  color: var(--ok);
+}
+
+.license-home {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(24, 34, 49, 0.95), rgba(18, 24, 33, 0.92));
+  text-decoration: none;
+  color: inherit;
+}
+
+.license-home__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.license-home strong {
+  font-size: 1.15rem;
+}
+
+.license-home--ok {
+  border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
+}
+
+.license-home--warn {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.license-home--bad {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+.license-home--off {
+  border-color: var(--border);
+}
+
+@media (max-width: 900px) {
+  .license-banner {
+    margin: 12px 14px 0;
+  }
+}
+
