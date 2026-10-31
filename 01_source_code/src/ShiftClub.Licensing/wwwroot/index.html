@@ -4,72 +4,78 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <title>SHIFT — лицензии</title>
+  <title>SHIFT — клубы и лицензии</title>
   <style>
     :root {
       color-scheme: dark;
       --bg: #10140f;
       --card: #1a2118;
+      --card-2: #141b13;
       --line: #2c3828;
       --text: #e7f0e2;
       --muted: #9aab93;
       --accent: #c6f54a;
       --danger: #ff8d7a;
       --warn: #f0c14a;
+      --ok: #9ee37a;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font: 16px/1.45 "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-    header, main { width: min(1100px, calc(100% - 32px)); margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 22px 0 8px; gap: 12px; }
-    h1 { font-size: 22px; margin: 0; letter-spacing: 0.02em; }
-    h1 span { color: var(--accent); }
-    .muted { color: var(--muted); }
-    button, input, select {
-      font: inherit;
-      color: var(--text);
-      background: #121812;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px 12px;
-    }
+    body { margin: 0; font: 15px/1.45 "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    button, input, select, textarea { font: inherit; color: var(--text); background: #121812; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    textarea { width: 100%; min-height: 72px; resize: vertical; }
     button { cursor: pointer; background: #243022; }
     button.primary { background: var(--accent); color: #15200c; font-weight: 700; border-color: transparent; }
     button.danger { color: var(--danger); }
-    button:disabled { opacity: 0.55; cursor: default; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 14px 0; }
-    .grid { display: grid; grid-template-columns: 1.4fr 0.7fr 0.7fr 0.8fr; gap: 10px; }
-    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .presets button[data-on="1"] { outline: 2px solid var(--accent); }
+    button.ghost { background: transparent; }
+    button[aria-pressed="true"] { outline: 2px solid var(--accent); }
+    a { color: var(--accent); }
     label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    code { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
-    .tag { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; background: #243022; }
-    .tag.trial { color: var(--warn); }
-    .tag.bad { color: var(--danger); }
-    .tag.ok { color: var(--accent); }
-    .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-    .row-actions button { padding: 6px 8px; font-size: 13px; }
-    #msg { min-height: 1.2em; }
-    #login { max-width: 420px; margin: 10vh auto; }
     .hidden { display: none !important; }
-    @media (max-width: 800px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-      table { display: block; overflow-x: auto; }
+    .muted { color: var(--muted); }
+    .wrap { width: min(1180px, calc(100% - 28px)); margin: 0 auto; }
+    header.top { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 18px 0 8px; }
+    h1 { font-size: 22px; margin: 0; }
+    h1 span, h2 span { color: var(--accent); }
+    h2 { font-size: 18px; margin: 0 0 8px; }
+    h3 { font-size: 15px; margin: 18px 0 8px; }
+    #login { max-width: 420px; margin: 12vh auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+    .stats, .filters, .presets, .actions, .split-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .stats { margin: 8px 0 12px; }
+    .stat { min-width: 120px; text-align: left; background: var(--card); border: 1px solid var(--line); }
+    .stat b { display: block; font-size: 20px; }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .toolbar input { flex: 1; }
+    .layout { display: grid; grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.2fr); gap: 14px; align-items: start; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .club { width: 100%; text-align: left; margin: 0 0 8px; background: var(--card-2); }
+    .club.selected { outline: 2px solid var(--accent); }
+    .club strong { display: block; }
+    .rowline { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .tag { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; background: #243022; }
+    .tag.ok { color: var(--ok); }
+    .tag.trial, .tag.expiring { color: var(--warn); }
+    .tag.bad, .tag.revoked, .tag.expired { color: var(--danger); }
+    .tag.waiting { color: #9ecbff; }
+    .keybox { font-family: ui-monospace, Consolas, monospace; font-size: 18px; letter-spacing: 0.04em; background: #0e130e; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid .wide { grid-column: 1 / -1; }
+    .banner { background: #243312; border: 1px solid var(--accent); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .history { list-style: none; padding: 0; margin: 0; }
+    .history li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .danger-zone { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 8px; }
+    #toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: #243312; border: 1px solid var(--accent); padding: 10px 14px; border-radius: 12px; }
+    @media (max-width: 860px) {
+      .layout, .grid { grid-template-columns: 1fr; }
+      .toolbar { flex-direction: column; align-items: stretch; }
     }
   </style>
 </head>
 <body>
-  <div id="login" class="card hidden">
+  <div id="login" class="hidden">
     <h1>SHIFT <span>лицензии</span></h1>
-    <p class="muted">Центр ключей для серверов клубов. Триал 3 или 7 дней и обычные сроки выдаются здесь.</p>
+    <p class="muted">Клубы, ключи, сроки и места. Время на экране — Кызылорда, UTC+5.</p>
     <form id="login-form">
-      <label for="password">Пароль администратора</label>
+      <label for="password">Пароль</label>
       <input id="password" type="password" autocomplete="current-password" required />
       <p id="login-msg" class="muted"></p>
       <button class="primary" type="submit">Войти</button>
@@ -77,75 +83,116 @@
   </div>
 
   <div id="app" class="hidden">
-    <header>
-      <div>
-        <h1>SHIFT <span>лицензии</span></h1>
-        <p class="muted">licence.shift-club.kz · время Алматы (UTC+5)</p>
+    <div class="wrap">
+      <header class="top">
+        <div>
+          <h1>SHIFT <span>клубы</span></h1>
+          <p class="muted">licence.shift-club.kz · Кызылорда, UTC+5</p>
+        </div>
+        <button id="logout" type="button">Выйти</button>
+      </header>
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <input id="search" placeholder="Клуб, город, телефон, ключ" />
+        <button class="primary" id="new-open" type="button">Новый клуб</button>
       </div>
-      <button id="logout" type="button">Выйти</button>
-    </header>
-    <main>
-      <section class="card">
-        <h2>Новая лицензия</h2>
-        <form id="create">
-          <div class="grid">
-            <div>
-              <label for="club">Клуб</label>
-              <input id="club" required maxlength="120" placeholder="Название клуба" />
-            </div>
-            <div>
-              <label for="seats">Мест (ПК)</label>
-              <input id="seats" type="number" min="1" max="5000" value="40" required />
-            </div>
-            <div>
-              <label for="days">Дней</label>
-              <input id="days" type="number" min="1" max="3650" value="7" required />
-            </div>
-            <div>
-              <label for="kind">Тип</label>
-              <select id="kind">
-                <option value="trial">Триал</option>
-                <option value="paid">Оплачена</option>
-              </select>
-            </div>
+      <form id="create" class="card hidden">
+        <h2>Новый клуб и ключ</h2>
+        <div class="grid">
+          <div>
+            <label for="c-name">Клуб</label>
+            <input id="c-name" required maxlength="120" placeholder="Название" />
           </div>
-          <div class="presets" id="presets">
-            <button type="button" data-days="3" data-kind="trial">Триал 3 дня</button>
-            <button type="button" data-days="7" data-kind="trial">Триал 7 дней</button>
-            <button type="button" data-days="14" data-kind="trial">Триал 14 дней</button>
-            <button type="button" data-days="30" data-kind="paid">30 дней</button>
-            <button type="button" data-days="90" data-kind="paid">90 дней</button>
-            <button type="button" data-days="365" data-kind="paid">365 дней</button>
+          <div>
+            <label for="c-city">Город</label>
+            <input id="c-city" maxlength="80" placeholder="Алматы" />
           </div>
-          <p>
-            <label for="note">Заметка</label>
-            <input id="note" maxlength="500" placeholder="Кто взял, город, оплата" style="width:100%" />
-          </p>
-          <p id="msg" class="muted"></p>
+          <div>
+            <label for="c-contact">Контакт</label>
+            <input id="c-contact" maxlength="80" placeholder="Имя владельца" />
+          </div>
+          <div>
+            <label for="c-phone">Телефон</label>
+            <input id="c-phone" maxlength="40" placeholder="+7 777 000 00 00" />
+          </div>
+          <div>
+            <label for="c-tg">Telegram</label>
+            <input id="c-tg" maxlength="64" placeholder="@club" />
+          </div>
+          <div>
+            <label for="c-seats">Мест</label>
+            <input id="c-seats" type="number" min="1" max="5000" value="40" required />
+          </div>
+          <div class="wide">
+            <label for="c-days">Срок, дней</label>
+            <input id="c-days" type="number" min="1" max="3650" value="7" required />
+          </div>
+        </div>
+        <div class="presets" id="presets">
+          <button type="button" data-days="3" data-kind="trial">Триал 3 дня</button>
+          <button type="button" data-days="7" data-kind="trial">Триал 7 дней</button>
+          <button type="button" data-days="14" data-kind="trial">Триал 14 дней</button>
+          <button type="button" data-days="30" data-kind="paid">Месяц</button>
+          <button type="button" data-days="90" data-kind="paid">90 дней</button>
+          <button type="button" data-days="365" data-kind="paid">Год</button>
+        </div>
+        <input id="c-kind" type="hidden" value="trial" />
+        <p>
+          <label for="c-note">Заметка</label>
+          <textarea id="c-note" maxlength="1000" placeholder="Оплата, договор, кто привёл"></textarea>
+        </p>
+        <p id="create-msg" class="muted"></p>
+        <div class="actions">
           <button class="primary" type="submit">Выдать ключ</button>
-        </form>
-      </section>
-      <section class="card">
-        <h2>Выданные</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Клуб</th>
-              <th>Ключ</th>
-              <th>Срок</th>
-              <th>Сервер</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </section>
-    </main>
+          <button type="button" id="create-cancel">Закрыть</button>
+        </div>
+      </form>
+      <div id="issued" class="banner hidden"></div>
+      <div class="layout">
+        <section>
+          <div class="filters" id="filters"></div>
+          <div id="list" style="margin-top:10px"></div>
+        </section>
+        <section id="detail" class="card">
+          <p class="muted">Выберите клуб слева. Здесь контакты, ключ, места, продление и история.</p>
+        </section>
+      </div>
+    </div>
   </div>
+  <div id="toast" class="hidden"></div>
   <script>
     const $ = (id) => document.getElementById(id);
-    const zone = { timeZone: "Asia/Almaty", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
+    const zone = { timeZone: "Asia/Qyzylorda", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
     const fmt = (iso) => iso ? new Date(iso).toLocaleString("ru-KZ", zone) : "—";
+    const labels = {
+      active: "работает",
+      trial: "триал",
+      expiring: "скоро конец",
+      expired: "истекла",
+      revoked: "отозвана",
+      waiting: "не активирована",
+      none: "нет ключа",
+    };
+    const filters = [
+      ["work", "В работе"],
+      ["expiring", "Скоро конец"],
+      ["waiting", "Не активированы"],
+      ["trial", "Триалы"],
+      ["expired", "Истекли"],
+      ["revoked", "Отозванные"],
+    ];
+    let clubs = [];
+    let filter = "work";
+    let selected = null;
+    let detail = null;
+
+    function toast(text) {
+      const el = $("toast");
+      el.textContent = text;
+      el.classList.remove("hidden");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add("hidden"), 2400);
+    }
 
     async function api(path, options) {
       const res = await fetch(path, {
@@ -154,7 +201,8 @@
         ...options,
       });
       const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = null; }
       if (!res.ok) {
         const error = new Error((data && data.message) || "Ошибка " + res.status);
         error.status = res.status;
@@ -163,19 +211,464 @@
       return data;
     }
 
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Ключ скопирован");
+      } catch {
+        toast(text);
+      }
+    }
+
+    function tag(status) {
+      const span = document.createElement("span");
+      span.className = "tag " + (status === "active" ? "ok" : status);
+      span.textContent = labels[status] || status;
+      return span;
+    }
+
+    function matches(club) {
+      const trialLive = club.license && club.license.kind === "trial" && club.status !== "revoked" && club.status !== "expired";
+      if (filter === "work" && (club.status === "revoked" || club.status === "none" || club.status === "expired")) return false;
+      if (filter === "trial" && !trialLive) return false;
+      if (filter !== "work" && filter !== "trial" && club.status !== filter) return false;
+      const q = $("search").value.trim().toLowerCase();
+      if (!q) return true;
+      const hay = [club.name, club.city, club.phone, club.telegram, club.contactName, club.license && club.license.key].join(" ").toLowerCase();
+      return hay.includes(q);
+    }
+
+    function renderStats() {
+      const count = (pred) => clubs.filter(pred).length;
+      const items = [
+        ["В работе", count((c) => !["revoked", "none", "expired"].includes(c.status))],
+        ["Скоро конец", count((c) => c.status === "expiring")],
+        ["Истекли", count((c) => c.status === "expired")],
+        ["Ждут ключ", count((c) => c.status === "waiting")],
+        ["Триалы", count((c) => c.license && c.license.kind === "trial" && c.status !== "revoked" && c.status !== "expired")],
+      ];
+      const box = $("stats");
+      box.replaceChildren();
+      for (const [label, value] of items) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "stat";
+        const b = document.createElement("b");
+        b.textContent = String(value);
+        btn.append(b, document.createTextNode(label));
+        btn.addEventListener("click", () => {
+          const map = { "В работе": "work", "Скоро конец": "expiring", "Истекли": "expired", "Ждут ключ": "waiting", "Триалы": "trial" };
+          filter = map[label];
+          renderFilters();
+          renderList();
+        });
+        box.append(btn);
+      }
+    }
+
+    function renderFilters() {
+      const box = $("filters");
+      box.replaceChildren();
+      for (const [id, label] of filters) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.setAttribute("aria-pressed", filter === id ? "true" : "false");
+        btn.addEventListener("click", () => { filter = id; renderFilters(); renderList(); });
+        box.append(btn);
+      }
+    }
+
+    function renderList() {
+      const box = $("list");
+      box.replaceChildren();
+      const rows = clubs.filter(matches);
+      if (rows.length === 0) {
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = clubs.length === 0 ? "Клубов пока нет. Нажмите «Новый клуб»." : "Ничего не найдено.";
+        box.append(p);
+        return;
+      }
+      for (const club of rows) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "club" + (selected === club.id ? " selected" : "");
+        const top = document.createElement("div");
+        top.className = "rowline";
+        const name = document.createElement("strong");
+        name.textContent = club.name;
+        top.append(name, tag(club.status));
+        const sub = document.createElement("div");
+        sub.className = "muted";
+        const bits = [];
+        if (club.city) bits.push(club.city);
+        if (club.license) bits.push(club.license.maxComputers + " мест");
+        if (club.status === "expired") bits.push("истекла");
+        else if (club.license) bits.push(club.daysRemaining + " дн.");
+        if (club.phone) bits.push(club.phone);
+        sub.textContent = bits.join(" · ");
+        btn.append(top, sub);
+        btn.addEventListener("click", () => openClub(club.id));
+        box.append(btn);
+      }
+    }
+
+    function field(label, id, value, max) {
+      const wrap = document.createElement("div");
+      const lab = document.createElement("label");
+      lab.htmlFor = id;
+      lab.textContent = label;
+      const input = document.createElement("input");
+      input.id = id;
+      input.maxLength = max;
+      input.value = value || "";
+      wrap.append(lab, input);
+      return wrap;
+    }
+
+    function renderDetail() {
+      const root = $("detail");
+      root.replaceChildren();
+      if (!detail) {
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = "Выберите клуб слева.";
+        root.append(p);
+        return;
+      }
+      const club = detail.club;
+      const license = club.license;
+      const title = document.createElement("div");
+      title.className = "rowline";
+      const h = document.createElement("h2");
+      h.textContent = club.name;
+      title.append(h, tag(club.status));
+      root.append(title);
+
+      if (license) {
+        const key = document.createElement("div");
+        key.className = "keybox";
+        const code = document.createElement("span");
+        code.textContent = license.key;
+        const copy = document.createElement("button");
+        copy.type = "button";
+        copy.textContent = "Копировать";
+        copy.addEventListener("click", () => copyText(license.key));
+        key.append(code, copy);
+        const meta = document.createElement("p");
+        meta.className = "muted";
+        const kind = license.kind === "trial" ? "триал" : "оплата";
+        meta.textContent = `${kind} · до ${fmt(license.expiresAt)} · ${license.maxComputers} мест · ${club.daysRemaining} дн.`;
+        root.append(key, meta);
+        const server = document.createElement("p");
+        if (!license.machineId) server.textContent = "Ключ ещё не вставляли в сервер клуба.";
+        else server.textContent = `Сервер: ${license.machineName || "привязан"} · последняя проверка ${fmt(license.lastSeenAt)}`;
+        root.append(server);
+      }
+
+      const form = document.createElement("form");
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      grid.append(
+        field("Клуб", "e-name", club.name, 120),
+        field("Город", "e-city", club.city, 80),
+        field("Контакт", "e-contact", club.contactName, 80),
+        field("Телефон", "e-phone", club.phone, 40),
+        field("Telegram", "e-tg", club.telegram, 64),
+      );
+      const noteWrap = document.createElement("div");
+      noteWrap.className = "wide";
+      const noteLabel = document.createElement("label");
+      noteLabel.textContent = "Заметка";
+      const note = document.createElement("textarea");
+      note.id = "e-note";
+      note.maxLength = 1000;
+      note.value = club.note || "";
+      noteWrap.append(noteLabel, note);
+      grid.append(noteWrap);
+      form.append(grid);
+      const save = document.createElement("button");
+      save.className = "primary";
+      save.type = "submit";
+      save.textContent = "Сохранить карточку";
+      form.append(save);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          await api("/api/admin/clubs/" + club.id, {
+            method: "PUT",
+            body: JSON.stringify({
+              name: $("e-name").value,
+              city: $("e-city").value,
+              contactName: $("e-contact").value,
+              phone: $("e-phone").value,
+              telegram: $("e-tg").value,
+              note: $("e-note").value,
+            }),
+          });
+          toast("Карточка сохранена");
+          await refresh(club.id);
+        } catch (err) { toast(err.message); }
+      });
+      root.append(form);
+
+      if (license && license.status !== "revoked") {
+        const seats = document.createElement("div");
+        seats.className = "actions";
+        const seatsInput = document.createElement("input");
+        seatsInput.type = "number";
+        seatsInput.min = "1";
+        seatsInput.max = "5000";
+        seatsInput.value = String(license.maxComputers);
+        seatsInput.style.width = "100px";
+        const seatsBtn = document.createElement("button");
+        seatsBtn.type = "button";
+        seatsBtn.textContent = "Изменить места";
+        seatsBtn.addEventListener("click", async () => {
+          try {
+            await api("/api/admin/licenses/" + license.id + "/seats", { method: "POST", body: JSON.stringify({ maxComputers: Number(seatsInput.value) }) });
+            toast("Лимит мест обновлён");
+            await refresh(club.id);
+          } catch (err) { toast(err.message); }
+        });
+        seats.append(seatsInput, seatsBtn);
+        const hint = document.createElement("p");
+        hint.className = "muted";
+        hint.textContent = "Новый лимит сервер клуба заберёт сам, в течение 5 минут. Переустанавливать ключ не нужно.";
+        const seatsTitle = document.createElement("h3");
+        seatsTitle.textContent = "Места и срок";
+        root.append(seatsTitle, seats, hint);
+
+        const extend = document.createElement("div");
+        extend.className = "actions";
+        for (const days of [7, 30, 90, 365]) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "+" + days;
+          btn.addEventListener("click", () => extendBy(license.id, days, club.id));
+          extend.append(btn);
+        }
+        const custom = document.createElement("input");
+        custom.type = "number";
+        custom.min = "1";
+        custom.max = "3650";
+        custom.placeholder = "дней";
+        custom.style.width = "90px";
+        const customBtn = document.createElement("button");
+        customBtn.type = "button";
+        customBtn.textContent = "Продлить";
+        customBtn.addEventListener("click", () => extendBy(license.id, Number(custom.value), club.id));
+        extend.append(custom, customBtn);
+        root.append(extend);
+        if (license.revoked === false && license.status === "expired") {
+          const p = document.createElement("p");
+          p.className = "muted";
+          p.textContent = "Срок уже вышел. Продление включит зал снова, тем же ключом.";
+          root.append(p);
+        }
+      }
+
+      if (club.phone) {
+        const phone = document.createElement("p");
+        const a = document.createElement("a");
+        a.href = "tel:" + club.phone.replace(/[^\d+]/g, "");
+        a.textContent = club.phone;
+        phone.append(document.createTextNode("Позвонить: "), a);
+        root.append(phone);
+      }
+
+      const historyTitle = document.createElement("h3");
+      historyTitle.textContent = "История";
+      const list = document.createElement("ul");
+      list.className = "history";
+      for (const event of detail.events || []) {
+        const li = document.createElement("li");
+        const when = document.createElement("div");
+        when.className = "muted";
+        when.textContent = fmt(event.createdAt);
+        const msg = document.createElement("div");
+        msg.textContent = event.message;
+        li.append(when, msg);
+        list.append(li);
+      }
+      if ((detail.events || []).length === 0) {
+        const li = document.createElement("li");
+        li.className = "muted";
+        li.textContent = "Пока пусто.";
+        list.append(li);
+      }
+      root.append(historyTitle, list);
+
+      if (license) {
+        const danger = document.createElement("div");
+        danger.className = "danger-zone";
+        const h = document.createElement("h3");
+        h.textContent = "Сервер и ключ";
+        danger.append(h);
+        const row = document.createElement("div");
+        row.className = "actions";
+        if (license.machineId) {
+          const unbind = document.createElement("button");
+          unbind.type = "button";
+          unbind.textContent = "Отвязать сервер";
+          unbind.addEventListener("click", async () => {
+            if (!confirm("Отвязать сервер «" + club.name + "»? Ключ можно будет вставить на новом компьютере.")) return;
+            await act(license.id, "unbind", club.id);
+          });
+          row.append(unbind);
+        }
+        if (license.status !== "revoked" && license.status !== "expired") {
+          const re = document.createElement("button");
+          re.type = "button";
+          re.textContent = "Выдать новый ключ";
+          re.addEventListener("click", async () => {
+            if (!confirm("Старый ключ перестанет работать. Новый нужно вставить на сервере клуба. Продолжить?")) return;
+            try {
+              const fresh = await api("/api/admin/licenses/" + license.id + "/reissue", { method: "POST", body: "{}" });
+              await copyText(fresh.key);
+              showIssued(club.name, fresh.key);
+              await refresh(club.id);
+            } catch (err) { toast(err.message); }
+          });
+          row.append(re);
+        }
+        if (!license.revoked) {
+          const revoke = document.createElement("button");
+          revoke.type = "button";
+          revoke.className = "danger";
+          revoke.textContent = "Отозвать";
+          revoke.addEventListener("click", async () => {
+            if (!confirm("Отозвать лицензию «" + club.name + "»? Зал остановится в течение 5 минут.")) return;
+            await act(license.id, "revoke", club.id);
+          });
+          row.append(revoke);
+        }
+        const help = document.createElement("p");
+        help.className = "muted";
+        help.textContent = "Отзыв и новый ключ доходят до клуба при следующей проверке, обычно за 5 минут. Продление и места — тем же ключом, вставлять заново не нужно.";
+        danger.append(row, help);
+        root.append(danger);
+      }
+    }
+
+    async function extendBy(id, days, clubId) {
+      if (!days || days < 1) { toast("Укажите число дней"); return; }
+      try {
+        await api("/api/admin/licenses/" + id + "/extend", { method: "POST", body: JSON.stringify({ days }) });
+        toast("Срок продлён на " + days + " дн.");
+        await refresh(clubId);
+      } catch (err) { toast(err.message); }
+    }
+
+    async function act(id, action, clubId) {
+      try {
+        await api("/api/admin/licenses/" + id + "/" + action, { method: "POST", body: "{}" });
+        await refresh(clubId);
+      } catch (err) { toast(err.message); }
+    }
+
+    function showIssued(name, key) {
+      const box = $("issued");
+      box.classList.remove("hidden");
+      box.replaceChildren();
+      const p = document.createElement("div");
+      p.textContent = "Ключ для «" + name + "». Отдайте его клубу и вставьте на сервере.";
+      const keyline = document.createElement("div");
+      keyline.className = "keybox";
+      keyline.style.marginTop = "8px";
+      const span = document.createElement("span");
+      span.textContent = key;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Копировать";
+      btn.addEventListener("click", () => copyText(key));
+      keyline.append(span, btn);
+      box.append(p, keyline);
+    }
+
+    async function refresh(keepId) {
+      clubs = await api("/api/admin/clubs");
+      renderStats();
+      renderFilters();
+      renderList();
+      if (keepId) await openClub(keepId);
+    }
+
+    async function openClub(id) {
+      selected = id;
+      detail = await api("/api/admin/clubs/" + id);
+      renderList();
+      renderDetail();
+    }
+
     function markPreset() {
-      const days = $("days").value;
-      const kind = $("kind").value;
       document.querySelectorAll("#presets button").forEach((btn) => {
-        btn.dataset.on = btn.dataset.days === days && btn.dataset.kind === kind ? "1" : "0";
+        btn.setAttribute("aria-pressed", btn.dataset.days === $("c-days").value && btn.dataset.kind === $("c-kind").value ? "true" : "false");
       });
     }
+
+    $("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("login-msg").textContent = "Проверяю…";
+      try {
+        await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password: $("password").value }) });
+        $("password").value = "";
+        await showApp();
+      } catch (err) { $("login-msg").textContent = err.message; }
+    });
+
+    $("logout").addEventListener("click", async () => {
+      await api("/api/admin/logout", { method: "POST", body: "{}" });
+      location.reload();
+    });
+
+    $("new-open").addEventListener("click", () => {
+      $("create").classList.remove("hidden");
+      markPreset();
+      $("c-name").focus();
+    });
+    $("create-cancel").addEventListener("click", () => $("create").classList.add("hidden"));
+    $("search").addEventListener("input", renderList);
+    document.querySelectorAll("#presets button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        $("c-days").value = btn.dataset.days;
+        $("c-kind").value = btn.dataset.kind;
+        markPreset();
+      });
+    });
+    $("create").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("create-msg").textContent = "Выдаю…";
+      try {
+        const created = await api("/api/admin/clubs", {
+          method: "POST",
+          body: JSON.stringify({
+            name: $("c-name").value,
+            city: $("c-city").value,
+            contactName: $("c-contact").value,
+            phone: $("c-phone").value,
+            telegram: $("c-tg").value,
+            note: $("c-note").value,
+            maxComputers: Number($("c-seats").value),
+            days: Number($("c-days").value),
+            kind: $("c-kind").value,
+          }),
+        });
+        $("create-msg").textContent = "";
+        $("create").classList.add("hidden");
+        showIssued($("c-name").value, created.license.key);
+        await copyText(created.license.key);
+        $("c-name").value = "";
+        $("c-note").value = "";
+        await refresh(created.clubId);
+      } catch (err) { $("create-msg").textContent = err.message; }
+    });
 
     async function showApp() {
       $("login").classList.add("hidden");
       $("app").classList.remove("hidden");
-      markPreset();
-      await load();
+      await refresh(selected);
     }
 
     async function boot() {
@@ -187,130 +680,6 @@
         $("login").classList.remove("hidden");
       }
     }
-
-    $("login-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      $("login-msg").textContent = "Проверяю…";
-      try {
-        await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password: $("password").value }) });
-        $("password").value = "";
-        $("login-msg").textContent = "";
-        await showApp();
-      } catch (err) {
-        $("login-msg").textContent = err.message;
-      }
-    });
-
-    $("logout").addEventListener("click", async () => {
-      await api("/api/admin/logout", { method: "POST", body: "{}" });
-      location.reload();
-    });
-
-    document.querySelectorAll("#presets button").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        $("days").value = btn.dataset.days;
-        $("kind").value = btn.dataset.kind;
-        markPreset();
-      });
-    });
-    $("days").addEventListener("input", markPreset);
-    $("kind").addEventListener("change", markPreset);
-
-    $("create").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      $("msg").textContent = "Выдаю…";
-      try {
-        const row = await api("/api/admin/licenses", {
-          method: "POST",
-          body: JSON.stringify({
-            clubName: $("club").value,
-            maxComputers: Number($("seats").value),
-            days: Number($("days").value),
-            kind: $("kind").value,
-            note: $("note").value,
-          }),
-        });
-        $("msg").textContent = "Ключ " + row.key + " скопирован.";
-        await navigator.clipboard.writeText(row.key).catch(() => {});
-        await load();
-      } catch (err) {
-        $("msg").textContent = err.message;
-      }
-    });
-
-    function tag(row) {
-      if (row.revoked) return '<span class="tag bad">отозвана</span>';
-      if (row.expired) return '<span class="tag bad">истекла</span>';
-      if (row.kind === "trial") return '<span class="tag trial">триал</span>';
-      return '<span class="tag ok">активна</span>';
-    }
-
-    async function load() {
-      const rows = await api("/api/admin/licenses");
-      const body = $("rows");
-      body.replaceChildren();
-      for (const row of rows) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><strong></strong><div class="muted"></div><div></div></td>
-          <td><code></code><div class="muted"></div></td>
-          <td><div></div><div class="muted"></div></td>
-          <td><div></div><div class="muted"></div></td>
-          <td><div class="row-actions"></div></td>`;
-        tr.children[0].children[0].textContent = row.clubName;
-        tr.children[0].children[1].textContent = row.maxComputers + " мест";
-        tr.children[0].children[2].innerHTML = tag(row);
-        tr.children[1].children[0].textContent = row.key;
-        tr.children[1].children[1].textContent = row.note || "";
-        tr.children[2].children[0].textContent = "до " + fmt(row.expiresAt);
-        tr.children[2].children[1].textContent = "выдана " + fmt(row.createdAt);
-        tr.children[3].children[0].textContent = row.machineName || (row.machineId ? "привязан" : "не активирован");
-        tr.children[3].children[1].textContent = row.lastSeenAt ? "был " + fmt(row.lastSeenAt) : "";
-        const actions = tr.children[4].children[0];
-        actions.append(action("Копировать", async () => {
-          await navigator.clipboard.writeText(row.key);
-          $("msg").textContent = "Скопирован " + row.key;
-        }));
-        actions.append(action("+7", () => extend(row, 7)));
-        actions.append(action("+30", () => extend(row, 30)));
-        actions.append(action("Отвязать", () => post(row, "unbind")));
-        const revoke = action("Отозвать", () => post(row, "revoke"));
-        revoke.classList.add("danger");
-        actions.append(revoke);
-        body.append(tr);
-      }
-      if (rows.length === 0) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 5;
-        td.className = "muted";
-        td.textContent = "Пока пусто. Выдайте триал на 3 или 7 дней.";
-        tr.append(td);
-        body.append(tr);
-      }
-    }
-
-    function action(label, fn) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = label;
-      btn.addEventListener("click", () => fn().catch((err) => { $("msg").textContent = err.message; }));
-      return btn;
-    }
-
-    async function extend(row, days) {
-      await api("/api/admin/licenses/" + row.id + "/extend", { method: "POST", body: JSON.stringify({ days }) });
-      $("msg").textContent = row.clubName + ": +" + days + " дн.";
-      await load();
-    }
-
-    async function post(row, actionName) {
-      if (actionName === "revoke" && !confirm("Отозвать лицензию " + row.clubName + "? Сервер клуба остановит работу при следующей проверке."))
-        return;
-      await api("/api/admin/licenses/" + row.id + "/" + actionName, { method: "POST", body: "{}" });
-      await load();
-    }
-
     boot();
   </script>
 </body>

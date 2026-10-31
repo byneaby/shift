@@ -172,8 +172,95 @@ admin.MapPost("/{id}/extend", async (string id, ExtendLicenseRequest body, Licen
         : Results.Ok(ToAdmin(row));
 });
 
+admin.MapPost("/{id}/seats", async (string id, SeatsRequest body, LicenseStore db, CancellationToken ct) =>
+{
+    if (body.MaxComputers is < 1 or > 5000)
+        return Results.BadRequest(new { ok = false, message = "Число мест: от 1 до 5000." });
+    var row = await db.SetSeatsAsync(id, body.MaxComputers, ct);
+    return row is null
+        ? Results.BadRequest(new { ok = false, message = "Менять места можно только у действующей лицензии." })
+        : Results.Ok(ToAdmin(row));
+});
+
+admin.MapPost("/{id}/reissue", async (string id, LicenseStore db, CancellationToken ct) =>
+{
+    var row = await db.ReissueAsync(id, ct);
+    return row is null
+        ? Results.BadRequest(new { ok = false, message = "Новый ключ выдаётся только пока лицензия ещё действует." })
+        : Results.Ok(ToAdmin(row));
+});
+
+var clubs = app.MapGroup("/api/admin/clubs").RequireAuthorization();
+
+clubs.MapGet("/", async (LicenseStore db, CancellationToken ct) =>
+{
+    var rows = await db.ListClubsAsync(ct);
+    return Results.Ok(rows.Select(ToClubList));
+});
+
+clubs.MapGet("/{id}", async (string id, LicenseStore db, CancellationToken ct) =>
+{
+    var (club, current, licenses, events) = await db.GetClubAsync(id, ct);
+    if (club is null)
+        return Results.NotFound(new { ok = false, message = "Клуб не найден." });
+    return Results.Ok(new
+    {
+        club = ToClubList(new ClubOverview(club, current, LicenseStore.StatusOf(current), current is null ? 0 : LicenseStore.DaysRemaining(current.ExpiresAt))),
+        licenses = licenses.Select(ToAdmin),
+        events = events.Select(item => new { item.Action, item.Message, item.CreatedAt }),
+    });
+});
+
+clubs.MapPost("/", async (CreateClubRequest body, LicenseStore db, CancellationToken ct) =>
+{
+    var error = ValidateIssue(body.Name, body.MaxComputers, body.Days, body.Kind, out var name, out var kind);
+    if (error is not null)
+        return Results.BadRequest(new { ok = false, message = error });
+    if (CleanPhone(body.Phone) is null && !string.IsNullOrWhiteSpace(body.Phone))
+        return Results.BadRequest(new { ok = false, message = "Телефон: цифры, плюс, пробелы и скобки." });
+
+    var (club, license) = await db.CreateClubAsync(
+        name,
+        Clean(body.City, 80),
+        Clean(body.ContactName, 80),
+        CleanPhone(body.Phone),
+        Clean(body.Telegram, 64),
+        Clean(body.Note, 1000),
+        body.MaxComputers,
+        body.Days,
+        kind,
+        ct);
+    return Results.Ok(new { clubId = club.Id, license = ToAdmin(license) });
+});
+
+clubs.MapPut("/{id}", async (string id, UpdateClubRequest body, LicenseStore db, CancellationToken ct) =>
+{
+    var name = (body.Name ?? "").Trim();
+    if (name.Length is < 2 or > 120)
+        return Results.BadRequest(new { ok = false, message = "Название клуба: от 2 до 120 символов." });
+    if (CleanPhone(body.Phone) is null && !string.IsNullOrWhiteSpace(body.Phone))
+        return Results.BadRequest(new { ok = false, message = "Телефон: цифры, плюс, пробелы и скобки." });
+
+    var club = await db.UpdateClubAsync(
+        id,
+        name,
+        Clean(body.City, 80),
+        Clean(body.ContactName, 80),
+        CleanPhone(body.Phone),
+        Clean(body.Telegram, 64),
+        Clean(body.Note, 1000),
+        ct);
+    return club is null
+        ? Results.NotFound(new { ok = false, message = "Клуб не найден." })
+        : Results.Ok(new { ok = true });
+});
+
 var index = Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "index.html");
-app.MapGet("/", () => Results.File(index, "text/html; charset=utf-8"));
+app.MapGet("/", (HttpContext ctx) =>
+{
+    ctx.Response.Headers.CacheControl = "no-store";
+    return Results.File(index, "text/html; charset=utf-8");
+});
 app.MapFallback(async context =>
 {
     if (context.Request.Path.StartsWithSegments("/api"))
@@ -182,6 +269,7 @@ app.MapFallback(async context =>
         return;
     }
 
+    context.Response.Headers.CacheControl = "no-store";
     context.Response.ContentType = "text/html; charset=utf-8";
     await context.Response.SendFileAsync(index);
 });
@@ -209,6 +297,7 @@ static IResult LeaseResult(string? lease, LicenseRow? row, LeaseFailure failure,
 static object ToAdmin(LicenseRow row) => new
 {
     id = row.Id,
+    clubId = row.ClubId,
     key = row.Key,
     clubName = row.ClubName,
     maxComputers = row.MaxComputers,
@@ -222,12 +311,64 @@ static object ToAdmin(LicenseRow row) => new
     lastSeenAt = row.LastSeenAt,
     note = row.Note,
     expired = LicenseToken.IsExpired(row.ExpiresAt),
+    status = LicenseStore.StatusOf(row),
+    daysRemaining = LicenseStore.DaysRemaining(row.ExpiresAt),
 };
+
+static object ToClubList(ClubOverview item) => new
+{
+    id = item.Club.Id,
+    name = item.Club.Name,
+    city = item.Club.City,
+    contactName = item.Club.ContactName,
+    phone = item.Club.Phone,
+    telegram = item.Club.Telegram,
+    note = item.Club.Note,
+    status = item.Status,
+    daysRemaining = item.DaysRemaining,
+    license = item.License is null ? null : ToAdmin(item.License),
+};
+
+static string? ValidateIssue(string? rawName, int seats, int days, string? rawKind, out string name, out string kind)
+{
+    name = (rawName ?? "").Trim();
+    kind = (rawKind ?? "").Trim().ToLowerInvariant();
+    if (name.Length is < 2 or > 120)
+        return "Название клуба: от 2 до 120 символов.";
+    if (seats is < 1 or > 5000)
+        return "Число мест: от 1 до 5000.";
+    if (days is < 1 or > 3650)
+        return "Срок: от 1 до 3650 дней.";
+    if (kind is not ("trial" or "paid"))
+        return "Тип: триал или оплата.";
+    return null;
+}
+
+static string? Clean(string? value, int max)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return null;
+    var text = value.Trim();
+    return text.Length <= max ? text : text[..max];
+}
+
+static string? CleanPhone(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return null;
+    var text = value.Trim();
+    if (text.Length > 40 || text.Any(c => !char.IsDigit(c) && c is not '+' and not ' ' and not '-' and not '(' and not ')'))
+        return null;
+    return text;
+}
 
 sealed record LeaseRequest(string? Key, string? MachineId, string? MachineName);
 sealed record LoginRequest(string? Password);
 sealed record CreateLicenseRequest(string? ClubName, int MaxComputers, int Days, string? Kind, string? Note);
 sealed record ExtendLicenseRequest(int Days);
+sealed record SeatsRequest(int MaxComputers);
+sealed record CreateClubRequest(string? Name, string? City, string? ContactName, string? Phone, string? Telegram, string? Note, int MaxComputers, int Days, string? Kind);
+sealed record UpdateClubRequest(string? Name, string? City, string? ContactName, string? Phone, string? Telegram, string? Note);
 
 sealed class LoginGuard
 {

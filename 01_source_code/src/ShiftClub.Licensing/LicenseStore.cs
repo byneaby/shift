@@ -18,9 +18,10 @@ public sealed record LicenseRow(
     string? MachineName,
     DateTimeOffset? ActivatedAt,
     DateTimeOffset? LastSeenAt,
-    string? Note);
+    string? Note,
+    string? ClubId);
 
-public sealed class LicenseStore : IDisposable
+public sealed partial class LicenseStore : IDisposable
 {
     private readonly SqliteConnection _db;
     private readonly SemaphoreSlim _mutex = new(1, 1);
@@ -58,8 +59,27 @@ public sealed class LicenseStore : IDisposable
               last_seen_at TEXT,
               note TEXT
             );
+            CREATE TABLE IF NOT EXISTS clubs (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              city TEXT,
+              contact_name TEXT,
+              phone TEXT,
+              telegram TEXT,
+              note TEXT,
+              created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS license_events (
+              id TEXT PRIMARY KEY,
+              club_id TEXT,
+              license_id TEXT,
+              action TEXT NOT NULL,
+              message TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
             """;
         cmd.ExecuteNonQuery();
+        MigrateClubs();
     }
 
     public async Task<LicenseRow> CreateAsync(
@@ -68,7 +88,8 @@ public sealed class LicenseStore : IDisposable
         int days,
         string kind,
         string? note,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? clubId = null)
     {
         await _mutex.WaitAsync(cancellationToken);
         try
@@ -76,6 +97,7 @@ public sealed class LicenseStore : IDisposable
             for (var attempt = 0; attempt < 5; attempt++)
             {
                 var key = LicenseKeyFormat.Create();
+                var boundClub = clubId ?? EnsureClubByName(clubName, null);
                 var row = new LicenseRow(
                     Guid.NewGuid().ToString("D"),
                     key,
@@ -89,10 +111,12 @@ public sealed class LicenseStore : IDisposable
                     null,
                     null,
                     null,
-                    string.IsNullOrWhiteSpace(note) ? null : note.Trim());
+                    string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+                    boundClub);
                 try
                 {
                     Insert(row);
+                    AddEvent(boundClub, row.Id, "issued", $"Выдан ключ {row.Key}, {maxComputers} мест, {days} дн., {(kind == "trial" ? "триал" : "оплата")}.");
                     return row;
                 }
                 catch (SqliteException ex) when (ex.SqliteErrorCode == 19 && attempt < 4)
@@ -164,9 +188,15 @@ public sealed class LicenseStore : IDisposable
         try
         {
             using var cmd = _db.CreateCommand();
+            var current = FindById(id);
+            if (current is null)
+                return false;
             cmd.CommandText = "UPDATE licenses SET revoked = 1 WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", id);
-            return cmd.ExecuteNonQuery() == 1;
+            var ok = cmd.ExecuteNonQuery() == 1;
+            if (ok)
+                AddEvent(current.ClubId, id, "revoked", "Лицензия отозвана. Сервер клуба остановится при следующей проверке.");
+            return ok;
         }
         finally
         {
@@ -186,8 +216,14 @@ public sealed class LicenseStore : IDisposable
                 SET machine_id = NULL, machine_name = NULL, activated_at = NULL
                 WHERE id = $id
                 """;
+            var current = FindById(id);
+            if (current is null)
+                return false;
             cmd.Parameters.AddWithValue("$id", id);
-            return cmd.ExecuteNonQuery() == 1;
+            var ok = cmd.ExecuteNonQuery() == 1;
+            if (ok)
+                AddEvent(current.ClubId, id, "unbound", "Сервер отвязан. Ключ можно активировать на новом сервере клуба.");
+            return ok;
         }
         finally
         {
@@ -211,6 +247,7 @@ public sealed class LicenseStore : IDisposable
             cmd.Parameters.AddWithValue("$exp", Stamp(next));
             cmd.Parameters.AddWithValue("$id", id);
             cmd.ExecuteNonQuery();
+            AddEvent(current.ClubId, id, "extended", $"Срок продлён на {days} дн., до {next:dd.MM.yyyy}.");
             return FindById(id);
         }
         finally
@@ -269,9 +306,9 @@ public sealed class LicenseStore : IDisposable
         cmd.CommandText =
             """
             INSERT INTO licenses
-              (id, key, club_name, max_computers, kind, created_at, expires_at, revoked, note)
+              (id, key, club_name, max_computers, kind, created_at, expires_at, revoked, note, club_id)
             VALUES
-              ($id, $key, $club, $seats, $kind, $created, $expires, 0, $note)
+              ($id, $key, $club, $seats, $kind, $created, $expires, 0, $note, $clubId)
             """;
         cmd.Parameters.AddWithValue("$id", row.Id);
         cmd.Parameters.AddWithValue("$key", row.Key);
@@ -281,6 +318,7 @@ public sealed class LicenseStore : IDisposable
         cmd.Parameters.AddWithValue("$created", Stamp(row.CreatedAt));
         cmd.Parameters.AddWithValue("$expires", Stamp(row.ExpiresAt));
         cmd.Parameters.AddWithValue("$note", (object?)row.Note ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$clubId", (object?)row.ClubId ?? DBNull.Value);
         cmd.ExecuteNonQuery();
     }
 
@@ -315,7 +353,8 @@ public sealed class LicenseStore : IDisposable
         reader.IsDBNull(reader.GetOrdinal("machine_name")) ? null : reader.GetString(reader.GetOrdinal("machine_name")),
         reader.IsDBNull(reader.GetOrdinal("activated_at")) ? null : Parse(reader.GetString(reader.GetOrdinal("activated_at"))),
         reader.IsDBNull(reader.GetOrdinal("last_seen_at")) ? null : Parse(reader.GetString(reader.GetOrdinal("last_seen_at"))),
-        reader.IsDBNull(reader.GetOrdinal("note")) ? null : reader.GetString(reader.GetOrdinal("note")));
+        reader.IsDBNull(reader.GetOrdinal("note")) ? null : reader.GetString(reader.GetOrdinal("note")),
+        reader.IsDBNull(reader.GetOrdinal("club_id")) ? null : reader.GetString(reader.GetOrdinal("club_id")));
 
     private static string Stamp(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
