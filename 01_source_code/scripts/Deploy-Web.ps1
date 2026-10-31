@@ -1,5 +1,5 @@
 # Deploy staff SPA to C:\ShiftClub\Server\wwwroot WITHOUT wiping public site assets.
-# Preserves: site, price, promo, tg-webapp, media
+# Preserves: site, price, promo, tg-webapp, product, guide, media
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -13,14 +13,14 @@ function Deploy-SpaTo([string]$dest) {
   if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
 
   # Remove only SPA root files / assets — keep public folders
-  $preserve = @('site', 'price', 'promo', 'tg-webapp', 'product', 'work', 'media', 'uploads')
+  $preserve = @('site', 'price', 'promo', 'tg-webapp', 'product', 'guide', 'work', 'media', 'uploads')
   Get-ChildItem $dest -Force | Where-Object { $preserve -notcontains $_.Name } | Remove-Item -Recurse -Force
 
   Copy-Item (Join-Path $dist '*') $dest -Recurse -Force
 
   # Overlay public static folders from source so existing marketing pages stay,
   # and new/updated files (e.g. /site/start.html) also get deployed.
-  foreach ($folder in @('site', 'price', 'promo', 'tg-webapp', 'product', 'work')) {
+  foreach ($folder in @('site', 'price', 'promo', 'tg-webapp', 'product', 'guide', 'work')) {
     $src = Join-Path $srcStatic $folder
     $dst = Join-Path $dest $folder
     if (Test-Path $src) {
@@ -67,7 +67,7 @@ if ((Test-Path $rootIndex) -and (Test-Path $distIndex)) {
   }
 }
 
-Write-Host "SPA deployed. Preserved site/price/promo/tg-webapp/product/work."
+Write-Host "SPA deployed. Preserved site/price/promo/tg-webapp/product/guide/work."
 @(
   '/health',
   '/site/hire.html',
@@ -75,6 +75,7 @@ Write-Host "SPA deployed. Preserved site/price/promo/tg-webapp/product/work."
   '/site/start.html',
   '/start',
   '/product',
+  '/guide/',
   '/work',
   '/api/hiring/schema',
   '/login'

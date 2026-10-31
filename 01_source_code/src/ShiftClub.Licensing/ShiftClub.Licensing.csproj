@@ -14,4 +14,9 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\ShiftClub.Server\wwwroot\product\**\*" Link="wwwroot\product\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\ShiftClub.Server\wwwroot\guide\**\*" Link="wwwroot\guide\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

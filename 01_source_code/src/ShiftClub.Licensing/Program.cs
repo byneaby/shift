@@ -64,6 +64,31 @@ builder.Services.AddSingleton(new LicenseIssuer(store, privateKey));
 
 var app = builder.Build();
 app.UseForwardedHeaders();
+app.Use(async (ctx, next) =>
+{
+    var kind = ShiftClub.Shared.Sites.PublicSiteFiles.KindForHost(ctx.Request.Host.Host);
+    if (kind == ShiftClub.Shared.Sites.PublicSiteKind.None)
+    {
+        await next();
+        return;
+    }
+
+    var root = Path.Combine(app.Environment.ContentRootPath, "wwwroot", ShiftClub.Shared.Sites.PublicSiteFiles.FolderName(kind));
+    if (!ShiftClub.Shared.Sites.PublicSiteFiles.TryResolve(root, ctx.Request.Path.Value, out var file, out var contentType, out var cache))
+    {
+        ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+        ctx.Response.ContentType = "text/html; charset=utf-8";
+        ctx.Response.Headers.CacheControl = "no-store";
+        var missing = Path.Combine(root, "404.html");
+        if (File.Exists(missing))
+            await ctx.Response.SendFileAsync(missing);
+        return;
+    }
+
+    ctx.Response.ContentType = contentType;
+    ctx.Response.Headers.CacheControl = cache;
+    await ctx.Response.SendFileAsync(file);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 
