@@ -13,6 +13,12 @@ internal sealed record InstallOutcome(bool Ok, string Message);
 
 internal static class ServerInstallRunner
 {
+    public static PreflightPlan Inspect(ServerSetupAnswers answers) =>
+        InstallPreflight.Evaluate(MachineProbe.Collect(answers).Snapshot);
+
+    internal static (int ExitCode, string Output) RunVisible(string file, string arguments, int timeoutMs) =>
+        RunCapture(file, arguments, timeoutMs);
+
     public static async Task<InstallOutcome> RunAsync(ServerSetupAnswers answers, Action<string> report, CancellationToken cancellationToken)
     {
         var dir = answers.InstallDirectory.Trim().TrimEnd('\\');
@@ -21,6 +27,21 @@ internal static class ServerInstallRunner
         var errors = ServerSetupValidator.Validate(answers, secretsExist);
         if (errors.Count > 0)
             return new InstallOutcome(false, string.Join(Environment.NewLine, errors));
+
+        report("Проверяю, что уже установлено и что запущено…");
+        var probe = MachineProbe.Collect(answers);
+        var plan = InstallPreflight.Evaluate(probe.Snapshot);
+        report(plan.Text);
+        if (!plan.CanInstall)
+            return new InstallOutcome(false, plan.Text);
+
+        if (probe.ProcessIdsToClose.Count > 0 || probe.Snapshot.ShiftTasksExist || probe.Snapshot.OurPostgresServiceRunning)
+        {
+            report("Закрываю программы SHIFT, которые мешают копированию…");
+            var closed = await StopBlockersAsync(probe, cancellationToken);
+            if (closed is not null)
+                return new InstallOutcome(false, closed);
+        }
 
         report("Создаю папку сервера…");
         Directory.CreateDirectory(dir);
@@ -71,6 +92,11 @@ internal static class ServerInstallRunner
             else
                 TryDelete(scriptPath);
         }
+        else
+        {
+            await RunCodeAsync("schtasks.exe", "/Delete /TN ShiftClubApi /F", 15_000);
+            await RunCodeAsync("schtasks.exe", "/Delete /TN ShiftClubApiWatchdog /F", 15_000);
+        }
 
         var done = new StringBuilder();
         done.AppendLine("Сервер установлен.");
@@ -91,6 +117,33 @@ internal static class ServerInstallRunner
             done.Append(string.Join(Environment.NewLine, notes));
         }
         return new InstallOutcome(true, done.ToString());
+    }
+
+    private static async Task<string?> StopBlockersAsync(MachineProbe probe, CancellationToken cancellationToken)
+    {
+        foreach (var name in new[] { "ShiftClubApi", "ShiftClubApiWatchdog" })
+        {
+            await RunCodeAsync("schtasks.exe", $"/End /TN {name}", 15_000);
+            await RunCodeAsync("schtasks.exe", $"/Change /TN {name} /DISABLE", 15_000);
+        }
+
+        foreach (var pid in probe.ProcessIdsToClose)
+            await RunCodeAsync("taskkill.exe", $"/F /T /PID {pid}", 20_000);
+
+        if (probe.Snapshot.OurPostgresServiceRunning || (probe.Snapshot.PostgresServiceInstalled && probe.Snapshot.PostgresServiceIsOurs))
+            await RunCodeAsync("sc.exe", "stop " + PostgresBundle.ServiceName, 30_000);
+
+        if (probe.Snapshot.DatabasePortOpen && probe.Snapshot.PostgresDataInitialized)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(25);
+            while (DateTime.UtcNow < deadline && await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken))
+                await Task.Delay(500, cancellationToken);
+            if (await IsPortOpenAsync("127.0.0.1", PostgresBundle.Port, cancellationToken))
+                return "Служба PostgreSQL SHIFT не остановилась. Закройте postgres.exe в диспетчере задач и запустите установщик снова.";
+        }
+
+        await Task.Delay(1000, cancellationToken);
+        return null;
     }
 
     private static async Task<string?> InstallPostgresAsync(

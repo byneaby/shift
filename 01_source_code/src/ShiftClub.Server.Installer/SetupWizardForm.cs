@@ -40,7 +40,8 @@ internal sealed class SetupWizardForm : Form
     private readonly TextBox _licenseUrl = new() { Text = "https://licence.shift-club.kz" };
 
     private readonly Label _summary = new() { AutoSize = false };
-    private readonly Label _status = new() { AutoSize = false, Height = 150 };
+    private readonly Label _status = new() { AutoSize = false, Height = 240 };
+    private bool _busy;
     private readonly ProgressBar _progress = new() { Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 30, Visible = false, Height = 16 };
     private readonly Label _adminHint = new() { Text = "Пароль пользователя postgres нужен один раз, чтобы создать базу. В файл настроек он не пишется.", ForeColor = Color.FromArgb(160, 160, 165), AutoSize = false, Height = 36 };
     private bool _done;
@@ -161,10 +162,10 @@ internal sealed class SetupWizardForm : Form
 
     private Panel ReviewPage()
     {
-        _summary.Height = 220;
-        _status.Text = "Проверьте и нажмите «Установить».";
+        _summary.Height = 150;
+        _status.Text = "Сейчас мастер проверит компьютер.";
         _status.ForeColor = Color.FromArgb(160, 160, 165);
-        return Page("Проверка", "Пароли в этот список не выводятся.",
+        return Page("Проверка", "Сначала проверка: что уже стоит, что запущено и что будет закрыто. Установка начнётся после этого.",
             _summary, _progress, _status);
     }
 
@@ -241,18 +242,56 @@ internal sealed class SetupWizardForm : Form
             error is null ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
     }
 
+    private async Task ShowPreflightAsync()
+    {
+        if (_busy)
+            return;
+        _busy = true;
+        _next.Enabled = false;
+        _back.Enabled = false;
+        _status.Text = "Проверяю, что уже установлено и что запущено…";
+        _status.ForeColor = Color.FromArgb(160, 160, 165);
+        try
+        {
+            var answers = ReadAnswers();
+            var plan = await Task.Run(() => ServerInstallRunner.Inspect(answers));
+            if (_step != _pages.Length - 1 || _done)
+                return;
+            _status.Text = plan.Text;
+            _status.ForeColor = plan.CanInstall
+                ? Color.FromArgb(160, 160, 165)
+                : Color.FromArgb(255, 138, 138);
+        }
+        catch (Exception)
+        {
+            _status.Text = "Проверка компьютера не выполнилась. Нажмите «Установить», чтобы повторить.";
+            _status.ForeColor = Color.FromArgb(255, 138, 138);
+        }
+        finally
+        {
+            _busy = false;
+            if (!_done)
+            {
+                _next.Enabled = true;
+                _back.Enabled = _step > 0;
+            }
+        }
+    }
+
     private async Task InstallAsync()
     {
+        _busy = true;
         _back.Enabled = false;
         _next.Enabled = false;
         _progress.Visible = true;
         try
         {
-            var outcome = await ServerInstallRunner.RunAsync(ReadAnswers(), text =>
+            var answers = ReadAnswers();
+            var outcome = await Task.Run(() => ServerInstallRunner.RunAsync(answers, text =>
             {
                 if (IsHandleCreated)
                     BeginInvoke(() => _status.Text = text);
-            }, CancellationToken.None);
+            }, CancellationToken.None));
             _status.Text = outcome.Message;
             _status.ForeColor = outcome.Ok ? Color.FromArgb(61, 220, 151) : Color.FromArgb(255, 138, 138);
             _back.Enabled = !outcome.Ok;
@@ -272,6 +311,7 @@ internal sealed class SetupWizardForm : Form
         }
         finally
         {
+            _busy = false;
             _progress.Visible = false;
             UseWaitCursor = false;
         }
@@ -352,12 +392,14 @@ internal sealed class SetupWizardForm : Form
     {
         for (var i = 0; i < _pages.Length; i++)
             _pages[i].Visible = i == _step;
-        _back.Enabled = _step > 0;
+        _back.Enabled = _step > 0 && !_busy;
         _next.Text = _step == _pages.Length - 1 ? "Установить" : "Далее";
         if (_step == 1)
             RefreshExistingSecrets();
         if (_step == 2)
             ToggleDatabaseMode();
+        if (_step == _pages.Length - 1 && !_done && !_busy)
+            _ = ShowPreflightAsync();
     }
 
     private void PlaceFooter(Panel footer)
