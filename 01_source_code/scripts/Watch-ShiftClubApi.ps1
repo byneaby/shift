@@ -1,7 +1,7 @@
 # Ensure SHIFT Club API is healthy; start task if down.
-# Safe to run periodically from Task Scheduler.
+# Safe to run periodically from Task Scheduler. Lives next to the server files.
 $ErrorActionPreference = 'Continue'
-$logDir = 'C:\ShiftClub\Server\logs'
+$logDir = Join-Path $PSScriptRoot 'logs'
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
 $logFile = Join-Path $logDir 'watchdog.log'
 
@@ -10,9 +10,23 @@ function Write-WatchLog([string]$msg) {
   Add-Content -Path $logFile -Value $line -Encoding UTF8
 }
 
+function Get-ListenPort {
+  $secrets = Join-Path $PSScriptRoot 'secrets.env'
+  if (-not (Test-Path $secrets)) { return 5080 }
+  foreach ($line in Get-Content $secrets) {
+    $text = $line.Trim()
+    if ($text -match '^Kestrel__Endpoints__Http__Url=https?://[^:/]+:(\d+)\s*$') {
+      return [int]$Matches[1]
+    }
+  }
+  return 5080
+}
+
+$port = Get-ListenPort
+
 function Test-ApiHealthy {
   try {
-    $r = Invoke-WebRequest -Uri 'http://127.0.0.1:5080/health' -UseBasicParsing -TimeoutSec 4
+    $r = Invoke-WebRequest -Uri "http://127.0.0.1:$port/health" -UseBasicParsing -TimeoutSec 4
     return ($r.StatusCode -eq 200 -and ($r.Content -match 'Healthy|healthy|Degraded'))
   } catch {
     return $false
