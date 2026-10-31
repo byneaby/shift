@@ -45,6 +45,9 @@ public static class ServerSetupValidator
         if (host.Length == 0 || host.Any(char.IsWhiteSpace))
             errors.Add("Укажите адрес PostgreSQL, обычно 127.0.0.1.");
 
+        else if (answers.InstallBundledPostgres && host is not ("127.0.0.1" or "localhost" or "::1"))
+            errors.Add("Встроенный PostgreSQL слушает только этот компьютер.");
+
         if (answers.DatabasePort is < 1 or > 65535)
             errors.Add("Порт PostgreSQL — число от 1 до 65535. Обычно 5432.");
 
@@ -53,6 +56,9 @@ public static class ServerSetupValidator
 
         if (!SqlName.IsMatch(answers.DatabaseUser ?? ""))
             errors.Add("Имя пользователя базы — латиница, цифры и подчёркивание. Например shiftclub.");
+
+        if (answers.InstallBundledPostgres)
+            return errors;
 
         if (answers.CreateDatabase && !SqlName.IsMatch(answers.PostgresAdminUser ?? ""))
             errors.Add("Имя администратора PostgreSQL — обычно postgres.");

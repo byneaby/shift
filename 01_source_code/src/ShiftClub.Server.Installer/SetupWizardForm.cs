@@ -11,16 +11,25 @@ internal sealed class SetupWizardForm : Form
     private readonly CheckBox _replaceSecrets = new() { Text = "Заменить уже записанные настройки. Базу и папку data не удалять.", AutoSize = true, Visible = false };
     private readonly Label _existing = new() { ForeColor = Color.FromArgb(255, 180, 90), AutoSize = false, Visible = false, Height = 36 };
 
+    private readonly CheckBox _bundle = new() { Text = "Поставить PostgreSQL 16 вместе с сервером", Checked = true, AutoSize = true };
+    private readonly Label _bundleNote = Note("Мастер сам создаст пароли. PostgreSQL будет доступен только с этого компьютера. Если PostgreSQL уже установлен, снимите галочку и укажите его пароль.");
     private readonly CheckBox _createDb = new() { Text = "Создать базу на этом PostgreSQL", Checked = true, AutoSize = true };
+    private readonly Label _hostLabel = LabelOf("Адрес");
     private readonly TextBox _dbHost = new() { Text = "127.0.0.1" };
+    private readonly Label _portLabel = LabelOf("Порт");
     private readonly TextBox _dbPort = new() { Text = "5432" };
+    private readonly Label _nameLabel = LabelOf("Имя базы");
     private readonly TextBox _dbName = new() { Text = "shiftclub" };
+    private readonly Label _userLabel = LabelOf("Пользователь базы");
     private readonly TextBox _dbUser = new() { Text = "shiftclub" };
+    private readonly Label _passwordLabel = LabelOf("Пароль пользователя базы");
     private readonly TextBox _dbPassword = new() { UseSystemPasswordChar = true };
     private readonly TextBox _adminUser = new() { Text = "postgres" };
     private readonly TextBox _adminPassword = new() { UseSystemPasswordChar = true };
     private readonly Label _adminUserLabel = new() { Text = "Администратор PostgreSQL", ForeColor = Color.FromArgb(160, 160, 165), AutoSize = false, Height = 18 };
     private readonly Label _adminPasswordLabel = new() { Text = "Пароль администратора", ForeColor = Color.FromArgb(160, 160, 165), AutoSize = false, Height = 18 };
+    private readonly Button _testDb = new() { Text = "Проверить подключение", Width = 210, Height = 34 };
+    private Panel _databasePage = null!;
 
     private readonly TextBox _owner = new() { Text = "owner" };
     private readonly TextBox _ownerPassword = new() { UseSystemPasswordChar = true };
@@ -31,7 +40,7 @@ internal sealed class SetupWizardForm : Form
     private readonly TextBox _licenseUrl = new() { Text = "https://licence.shift-club.kz" };
 
     private readonly Label _summary = new() { AutoSize = false };
-    private readonly Label _status = new() { AutoSize = false, Height = 72 };
+    private readonly Label _status = new() { AutoSize = false, Height = 150 };
     private readonly ProgressBar _progress = new() { Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 30, Visible = false, Height = 16 };
     private readonly Label _adminHint = new() { Text = "Пароль пользователя postgres нужен один раз, чтобы создать базу. В файл настроек он не пишется.", ForeColor = Color.FromArgb(160, 160, 165), AutoSize = false, Height = 36 };
     private bool _done;
@@ -55,8 +64,8 @@ internal sealed class SetupWizardForm : Form
 
         _pages = new[]
         {
-            Page("Сервер клуба", "Мастер спросит папку, базу PostgreSQL, пароль владельца и ключ лицензии. После установки панель кассы откроется в браузере.",
-                Note("Нужны Windows и уже установленный PostgreSQL 16 или новее. Ключ берут в центре лицензий licence.shift-club.kz — пробный бывает на 3 или 7 дней.")),
+            Page("Сервер клуба", "Мастер поставит сервер кассы и PostgreSQL 16, затем спросит пароль владельца и ключ лицензии. После установки панель кассы откроется в браузере.",
+                Note("PostgreSQL 16, Visual C++ и .NET уже внутри установщика. База слушает только этот компьютер. Ключ берут в центре лицензий licence.shift-club.kz — пробный бывает на 3 или 7 дней.")),
             FolderPage(),
             DatabasePage(),
             Page("Владелец панели", "Этим логином открывают кассу и настройки. Потом пароль можно сменить в панели.",
@@ -88,8 +97,11 @@ internal sealed class SetupWizardForm : Form
         _back.Click += (_, _) => Go(-1);
         _next.Click += async (_, _) => await OnNextAsync();
         _dir.Leave += (_, _) => RefreshExistingSecrets();
-        _createDb.CheckedChanged += (_, _) => ToggleAdmin();
+        _bundle.CheckedChanged += (_, _) => ToggleDatabaseMode();
+        _createDb.CheckedChanged += (_, _) => ToggleDatabaseMode();
         _licenseLater.CheckedChanged += (_, _) => _license.Enabled = !_licenseLater.Checked;
+        StyleButton(_testDb, false);
+        _testDb.Click += async (_, _) => await TestDatabaseAsync();
         ShowStep();
     }
 
@@ -121,20 +133,21 @@ internal sealed class SetupWizardForm : Form
 
     private Panel DatabasePage()
     {
-        var test = new Button { Text = "Проверить подключение", Width = 210, Height = 34 };
-        StyleButton(test, false);
-        test.Click += async (_, _) => await TestDatabaseAsync();
-        return Page("База PostgreSQL", "Гости, касса и сеансы хранятся в PostgreSQL на этом компьютере. Если база ещё не создана, мастер создаст её.",
+        _bundleNote.Height = 72;
+        _databasePage = Page("База PostgreSQL", "Гости, касса и сеансы хранятся в PostgreSQL на этом компьютере.",
+            _bundle,
+            _bundleNote,
             _createDb,
-            LabelOf("Адрес"), _dbHost,
-            LabelOf("Порт"), _dbPort,
-            LabelOf("Имя базы"), _dbName,
-            LabelOf("Пользователь базы"), _dbUser,
-            LabelOf("Пароль пользователя базы"), _dbPassword,
+            _hostLabel, _dbHost,
+            _portLabel, _dbPort,
+            _nameLabel, _dbName,
+            _userLabel, _dbUser,
+            _passwordLabel, _dbPassword,
             _adminHint,
             _adminUserLabel, _adminUser,
             _adminPasswordLabel, _adminPassword,
-            test);
+            _testDb);
+        return _databasePage;
     }
 
     private Panel LicensePage()
@@ -151,7 +164,7 @@ internal sealed class SetupWizardForm : Form
         _summary.Height = 220;
         _status.Text = "Проверьте и нажмите «Установить».";
         _status.ForeColor = Color.FromArgb(160, 160, 165);
-        return Page("Проверка", "Пароли в этот список не выводятся. Они запишутся только в файл настроек сервера.",
+        return Page("Проверка", "Пароли в этот список не выводятся.",
             _summary, _progress, _status);
     }
 
@@ -252,7 +265,7 @@ internal sealed class SetupWizardForm : Form
         }
         catch (Exception)
         {
-            _status.Text = "Установка остановилась. Запустите программу от имени администратора и проверьте, что PostgreSQL запущен.";
+            _status.Text = "Установка остановилась. Запустите программу от имени администратора.";
             _status.ForeColor = Color.FromArgb(255, 138, 138);
             _back.Enabled = true;
             _next.Enabled = true;
@@ -278,14 +291,15 @@ internal sealed class SetupWizardForm : Form
         OpenFirewall = _firewall.Checked,
         StartWithWindows = _autostart.Checked,
         ReplaceExistingSecrets = _replaceSecrets.Checked,
-        CreateDatabase = _createDb.Checked,
-        DatabaseHost = _dbHost.Text,
-        DatabasePort = int.TryParse(_dbPort.Text.Trim(), out var dbPort) ? dbPort : 0,
+        InstallBundledPostgres = _bundle.Checked,
+        CreateDatabase = _bundle.Checked || _createDb.Checked,
+        DatabaseHost = _bundle.Checked ? "127.0.0.1" : _dbHost.Text,
+        DatabasePort = _bundle.Checked ? 5432 : int.TryParse(_dbPort.Text.Trim(), out var dbPort) ? dbPort : 0,
         DatabaseName = _dbName.Text,
         DatabaseUser = _dbUser.Text,
-        DatabasePassword = _dbPassword.Text,
-        PostgresAdminUser = _adminUser.Text,
-        PostgresAdminPassword = _adminPassword.Text,
+        DatabasePassword = _bundle.Checked ? "" : _dbPassword.Text,
+        PostgresAdminUser = _bundle.Checked ? "postgres" : _adminUser.Text,
+        PostgresAdminPassword = _bundle.Checked ? "" : _adminPassword.Text,
         OwnerLogin = _owner.Text,
         OwnerPassword = _ownerPassword.Text,
         OwnerPasswordConfirm = _ownerPassword2.Text,
@@ -303,14 +317,35 @@ internal sealed class SetupWizardForm : Form
         _replaceSecrets.Visible = exists;
     }
 
-    private void ToggleAdmin()
+    private void ToggleDatabaseMode()
     {
-        var show = _createDb.Checked;
-        _adminHint.Visible = show;
-        _adminUserLabel.Visible = show;
-        _adminUser.Visible = show;
-        _adminPasswordLabel.Visible = show;
-        _adminPassword.Visible = show;
+        var bundled = _bundle.Checked;
+        var admin = !bundled && _createDb.Checked;
+        _bundleNote.Visible = bundled;
+        _createDb.Visible = !bundled;
+        _hostLabel.Visible = _dbHost.Visible = !bundled;
+        _portLabel.Visible = _dbPort.Visible = !bundled;
+        _passwordLabel.Visible = _dbPassword.Visible = !bundled;
+        _adminHint.Visible = admin;
+        _adminUserLabel.Visible = _adminUser.Visible = admin;
+        _adminPasswordLabel.Visible = _adminPassword.Visible = admin;
+        _testDb.Visible = !bundled;
+        if (_databasePage is not null)
+            Reflow(_databasePage);
+    }
+
+    private static void Reflow(Panel page)
+    {
+        var y = 0;
+        foreach (Control control in page.Controls)
+        {
+            if (!control.Visible)
+                continue;
+            control.Location = new Point(0, y);
+            control.Width = 560;
+            var gap = control is Label ? 4 : 10;
+            y += control.Height + gap;
+        }
     }
 
     private void ShowStep()
@@ -322,7 +357,7 @@ internal sealed class SetupWizardForm : Form
         if (_step == 1)
             RefreshExistingSecrets();
         if (_step == 2)
-            ToggleAdmin();
+            ToggleDatabaseMode();
     }
 
     private void PlaceFooter(Panel footer)

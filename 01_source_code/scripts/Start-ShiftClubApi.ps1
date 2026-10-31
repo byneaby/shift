@@ -30,6 +30,7 @@ function Test-TcpPort([string]$hostName, [int]$port, [int]$timeoutMs = 1500) {
 function Wait-PostgresReady([string]$dbHost, [int]$dbPort, [int]$maxSeconds = 180) {
   $deadline = (Get-Date).AddSeconds($maxSeconds)
   $pgIsReady = @(
+    'C:\ShiftClub\PostgreSQL\bin\pg_isready.exe',
     'C:\Program Files\PostgreSQL\18\bin\pg_isready.exe',
     'C:\Program Files\PostgreSQL\17\bin\pg_isready.exe',
     'C:\Program Files\PostgreSQL\16\bin\pg_isready.exe'

@@ -14,6 +14,12 @@ public sealed class ServerSetupAnswers
 
     public bool StartWithWindows { get; set; } = true;
 
+    /// <summary>
+    /// Install PostgreSQL 16 from the binaries embedded in the setup EXE.
+    /// Database passwords are generated and the server listens on localhost only.
+    /// </summary>
+    public bool InstallBundledPostgres { get; set; } = true;
+
     public string DatabaseHost { get; set; } = "127.0.0.1";
 
     public int DatabasePort { get; set; } = 5432;

@@ -112,6 +112,7 @@ public class ServerSetupTests
     {
         InstallDirectory = @"C:\ShiftClub\Server",
         ListenPort = 5080,
+        InstallBundledPostgres = false,
         DatabaseHost = "127.0.0.1",
         DatabasePort = 5432,
         DatabaseName = "shiftclub",

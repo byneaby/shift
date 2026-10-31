@@ -38,9 +38,11 @@ public static class WindowsInstallPlan
         var license = answers.LicenseLater
             ? "вставите после запуска, сервер попросит ключ"
             : ShiftClub.Shared.Licensing.LicenseKeyFormat.Normalize(answers.LicenseKey);
-        var database = answers.CreateDatabase
-            ? $"создать {answers.DatabaseName.Trim()} на {answers.DatabaseHost.Trim()}:{answers.DatabasePort}"
-            : $"уже есть {answers.DatabaseName.Trim()} на {answers.DatabaseHost.Trim()}:{answers.DatabasePort}";
+        var database = answers.InstallBundledPostgres
+            ? $"PostgreSQL 16 в {PostgresBundle.InstallRoot}, слушает только этот компьютер"
+            : answers.CreateDatabase
+                ? $"создать {answers.DatabaseName.Trim()} на {answers.DatabaseHost.Trim()}:{answers.DatabasePort}"
+                : $"уже есть {answers.DatabaseName.Trim()} на {answers.DatabaseHost.Trim()}:{answers.DatabasePort}";
         return new (string, string)[]
         {
             ("Папка", answers.InstallDirectory.Trim()),

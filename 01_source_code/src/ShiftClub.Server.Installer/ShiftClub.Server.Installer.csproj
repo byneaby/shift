@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="payload\server.zip" Condition="Exists('payload\server.zip')" LogicalName="payload.server.zip" />
+    <EmbeddedResource Include="payload\postgres.zip" Condition="Exists('payload\postgres.zip')" LogicalName="payload.postgres.zip" />
+    <EmbeddedResource Include="payload\vc_redist.x64.exe" Condition="Exists('payload\vc_redist.x64.exe')" LogicalName="payload.vc_redist.x64.exe" />
     <EmbeddedResource Include="..\..\scripts\Start-ShiftClubApi.ps1" LogicalName="script.Start-ShiftClubApi.ps1" />
     <EmbeddedResource Include="..\..\scripts\Watch-ShiftClubApi.ps1" LogicalName="script.Watch-ShiftClubApi.ps1" />
   </ItemGroup>
